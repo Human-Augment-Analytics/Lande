@@ -50,3 +50,6 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Large analysis outputs (kept out of the source package; see .Rbuildignore)
+results/
