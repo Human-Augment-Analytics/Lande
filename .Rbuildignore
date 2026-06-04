@@ -1,0 +1,12 @@
+^results$
+^validation$
+^case_studies$
+^inst/scripts$
+^inst/extdata$
+^Evolutionary-Selection-Analysis\.html$
+^\.git$
+^\.DS_Store$
+.*\.DS_Store$
+^LICENSE\.md$
+^.*\.Rproj$
+^\.Rproj\.user$
