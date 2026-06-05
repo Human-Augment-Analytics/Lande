@@ -9,5 +9,5 @@ test_that("analyze_nonlinear_selection fits full quadratic model", {
   )
   
   res <- analyze_nonlinear_selection(df, "w", c("z1", "z2"), "continuous")
-  expect_true(any(grepl("I\\(z1\\^2\\)", rownames(res$summary_ols$coefficients))))
+  expect_true(any(grepl("I\\(z1\\^2\\)", rownames(res$summary$coefficients))))
 })
