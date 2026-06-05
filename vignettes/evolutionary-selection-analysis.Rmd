@@ -1,3 +1,18 @@
+---
+title: "Evolutionary Selection Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Evolutionary Selection Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# Chunks illustrate the workflow; they are not evaluated at build time so the
+# vignette renders without the full modelling dependencies and example data.
+knitr::opts_chunk$set(eval = FALSE, collapse = TRUE, comment = "#>")
+```
+
 # Evolutionary Selection Analysis Framework
 
 ## 1. Overview
