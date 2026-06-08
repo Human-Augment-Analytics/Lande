@@ -4,6 +4,36 @@
 # ============================================================================
 
 #' @noRd
+# internal utility: variance inflation factors, with the collinearity warning
+.compute_vif <- function(fit) {
+  if (!requireNamespace("car", quietly = TRUE)) {
+    return(NULL)
+  }
+  vif_vals <- tryCatch(
+    car::vif(fit),
+    error = function(e) {
+      warning("VIF calculation failed: ", e$message)
+      NULL
+    }
+  )
+  if (!is.null(vif_vals) && any(vif_vals > 5)) {
+    warning("High multicollinearity detected (VIF > 5) - standard errors may be inflated")
+  }
+  vif_vals
+}
+
+#' @noRd
+# internal utility: warn when the design is under-powered for its parameters
+.warn_small_sample <- function(n, n_params) {
+  if (n < n_params * 2) {
+    warning(
+      "Sample size (", n, ") may be too small for ", n_params,
+      " parameters - results may be unreliable"
+    )
+  }
+}
+
+#' @noRd
 # internal utility: get coefficient-level p-value column name from summary()
 .p_col_from_summary <- function(coef_mat) {
   pcols <- intersect(colnames(coef_mat), c("Pr(>|t|)", "Pr(>|z|)"))
@@ -30,12 +60,8 @@
 # Helper to get appropriate summary and p-value column
 .get_summary_and_pcol <- function(results) {
   if (results$fitness_type == "binary") {
-    # cat("DEBUG: In .get_summary_and_pcol (binary branch)\n")
-    # cat("DEBUG: names(results$summary):", paste(names(results$summary), collapse = ", "), "\n")
-
     # Check if summary$glm exists
     if (is.null(results$summary$glm)) {
-      cat("DEBUG: summary$glm is NULL, falling back to OLS\n")
       sm <- results$summary$ols
       pcol <- .p_col_from_summary(coef(sm))
       if (is.na(pcol)) pcol <- "Pr(>|t|)"
@@ -47,8 +73,6 @@
         is_binary = FALSE
       ))
     }
-
-    # cat("DEBUG: summary$glm exists!\n")
 
     sm_ols <- results$summary$ols
     sm_glm <- results$summary$glm
@@ -210,7 +234,7 @@ extract_quadratic_coefficients <- function(trait_cols, results) {
       }
 
       data.frame(
-        Term = paste0(t, "²"),
+        Term = paste0(t, "\u00b2"),
         Type = "Quadratic",
         Beta_Coefficient = as.numeric(est),
         Standard_Error = as.numeric(se),
@@ -250,7 +274,7 @@ extract_quadratic_coefficients <- function(trait_cols, results) {
       }
 
       data.frame(
-        Term = paste0(t, "²"),
+        Term = paste0(t, "\u00b2"),
         Type = "Quadratic",
         Beta_Coefficient = as.numeric(est),
         Standard_Error = as.numeric(se),
@@ -316,7 +340,7 @@ extract_interaction_coefficients <- function(trait_cols, results) {
       }
 
       data.frame(
-        Term = paste(p[1], "×", p[2]),
+        Term = paste(p[1], "\u00d7", p[2]),
         Type = "Correlational",
         Beta_Coefficient = as.numeric(est),
         Standard_Error = as.numeric(se),
@@ -356,7 +380,7 @@ extract_interaction_coefficients <- function(trait_cols, results) {
       }
 
       data.frame(
-        Term = paste(p[1], "×", p[2]),
+        Term = paste(p[1], "\u00d7", p[2]),
         Type = "Correlational",
         Beta_Coefficient = as.numeric(est),
         Standard_Error = as.numeric(se),

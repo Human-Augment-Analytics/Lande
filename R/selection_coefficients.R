@@ -6,12 +6,12 @@
 # Workflow:
 #   1. Data preparation (standardization, relative fitness, optional grouping)
 #   2. Automatic fitness type detection
-#   3. Linear selection analysis (β)
-#   4. Nonlinear selection analysis (γ, γ_ij)
+#   3. Linear selection analysis (beta)
+#   4. Nonlinear selection analysis (gamma, gamma_ij)
 #   5. Extract and combine all coefficients
 #
 # IMPORTANT NOTE:
-#   - OLS is ALWAYS used to estimate selection gradients (β, γ, γ_ij)
+#   - OLS is ALWAYS used to estimate selection gradients (beta, gamma, gamma_ij)
 #   - For binary fitness: OLS gives gradients, logistic GLM gives p-values
 #   - For continuous fitness: OLS gives both gradients and valid p-values
 #   - Standardization and relative fitness can be done within groups (e.g., year)
@@ -29,9 +29,9 @@
 #
 # Returns:
 #   Data frame with columns:
-#     Term               : coefficient name (e.g., "size", "size²", "size×color")
+#     Term               : coefficient name (e.g., "size", "size^2", "sizexcolor")
 #     Type               : "Linear", "Quadratic", or "Correlational"
-#     Beta_Coefficient   : estimated selection gradient (β or γ)
+#     Beta_Coefficient   : estimated selection gradient (beta or gamma)
 #     Standard_Error     : standard error of estimate
 #     P_Value            : statistical significance
 #     Variance           : square of standard error
@@ -71,6 +71,9 @@ selection_coefficients <- function(data,
   # CASE 1: return by group
   # ======================================================
   if (return_grouped && !is.null(group)) {
+    if (!group %in% names(data)) {
+      stop("Group column '", group, "' not found in data")
+    }
     groups <- unique(data[[group]])
     results_list <- list()
 
@@ -122,39 +125,37 @@ selection_coefficients <- function(data,
     fitness_type <- det$type
   }
 
-  # Determine which fitness column to model
-  model_fitness_col <- if (fitness_type == "binary") {
-    if (use_relative_for_fit) {
-      message("Binary fitness detected: modeling on absolute 0/1")
+  # Selection gradients always come from OLS on relative fitness. Binary fitness
+  # additionally uses the raw 0/1 column for logistic-GLM p-values.
+  ols_response_col <- if (use_relative_for_fit) {
+    if (!rel_col %in% names(df)) {
+      stop(
+        "Relative fitness column '", rel_col, "' not found. ",
+        "Ensure prepare_selection_data(add_relative=TRUE) creates it."
+      )
     }
-    fitness_col
+    rel_col
   } else {
-    if (use_relative_for_fit) {
-      if (!rel_col %in% names(df)) {
-        stop(
-          "Relative fitness column '", rel_col, "' not found. ",
-          "Ensure prepare_selection_data(add_relative=TRUE) creates it."
-        )
-      }
-      rel_col
-    } else {
-      fitness_col
-    }
+    fitness_col
   }
+
+  binary_response_col <- if (fitness_type == "binary") fitness_col else NULL
 
   # Run analyses
   linear_result <- analyze_linear_selection(
-    data         = df,
-    fitness_col  = model_fitness_col,
-    trait_cols   = trait_cols,
-    fitness_type = fitness_type
+    data                = df,
+    fitness_col         = ols_response_col,
+    trait_cols          = trait_cols,
+    fitness_type        = fitness_type,
+    binary_response_col = binary_response_col
   )
 
   nonlinear_result <- analyze_nonlinear_selection(
-    data         = df,
-    fitness_col  = model_fitness_col,
-    trait_cols   = trait_cols,
-    fitness_type = fitness_type
+    data                = df,
+    fitness_col         = ols_response_col,
+    trait_cols          = trait_cols,
+    fitness_type        = fitness_type,
+    binary_response_col = binary_response_col
   )
 
   # Extract coefficients
@@ -171,7 +172,7 @@ selection_coefficients <- function(data,
   # Add attributes
   attr(all_coefs, "fitness_type_detected") <- det$type
   attr(all_coefs, "model_family_used") <- if (fitness_type == "binary") "binomial(logit)" else "gaussian"
-  attr(all_coefs, "model_fitness_col") <- model_fitness_col
+  attr(all_coefs, "model_fitness_col") <- ols_response_col
   attr(all_coefs, "relative_available") <- rel_col %in% names(df)
   attr(all_coefs, "group_used") <- group
 

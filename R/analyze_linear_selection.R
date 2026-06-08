@@ -1,132 +1,74 @@
 # ============================================================================
 # analyze_linear_selection
 #
-# Purpose: Estimate linear selection gradients (β) using Lande & Arnold (1983)
+# Purpose: Estimate linear selection gradients (beta) using Lande & Arnold (1983)
 #
 # IMPORTANT NOTE:
-#   - ALWAYS use OLS (ordinary least squares) to estimate selection gradients
-#   - For binary fitness (0/1 survival): OLS gives the correct β estimates,
-#     but the p-values from OLS are not trustworthy because residuals violate
-#     normality assumptions. Therefore, we use logistic regression (GLM)
-#     specifically to obtain valid p-values.
-#   - For continuous fitness (e.g., growth rate, offspring number): OLS
-#     provides both valid coefficient estimates AND valid p-values (via t-tests
-#     and F-tests), because the residuals can reasonably approximate normality.
-#
-# Workflow:
-#   Continuous fitness:
-#     1. Fit OLS model → coefficients = selection gradients (β)
-#     2. p-values come directly from OLS summary
-#     3. Type III ANOVA (car::Anova) for significance of each term
-#     4. Check VIF for multicollinearity
-#
-#   Binary fitness:
-#     1. Fit OLS model → coefficients = selection gradients (β)
-#     2. Fit logistic GLM model → p-values from Wald tests (Type III)
-#     3. Check convergence and separation
-#     4. Type III ANOVA on GLM for overall term significance
-#     5. Check VIF using OLS (GLM VIF not directly comparable)
+#   - Gradients are estimated by OLS on RELATIVE fitness (w = W / mean W).
+#     The caller (selection_coefficients) supplies relative fitness as
+#     `fitness_col`; a direct caller may pass a raw fitness column, which is
+#     relativised internally for binary data.
+#   - For binary fitness (0/1 survival): OLS on relative fitness gives the
+#     correct beta, but its p-values are not trustworthy because the residuals
+#     violate normality. A logistic GLM on the raw 0/1 outcome supplies valid
+#     p-values (via Wald tests).
+#   - For continuous, count, or proportion fitness: OLS provides both the
+#     gradients and valid p-values (t- and F-tests).
 #
 # Returns:
-#   For continuous: list with model (lm), summary, anova, vif, fitness_type
-#   For binary: list with model (list of ols and glm), summary (list of ols and glm),
+#   Non-binary: list with model (lm), summary, anova, vif, fitness_type
+#   Binary:     list with model (ols + glm), summary (ols + glm),
 #               anova (from GLM), vif, fitness_type
 # ============================================================================
 
 #' Analyze linear selection gradients (beta)
 #'
-#' Estimates linear selection gradients using OLS, and logistic regression for valid p-values when fitness is binary.
+#' Estimates linear selection gradients by OLS on relative fitness, using logistic regression for valid p-values when fitness is binary.
 #'
 #' @param data A data frame containing fitness and trait measurements.
-#' @param fitness_col A string specifying the name of the fitness column.
+#' @param fitness_col A string specifying the response column for the OLS gradient model (relative fitness).
 #' @param trait_cols A character vector of trait column names.
-#' @param fitness_type A string indicating the fitness type: \code{"binary"} or \code{"continuous"}.
+#' @param fitness_type A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.
+#' @param binary_response_col Optional string naming the raw 0/1 column used for the logistic GLM when \code{fitness_type = "binary"}. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.
 #'
 #' @return A list containing the fitted models, summaries, ANOVA tables, and VIFs.
 #' @export
-analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type) {
+analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type,
+                                     binary_response_col = NULL) {
   # Check sample size
   if (nrow(data) < 10) {
-    warning("Small sample size (n < 10) — results may be unreliable")
+    warning("Small sample size (n < 10) - results may be unreliable")
   }
 
   # Build fitness ~ trait1 + trait2 + trait3
   rhs <- paste(trait_cols, collapse = " + ")
 
-  if (fitness_type == "continuous") {
-    # Use relative fitness if available (standardized to mean = 1)
-    resp <- if ("relative_fitness" %in% names(data)) {
-      "relative_fitness"
+  if (fitness_type == "binary") {
+    # Gradients from OLS on relative fitness; p-values from a logistic GLM on
+    # the raw 0/1 outcome.
+    glm_col <- if (!is.null(binary_response_col)) binary_response_col else fitness_col
+    fit_data <- data[complete.cases(data[, c(fitness_col, glm_col, trait_cols)]), ]
+
+    if (is.null(binary_response_col)) {
+      fit_data$.rel_fitness <- fit_data[[fitness_col]] / mean(fit_data[[fitness_col]])
+      ols_resp <- ".rel_fitness"
     } else {
-      fitness_col
+      ols_resp <- fitness_col
     }
 
-    # OLS
-    fml <- as.formula(paste(resp, "~", rhs))
-
-    # Remove rows with missing data
-    fit_data <- data[complete.cases(data[, c(resp, trait_cols)]), ]
-    fit_ols <- lm(fml, data = fit_data)
+    fit_ols <- lm(as.formula(paste(ols_resp, "~", rhs)), data = fit_data)
     sm_ols <- summary(fit_ols)
 
-    # Type III ANOVA, it gives the partial regression coefficients (β) and their significance.
-    anova_cont <- NULL
-    if (requireNamespace("car", quietly = TRUE)) {
-      anova_cont <- tryCatch(
-        car::Anova(fit_ols, type = "III"),
-        error = function(e) {
-          warning("Type III ANOVA failed: ", e$message)
-          NULL
-        }
-      )
-    } else {
-      warning("Package 'car' not installed — skipping Type III ANOVA")
-    }
-
-    # Variance Inflation Factor (VIF) check
-    vif_vals <- NULL
-    if (requireNamespace("car", quietly = TRUE)) {
-      vif_vals <- tryCatch(
-        car::vif(fit_ols),
-        error = function(e) {
-          warning("VIF calculation failed: ", e$message)
-          NULL
-        }
-      )
-      if (!is.null(vif_vals) && any(vif_vals > 5)) {
-        warning("High multicollinearity detected (VIF > 5) — standard errors may be inflated")
-      }
-    }
-
-    return(list(
-      model = fit_ols, # lm object (contains coefficients, etc.)
-      summary = sm_ols, # summary.lm object (p-values)
-      anova = anova_cont, # Type III ANOVA table
-      vif = vif_vals, # variance inflation factors
-      fitness_type = "continuous"
-    ))
-  } else {
-    # For binary fitness, we use the original 0/1 values
-    fml <- as.formula(paste(fitness_col, "~", rhs))
-
-    # Remove rows with missing data
-    fit_data <- data[complete.cases(data[, c(fitness_col, trait_cols)]), ]
-
-    # OLS
-    fit_ols <- lm(fml, data = fit_data)
-    sm_ols <- summary(fit_ols)
-
-    # LOGISTIC GLM (for valid p-values)
-    fit_glm <- glm(fml, data = fit_data, family = binomial)
+    fit_glm <- glm(as.formula(paste(glm_col, "~", rhs)), data = fit_data, family = binomial)
     sm_glm <- summary(fit_glm)
 
     # Convergence: If the GLM algorithm fails to converge, results are unreliable
     if (!fit_glm$converged) {
-      warning("GLM did not converge — results may be unreliable")
+      warning("GLM did not converge - results may be unreliable")
     }
 
     if (any(abs(coef(fit_glm)) > 10)) {
-      warning("Possible complete separation detected — large coefficients (>10)")
+      warning("Possible complete separation detected - large coefficients (>10)")
     }
 
     # Type III ANOVA
@@ -140,27 +82,15 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
         }
       )
     } else {
-      warning("Package 'car' not installed — skipping Type III ANOVA")
+      warning("Package 'car' not installed - skipping Type III ANOVA")
     }
 
-    # Variance Inflation Factor (VIF) check
-    vif_vals <- NULL
-    if (requireNamespace("car", quietly = TRUE)) {
-      vif_vals <- tryCatch(
-        car::vif(fit_ols),
-        error = function(e) {
-          warning("VIF calculation failed: ", e$message)
-          NULL
-        }
-      )
-      if (!is.null(vif_vals) && any(vif_vals > 5)) {
-        warning("High multicollinearity detected (VIF > 5) — standard errors may be inflated")
-      }
-    }
+    # Variance Inflation Factor (VIF) check, computed on the OLS fit
+    vif_vals <- .compute_vif(fit_ols)
 
     return(list(
       model = list(
-        ols = fit_ols, # lm object (coefficients = β)
+        ols = fit_ols, # lm object on relative fitness (coefficients = beta)
         glm = fit_glm # glm object (for p-values and ANOVA)
       ),
       summary = list(
@@ -170,6 +100,36 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
       anova = anova_bin, # Type III ANOVA from GLM
       vif = vif_vals,
       fitness_type = "binary"
+    ))
+  } else {
+    # Continuous, count, or proportion fitness: OLS supplies gradients and
+    # p-values. The caller passes relative fitness as `fitness_col`.
+    fit_data <- data[complete.cases(data[, c(fitness_col, trait_cols)]), ]
+    fit_ols <- lm(as.formula(paste(fitness_col, "~", rhs)), data = fit_data)
+    sm_ols <- summary(fit_ols)
+
+    # Type III ANOVA gives the partial regression coefficients (beta) and their significance.
+    anova_cont <- NULL
+    if (requireNamespace("car", quietly = TRUE)) {
+      anova_cont <- tryCatch(
+        car::Anova(fit_ols, type = "III"),
+        error = function(e) {
+          warning("Type III ANOVA failed: ", e$message)
+          NULL
+        }
+      )
+    } else {
+      warning("Package 'car' not installed - skipping Type III ANOVA")
+    }
+
+    vif_vals <- .compute_vif(fit_ols)
+
+    return(list(
+      model = fit_ols, # lm object (contains coefficients, etc.)
+      summary = sm_ols, # summary.lm object (p-values)
+      anova = anova_cont, # Type III ANOVA table
+      vif = vif_vals, # variance inflation factors
+      fitness_type = fitness_type
     ))
   }
 }

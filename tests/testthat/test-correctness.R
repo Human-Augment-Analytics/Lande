@@ -1,0 +1,105 @@
+# Known-answer checks for the Lande-Arnold estimators. These pin the numeric
+# behaviour that structural smoke tests miss (relativisation, the factor-of-2
+# convention, and the fitness-type routing).
+
+make_data <- function(n = 400, seed = 1) {
+  set.seed(seed)
+  z1 <- rnorm(n)
+  z2 <- rnorm(n)
+  list(z1 = z1, z2 = z2)
+}
+
+test_that("continuous fits return linear, quadratic and correlational terms", {
+  d <- make_data()
+  w <- 1 + 0.4 * d$z1 - 0.3 * d$z2 + 0.2 * d$z1^2 + 0.15 * d$z1 * d$z2 + rnorm(400, 0, 0.2)
+  df <- data.frame(w = w, z1 = d$z1, z2 = d$z2)
+
+  res <- suppressWarnings(suppressMessages(
+    selection_coefficients(df, "w", c("z1", "z2"), fitness_type = "continuous")
+  ))
+
+  expect_true(any(res$Type == "Quadratic"))
+  expect_true(any(res$Type == "Correlational"))
+})
+
+test_that("quadratic gradients are twice the OLS quadratic coefficient", {
+  d <- make_data()
+  w <- 1 + 0.3 * d$z1 + 0.25 * d$z1^2 + rnorm(400, 0, 0.2)
+  df <- data.frame(w = w, z1 = d$z1, z2 = d$z2)
+
+  res <- suppressWarnings(suppressMessages(
+    selection_coefficients(df, "w", c("z1", "z2"), fitness_type = "continuous")
+  ))
+
+  # Reference: OLS on standardised traits and relative fitness, gamma = 2 * b_quad
+  zz1 <- as.numeric(scale(d$z1))
+  zz2 <- as.numeric(scale(d$z2))
+  wrel <- w / mean(w)
+  fit <- lm(wrel ~ zz1 + zz2 + I(zz1^2) + I(zz2^2) + zz1:zz2)
+  ref_gamma <- 2 * coef(fit)["I(zz1^2)"]
+
+  got <- res$Beta_Coefficient[res$Term == "z1²"]
+  expect_equal(unname(got), unname(ref_gamma), tolerance = 1e-6)
+})
+
+test_that("binary gradients are estimated on relative fitness, not absolute 0/1", {
+  d <- make_data()
+  surv <- rbinom(400, 1, plogis(0.8 * d$z1 - 0.5 * d$z2))
+  df <- data.frame(surv = surv, z1 = d$z1, z2 = d$z2)
+
+  res <- suppressWarnings(suppressMessages(
+    selection_coefficients(df, "surv", c("z1", "z2"), fitness_type = "binary")
+  ))
+
+  zz1 <- as.numeric(scale(d$z1))
+  zz2 <- as.numeric(scale(d$z2))
+  rel <- coef(lm((surv / mean(surv)) ~ zz1 + zz2))[c("zz1", "zz2")]
+  abs <- coef(lm(surv ~ zz1 + zz2))[c("zz1", "zz2")]
+  got <- res$Beta_Coefficient[match(c("z1", "z2"), res$Term)]
+
+  expect_equal(unname(got), unname(rel), tolerance = 1e-6)
+  # And they must differ from the absolute-scale gradients by the survival rate
+  expect_false(isTRUE(all.equal(unname(got), unname(abs), tolerance = 1e-3)))
+})
+
+test_that("count fitness is analysed without crashing", {
+  d <- make_data()
+  fec <- rpois(400, lambda = exp(0.3 * d$z1))
+  df <- data.frame(fec = fec, z1 = d$z1, z2 = d$z2)
+
+  res <- suppressWarnings(suppressMessages(
+    selection_coefficients(df, "fec", c("z1", "z2"), fitness_type = "auto")
+  ))
+
+  expect_s3_class(res, "data.frame")
+  expect_true(any(res$Type == "Linear"))
+})
+
+test_that("selection_differential equals the covariance of trait and fitness", {
+  d <- make_data()
+  z <- as.numeric(scale(d$z1))
+  w <- 1 + 0.2 * z + rnorm(400, 0, 0.1)
+  df <- data.frame(z = z, w = w)
+
+  S <- selection_differential(df, "w", "z", standardized = TRUE, use_relative = FALSE)
+  expect_equal(S, mean((z - mean(z)) * (w - mean(w))), tolerance = 1e-9)
+})
+
+test_that("prepare_selection_data standardizes traits and centres relative fitness at 1", {
+  d <- make_data(n = 100)
+  df <- data.frame(w = runif(100, 1, 10), z1 = d$z1[1:100], z2 = d$z2[1:100])
+
+  out <- suppressWarnings(suppressMessages(
+    prepare_selection_data(df, "w", c("z1", "z2"), name_relative = "w_relative")
+  ))
+
+  expect_equal(mean(out$z1), 0, tolerance = 1e-8)
+  expect_equal(sd(out$z1), 1, tolerance = 1e-8)
+  expect_equal(mean(out$w_relative), 1, tolerance = 1e-8)
+})
+
+test_that("detect_family classifies the common fitness shapes", {
+  expect_equal(detect_family(c(0, 1, 0, 1, 1, 0, 1, 0, 1, 0))$type, "binary")
+  expect_equal(suppressWarnings(detect_family(c(0, 2, 3, 5, 1, 4, 2, 6, 3, 1))$type), "count")
+  expect_equal(detect_family(rnorm(50, 5, 1))$type, "continuous")
+})
