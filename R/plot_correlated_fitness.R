@@ -3,7 +3,7 @@
 # Visualize correlated fitness surface (individual-level)
 #
 # IMPORTANT CONCEPT:
-# - Correlated Fitness Surface: individual fitness (w ~ z₁, z₂)
+# - Correlated Fitness Surface: individual fitness (w ~ z1, z2)
 # - This is DIFFERENT from adaptive landscape (population-level)
 #
 # KEY PRINCIPLE:
@@ -170,11 +170,15 @@ plot_correlated_fitness_enhanced <- function(
     trait1 <- trait_cols[1]
     trait2 <- trait_cols[2]
     cat("Using provided traits:", trait1, trait2, "\n")
+  } else if (!is.null(tps$trait_cols) && length(tps$trait_cols) == 2) {
+    trait1 <- tps$trait_cols[1]
+    trait2 <- tps$trait_cols[2]
+    cat("Using traits from surface object:", trait1, trait2, "\n")
   } else {
-    # Infer from grid columns
+    # Infer from grid columns, excluding any grouping column carried along
     possible_traits <- setdiff(
       names(df),
-      c(".fit", "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type")
+      c(".fit", "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
     )
     if (length(possible_traits) >= 2) {
       trait1 <- possible_traits[1]
@@ -245,7 +249,7 @@ plot_correlated_fitness_enhanced <- function(
             alpha = point_alpha
           ) +
           ggplot2::scale_color_manual(
-            values = c("0" = "red", "1" = "green"),
+            values = c("0" = "#D55E00", "1" = "#0072B2"),
             labels = c("0" = "Perished", "1" = "Survived"),
             name = "Outcome"
           )

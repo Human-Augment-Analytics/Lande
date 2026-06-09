@@ -3,19 +3,19 @@
 #
 # Purpose: Detect disruptive or stabilizing selection on a single trait
 #
-# Model: w = α + βz + γz² + ε
+# Model: w = alpha + betaz + gammaz^2 + epsilon
 #   where:
-#     β = linear selection gradient (directional selection)
-#     γ = quadratic selection gradient (γ > 0: disruptive; γ < 0: stabilizing)
+#     beta = linear selection gradient (directional selection)
+#     gamma = quadratic selection gradient (gamma > 0: disruptive; gamma < 0: stabilizing)
 #
 # IMPORTANT NOTES:
-#   For ALL fitness types, selection gradients (β and γ) come from OLS.
+#   For ALL fitness types, selection gradients (beta and gamma) come from OLS.
 #   P-values come from:
 #     - Continuous fitness: OLS (t-tests are valid)
 #     - Binary fitness: Logistic GLM (Wald tests)
 #
-#   Quadratic coefficients are multiplied by 2 to obtain γ following
-#   Lande & Arnold (1983): γ_ii = 2 × β_quad
+#   Quadratic coefficients are multiplied by 2 to obtain gamma following
+#   Lande & Arnold (1983): gamma_ii = 2 x beta_quad
 #
 #   Standardization is done WITHIN each group (e.g., year) to ensure
 #   individuals are compared relative to their relevant context.
@@ -32,9 +32,9 @@
 #
 # Returns:
 #   Data frame with:
-#     Term              : trait name and "trait²"
+#     Term              : trait name and "trait^2"
 #     Type              : "Linear" or "Quadratic"
-#     Beta_Coefficient  : selection gradient (β or γ)
+#     Beta_Coefficient  : selection gradient (beta or gamma)
 #     Standard_Error    : standard error of estimate
 #     P_Value           : statistical significance (from appropriate source)
 #     Variance          : squared standard error
@@ -64,18 +64,25 @@ analyze_disruptive_selection <- function(
   # Input validation
   fitness_type <- match.arg(fitness_type)
 
+  rel_col <- paste0(fitness_col, "_relative")
+
   df <- prepare_selection_data(
     data = data,
     fitness_col = fitness_col,
     trait_cols = trait_col,
     standardize = standardize,
     group = group,
-    add_relative = (fitness_type == "continuous"),
-    na_action = "warn"
+    add_relative = TRUE,
+    na_action = "warn",
+    name_relative = rel_col
   )
 
+  # Gradients come from OLS on relative fitness. Binary fitness takes its
+  # p-values from a logistic GLM fitted to the raw 0/1 outcome.
+  ols_resp <- if (rel_col %in% names(df)) rel_col else fitness_col
+
   fml <- as.formula(
-    paste(fitness_col, "~", trait_col, "+ I(", trait_col, "^2)")
+    paste(ols_resp, "~", trait_col, "+ I(", trait_col, "^2)")
   )
 
   # OLS
@@ -84,11 +91,11 @@ analyze_disruptive_selection <- function(
 
   quad_term <- paste0("I(", trait_col, "^2)")
 
-  # Linear term (β) from OLS
+  # Linear term (beta) from OLS
   beta_linear <- coef_ols[trait_col, "Estimate"]
   se_linear <- coef_ols[trait_col, "Std. Error"]
 
-  # Quadratic term (γ = 2 × β_quad) from OLS
+  # Quadratic term (gamma = 2 x beta_quad) from OLS
   if (quad_term %in% rownames(coef_ols)) {
     gamma_quad <- 2 * coef_ols[quad_term, "Estimate"]
     se_quad <- 2 * coef_ols[quad_term, "Std. Error"]
@@ -112,8 +119,11 @@ analyze_disruptive_selection <- function(
   } else {
     # For binary fitness (0/1 survival):
     # OLS p-values are NOT valid (residuals violate normality)
-    # Use logistic GLM for valid p-values
-    fit_glm <- glm(fml, data = df, family = binomial)
+    # Use logistic GLM on the raw 0/1 outcome for valid p-values
+    fml_glm <- as.formula(
+      paste(fitness_col, "~", trait_col, "+ I(", trait_col, "^2)")
+    )
+    fit_glm <- glm(fml_glm, data = df, family = binomial)
     coef_glm <- summary(fit_glm)$coefficients
 
     p_linear <- coef_glm[trait_col, "Pr(>|z|)"]
@@ -126,7 +136,7 @@ analyze_disruptive_selection <- function(
   }
 
   results <- data.frame(
-    Term = c(trait_col, paste0(trait_col, "²")),
+    Term = c(trait_col, paste0(trait_col, "\u00b2")),
     Type = c("Linear", "Quadratic"),
     Beta_Coefficient = c(beta_linear, gamma_quad),
     Standard_Error = c(se_linear, se_quad),

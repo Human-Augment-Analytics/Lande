@@ -3,7 +3,7 @@
 # Visualize Adaptive Landscape (population-level)
 #
 # IMPORTANT CONCEPT:
-# - Adaptive Landscape: mean fitness (W̄ ~ z̄₁, z̄₂)
+# - Adaptive Landscape: mean fitness (Wbar ~ zbar1, zbar2)
 # - This is DIFFERENT from correlated fitness surface (individual-level)
 #
 # KEY PRINCIPLE:
@@ -204,6 +204,13 @@ plot_adaptive_landscape_3d <- function(
         warning("Object is not of class 'adaptive_landscape'")
     }
 
+    for (pkg in c("akima", "fields")) {
+        if (!requireNamespace(pkg, quietly = TRUE)) {
+            stop("Package '", pkg, "' is required for 3D landscape plots. ",
+                 "Install it with install.packages('", pkg, "').")
+        }
+    }
+
     df <- landscape$grid
 
     if (!all(trait_cols %in% names(df))) {
@@ -214,10 +221,11 @@ plot_adaptive_landscape_3d <- function(
     y <- df[[trait_cols[2]]]
     z <- df$.mean_fit
 
-    # Add small jitter to avoid collinear warnings
-    set.seed(42)
-    x <- x + rnorm(length(x), 0, 1e-8)
-    y <- y + rnorm(length(y), 0, 1e-8)
+    # Nudge coordinates by a deterministic, negligible amount to avoid akima
+    # collinearity warnings without touching the caller's RNG state.
+    eps <- 1e-8
+    x <- x + seq(0, eps, length.out = length(x))
+    y <- y + seq(0, eps, length.out = length(y))
 
     interp <- akima::interp(
         x = x,
@@ -226,7 +234,7 @@ plot_adaptive_landscape_3d <- function(
         xo = seq(min(x), max(x), length = grid_n),
         yo = seq(min(y), max(y), length = grid_n),
         linear = FALSE, # Spline interpolation
-        extrap = TRUE,
+        extrap = FALSE, # Do not fabricate fitness beyond the observed range
         duplicate = "mean"
     )
 

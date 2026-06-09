@@ -10,7 +10,7 @@
 #
 # IMPORTANT NOTE:
 #   When traits are standardized to mean 0 and SD 1, and fitness is relativized
-#   to mean 1, then S = mean(z × w)
+#   to mean 1, then S = mean(z x w)
 #
 #   For multi-year/site studies, S should be calculated WITHIN each group
 #   (e.g., within each year) to ensure individuals are compared to their
@@ -103,8 +103,10 @@ selection_differential <- function(data,
       w <- w / mu
     }
 
-    # S = Cov(z, w) = mean(z * w) when mean(z) = 0
-    mean(z * w)
+    # S = Cov(z, w), the population covariance (the selection-induced change in
+    # mean trait). Centring both terms makes this exact whether or not the
+    # trait was pre-centred, and reduces to mean(z * w) when the trait is centred.
+    mean((z - mean(z)) * (w - mean(w)))
   }
 
   if (!is.null(group)) {
@@ -124,9 +126,10 @@ selection_differential <- function(data,
     if (return_grouped) {
       return(S_by_group)
     } else {
-      # Return weighted mean (by sample size)
-      weighted_mean <- sum(S_by_group$S * S_by_group$n, na.rm = TRUE) /
-        sum(S_by_group$n, na.rm = TRUE)
+      # Return weighted mean (by sample size), ignoring groups with no estimate
+      ok <- !is.na(S_by_group$S)
+      weighted_mean <- sum(S_by_group$S[ok] * S_by_group$n[ok]) /
+        sum(S_by_group$n[ok])
       return(weighted_mean)
     }
   } else {

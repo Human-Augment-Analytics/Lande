@@ -4,11 +4,11 @@
 #
 # IMPORTANT CONCEPT:
 # Adaptive Landscape = Mean fitness ~ Population mean phenotype
-# Formula: W̄ ~ z̄₁ + z̄₂
+# Formula: Wbar ~ zbar1 + zbar2
 #
 # This is DIFFERENT from correlated fitness surface:
 # - Correlated fitness: w ~ z (individual fitness)
-# - Adaptive landscape: W̄ ~ z̄ (population mean fitness)
+# - Adaptive landscape: Wbar ~ zbar (population mean fitness)
 #
 # KEY PRINCIPLE:
 # - Traits MUST already be standardized (mean = 0, SD = 1)
@@ -99,8 +99,9 @@ adaptive_landscape <- function(
     # Estimate within-population variance if not provided
     if (is.null(population_variance)) {
         # Use all data to estimate phenotypic variance
-        trait_data <- data[, trait_cols, drop = FALSE]
-        trait_data <- trait_data[complete.cases(trait_data), ]
+        trait_all <- data[, trait_cols, drop = FALSE]
+        cc <- complete.cases(trait_all)
+        trait_data <- trait_all[cc, , drop = FALSE]
 
         if (nrow(trait_data) > 1) {
             population_variance <- var(trait_data, na.rm = TRUE)
@@ -112,7 +113,7 @@ adaptive_landscape <- function(
         if (!is.null(group_col) && group_col %in% names(data)) {
             group_variances <- by(
                 trait_data,
-                data[[group_col]][complete.cases(trait_data)],
+                data[[group_col]][cc],
                 function(x) if (nrow(x) > 1) var(x) else NULL
             )
             group_variances <- group_variances[!sapply(group_variances, is.null)]
@@ -236,7 +237,7 @@ print.adaptive_landscape <- function(x, ...) {
     # Check if traits were standardized
     if (!is.null(x$data_summary$traits_standardized)) {
         if (x$data_summary$traits_standardized) {
-            cat("Traits: standardized (mean ≈ 0, SD ≈ 1)\n")
+            cat("Traits: standardized (mean ~ 0, SD ~ 1)\n")
         } else {
             cat("WARNING: Traits may not be standardized!\n")
         }
@@ -251,4 +252,5 @@ print.adaptive_landscape <- function(x, ...) {
         print(x$actual_population_means)
     }
     cat("\n", x$note, "\n")
+    invisible(x)
 }

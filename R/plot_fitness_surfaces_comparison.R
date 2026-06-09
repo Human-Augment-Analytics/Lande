@@ -54,7 +54,7 @@ plot_fitness_surfaces_comparison <- function(
     p_cor <- ggplot2::ggplot(cor_df, ggplot2::aes(
         x = .data[[trait_cols[1]]],
         y = .data[[trait_cols[2]]],
-        z = fitness
+        z = .data[["fitness"]]
     )) +
         ggplot2::geom_contour_filled(bins = bins) +
         ggplot2::scale_fill_manual(
@@ -84,7 +84,7 @@ plot_fitness_surfaces_comparison <- function(
     p_ada <- ggplot2::ggplot(ada_df, ggplot2::aes(
         x = .data[[trait_cols[1]]],
         y = .data[[trait_cols[2]]],
-        z = fitness
+        z = .data[["fitness"]]
     )) +
         ggplot2::geom_contour_filled(bins = bins) +
         ggplot2::scale_fill_manual(
@@ -132,7 +132,7 @@ plot_fitness_surfaces_comparison <- function(
             ggplot2::aes(
                 x = .data[[trait_cols[1]]],
                 y = .data[[trait_cols[2]]],
-                z = fitness,
+                z = .data[["fitness"]],
                 color = "Correlated Fitness"
             ),
             linetype = "dashed",
@@ -145,7 +145,7 @@ plot_fitness_surfaces_comparison <- function(
             ggplot2::aes(
                 x = .data[[trait_cols[1]]],
                 y = .data[[trait_cols[2]]],
-                z = fitness,
+                z = .data[["fitness"]],
                 color = "Adaptive Landscape"
             ),
             linetype = "solid",

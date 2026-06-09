@@ -101,12 +101,14 @@ detect_family <- function(y) {
     return(list(
       type = "continuous",
       family = stats::gaussian(),
-      note = "Proportion fitness detected (values in [0,1]). Using Gaussian family. ",
-      subnote = "Consider using binomial with weights if denominator is available."
+      note = paste(
+        "Proportion fitness detected (values in [0,1]). Using Gaussian family.",
+        "Consider binomial with weights if the denominator is available."
+      )
     ))
   }
 
-  # Detect RELATIVE FITNESS (mean ≈ 1)
+  # Detect RELATIVE FITNESS (mean ~ 1)
   # Relative fitness is often used in selection analysis
   is_relative <- abs(mean_val - 1) < 0.1 && !is_binary
 
@@ -114,7 +116,7 @@ detect_family <- function(y) {
     return(list(
       type = "continuous",
       family = stats::gaussian(),
-      note = "Relative fitness detected (mean ≈ 1). Using Gaussian family."
+      note = "Relative fitness detected (mean ~ 1). Using Gaussian family."
     ))
   }
 

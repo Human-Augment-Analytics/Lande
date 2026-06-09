@@ -10,6 +10,7 @@ univariate_spline(
   trait_col,
   fitness_type = c("binary", "continuous"),
   group = NULL,
+  relative_col = NULL,
   k = 10
 )
 }
@@ -23,6 +24,8 @@ univariate_spline(
 \item{fitness_type}{A string indicating the fitness type: either \code{"binary"} or \code{"continuous"}.}
 
 \item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included.}
+
+\item{relative_col}{Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).}
 
 \item{k}{Integer specifying the basis dimension for the GAM smooth term. Default is 10.}
 }

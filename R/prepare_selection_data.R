@@ -12,7 +12,7 @@
 #   standardized within each group (e.g., year, site) separately, not across all
 #   individuals pooled together. This ensures individuals are compared relative
 #   to their relevant context (same year, same environment). The same applies
-#   to relative fitness — it should be calculated within the same group.
+#   to relative fitness - it should be calculated within the same group.
 #
 #   This approach is equivalent to including group fixed effects in the
 #   regression models. However, it does NOT allow testing for group-by-trait

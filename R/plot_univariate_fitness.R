@@ -109,10 +109,8 @@ plot_univariate_fitness <- function(uni,
 
   # Add data points if requested
   if (show_points && "data" %in% names(uni)) {
-    # If original data is stored in the object
     data_points <- uni$data
-  } else if (show_points && exists("original_data", where = uni)) {
-    # Alternative storage location
+  } else if (show_points && "original_data" %in% names(uni)) {
     data_points <- uni$original_data
   } else {
     data_points <- NULL
@@ -153,7 +151,7 @@ plot_univariate_fitness <- function(uni,
     subtitle = "Individual fitness (correlated fitness function)",
     ...
   ) +
-    ggplot2::ylim(y_limits) +
+    ggplot2::coord_cartesian(ylim = y_limits) +
     ggplot2::theme_bw() +
     ggplot2::theme(
       plot.background = ggplot2::element_blank(),

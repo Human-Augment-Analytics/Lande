@@ -28,6 +28,7 @@
 #' @param trait_col A string specifying the name of the trait column (must be numeric and standardized).
 #' @param fitness_type A string indicating the fitness type: either \code{"binary"} or \code{"continuous"}.
 #' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
+#' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
 #' @param k Integer specifying the basis dimension for the GAM smooth term. Default is 10.
 #'
 #' @return A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
@@ -42,6 +43,7 @@ univariate_spline <- function(data,
                               trait_col,
                               fitness_type = c("binary", "continuous"),
                               group = NULL,
+                              relative_col = NULL,
                               k = 10) {
   fitness_type <- match.arg(fitness_type)
 
@@ -77,20 +79,29 @@ univariate_spline <- function(data,
       "Consider using prepare_selection_data() first."
     )
   } else {
-    message("Trait appears standardized (mean ≈ 0, SD ≈ 1)")
+    message("Trait appears standardized (mean ~ 0, SD ~ 1)")
   }
 
   if (fitness_type == "continuous") {
-    # For continuous fitness, use relative fitness if available
-    if ("relative_fitness" %in% names(data)) {
-      y <- data[["relative_fitness"]]
-      fit_note <- "Using relative_fitness column"
+    # For continuous fitness, use relative fitness. Prefer an explicitly named
+    # column (e.g. one relativised within groups by prepare_selection_data).
+    rel_source <- relative_col
+    if (is.null(rel_source) && "relative_fitness" %in% names(data)) {
+      rel_source <- "relative_fitness"
+    }
+
+    if (!is.null(rel_source)) {
+      if (!rel_source %in% names(data)) {
+        stop("relative_col '", rel_source, "' not found in data")
+      }
+      y <- data[[rel_source]]
+      fit_note <- paste0("Using relative fitness column '", rel_source, "'")
     } else {
       # Compute relative fitness on the fly (warning: not group-specific)
       if (!is.null(group)) {
         warning(
-          "Group specified but no relative_fitness column found. ",
-          "Consider using prepare_selection_data() first."
+          "Group specified but no relative fitness column found. ",
+          "Consider using prepare_selection_data() first, or pass relative_col."
         )
       }
       y <- data[[fitness_col]] / mean(data[[fitness_col]], na.rm = TRUE)
@@ -179,12 +190,12 @@ univariate_spline <- function(data,
   # If group was specified, predictions need a reference group
   if (!is.null(group)) {
     group_levels <- unique(df[[group]])
-    # Use the median group (or first) as reference
-    # For factor groups, use the most common level
-    if (is.factor(df[[group]])) {
-      ref_group <- names(sort(table(df[[group]]), decreasing = TRUE))[1]
-    } else {
+    # Reference level for prediction: the median for numeric groups, the most
+    # common level otherwise (factor or character).
+    if (is.numeric(group_levels)) {
       ref_group <- group_levels[which.min(abs(group_levels - median(group_levels)))]
+    } else {
+      ref_group <- names(sort(table(df[[group]]), decreasing = TRUE))[1]
     }
     grid[[group]] <- ref_group
     cat("Predictions use group = '", ref_group, "' as reference\n")
@@ -207,6 +218,7 @@ univariate_spline <- function(data,
   result <- list(
     model = fit,
     grid = grid,
+    data = df[, c(trait_col, ".y")],
     trait = trait_col,
     fitness_type = fitness_type,
     family = family_name,
