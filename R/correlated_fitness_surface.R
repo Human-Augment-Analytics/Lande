@@ -3,7 +3,7 @@
 # Important Concept Explanation:
 # This function calculates the Correlated Fitness Surface.
 # Definition: Individual fitness ~ Individual phenotype
-# Formula: w ~ z₁ + z₂ + z₁² + z₂² + z₁×z₂
+# Formula: w ~ z1 + z2 + z1^2 + z2^2 + z1xz2
 #
 # IMPORTANT NOTES: Traits MUST be standardized BEFORE calling this function
 # Use prepare_selection_data() with standardize = TRUE and optional group
@@ -82,13 +82,17 @@ correlated_fitness_surface <- function(
     }
   }
 
+  # Fitness and traits must be numeric (or logical); reject other types before
+  # coercion, since as.numeric() on a character/factor column silently yields NA.
+  for (col in need) {
+    if (!is.numeric(data[[col]]) && !is.logical(data[[col]])) {
+      stop("Column '", col, "' must be numeric; got ", class(data[[col]])[1])
+    }
+  }
+
   y <- as.numeric(data[[fitness_col]])
   x1 <- as.numeric(data[[trait_cols[1]]])
   x2 <- as.numeric(data[[trait_cols[2]]])
-
-  if (any(!is.numeric(y)) || any(!is.numeric(x1)) || any(!is.numeric(x2))) {
-    stop("Non-numeric values detected in fitness or trait columns")
-  }
 
   # Remove incomplete cases
   keep <- stats::complete.cases(y, x1, x2)
@@ -237,10 +241,12 @@ correlated_fitness_surface <- function(
 
     if (!is.null(group)) {
       group_levels <- unique(grp)
-      if (is.factor(df_fit[[group]])) {
-        ref_group <- names(sort(table(df_fit[[group]]), decreasing = TRUE))[1]
-      } else {
+      # Reference level: the median for numeric groups, the most common level
+      # otherwise (factor or character).
+      if (is.numeric(group_levels)) {
         ref_group <- group_levels[which.min(abs(group_levels - median(group_levels)))]
+      } else {
+        ref_group <- names(sort(table(df_fit[[group]]), decreasing = TRUE))[1]
       }
       newdat[[group]] <- ref_group
       cat("Predictions use group = '", ref_group, "' as reference\n")
@@ -265,7 +271,7 @@ correlated_fitness_surface <- function(
 
     cat("Success Predictions range:", round(range(grid$.fit), 4), "\n")
 
-    return(list(
+    result <- list(
       model = fit,
       grid = grid,
       method = "gam",
@@ -276,7 +282,9 @@ correlated_fitness_surface <- function(
       group_used = group,
       surface_type = "correlated_fitness",
       note = "Correlated fitness surface (individual fitness)"
-    ))
+    )
+    class(result) <- "correlated_fitness"
+    return(result)
   }
 
   if (!requireNamespace("fields", quietly = TRUE)) {
@@ -310,7 +318,7 @@ correlated_fitness_surface <- function(
     grid$.fit[is.na(grid$.fit)] <- mean(grid$.fit, na.rm = TRUE)
   }
 
-  return(list(
+  result <- list(
     model = tps_model,
     grid = grid,
     method = "tps",
@@ -320,5 +328,7 @@ correlated_fitness_surface <- function(
     group_used = group,
     surface_type = "correlated_fitness",
     note = "Correlated fitness surface (individual fitness)"
-  ))
+  )
+  class(result) <- "correlated_fitness"
+  return(result)
 }

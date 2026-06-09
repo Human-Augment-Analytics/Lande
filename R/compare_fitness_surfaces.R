@@ -4,7 +4,7 @@
 #
 # IMPORTANT CONCEPT:
 # - Correlated Fitness Surface: individual-level fitness (w ~ z)
-# - Adaptive Landscape: population-level mean fitness (W̄ ~ z̄)
+# - Adaptive Landscape: population-level mean fitness (Wbar ~ zbar)
 #
 # KEY PRINCIPLE:
 # - Both surfaces should be based on standardized traits
