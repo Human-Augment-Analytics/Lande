@@ -29,7 +29,13 @@
 #' @param fitness_type A string indicating the fitness type: either \code{"binary"} or \code{"continuous"}.
 #' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
 #' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
-#' @param k Integer specifying the basis dimension for the GAM smooth term. Default is 10.
+#' @param k Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.
+#' @param bootstrap Logical; if \code{TRUE} (default) the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988), rather than from a parametric Wald interval.
+#' @param n_boot Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.
+#'
+#' @details The fitness function is a penalised cubic regression spline
+#'   (\code{mgcv::s(..., bs = "cr")}) with the smoothing parameter chosen by
+#'   generalised cross-validation, following Schluter (1988).
 #'
 #' @return A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
 #' @export
@@ -44,7 +50,9 @@ univariate_spline <- function(data,
                               fitness_type = c("binary", "continuous"),
                               group = NULL,
                               relative_col = NULL,
-                              k = 10) {
+                              k = 10,
+                              bootstrap = TRUE,
+                              n_boot = 1000) {
   fitness_type <- match.arg(fitness_type)
 
   # Input validation
@@ -151,33 +159,26 @@ univariate_spline <- function(data,
     )
   }
 
-  # Create formula with smooth term
+  # Cubic regression spline with GCV smoothing (Schluter 1988). bs = "cr" gives
+  # a genuine cubic spline basis rather than the default thin-plate basis.
   if (!is.null(group)) {
-    fml <- stats::as.formula(paste0(".y ~ ", group, " + s(", trait_col, ", k = ", k, ")"))
+    fml <- stats::as.formula(paste0(".y ~ ", group, " + s(", trait_col, ", bs = 'cr', k = ", k, ")"))
     cat("Including group fixed effect: '", group, "'\n")
   } else {
-    fml <- stats::as.formula(paste0(".y ~ s(", trait_col, ", k = ", k, ")"))
+    fml <- stats::as.formula(paste0(".y ~ s(", trait_col, ", bs = 'cr', k = ", k, ")"))
   }
 
-  # Fit GAM
-  fit <- tryCatch(
-    {
-      mgcv::gam(fml,
-        data = df,
-        family = fam,
-        method = "REML",
-        na.action = stats::na.omit
-      )
-    },
-    error = function(e) {
-      stop(
-        "GAM fitting failed: ", e$message,
-        "\nTry reducing k (currently k = ", k, ")"
-      )
-    }
-  )
+  fit_gam <- function(d) {
+    tryCatch(
+      mgcv::gam(fml, data = d, family = fam, method = "GCV.Cp", na.action = stats::na.omit),
+      error = function(e) NULL
+    )
+  }
 
-  # Check convergence
+  fit <- fit_gam(df)
+  if (is.null(fit)) {
+    stop("GAM fitting failed. Try reducing k (currently k = ", k, ").")
+  }
   if (!is.null(fit$converged) && !fit$converged) {
     warning("GAM algorithm did not fully converge")
   }
@@ -201,13 +202,39 @@ univariate_spline <- function(data,
     cat("Predictions use group = '", ref_group, "' as reference\n")
   }
 
-  # Predict on link scale, then transform to response scale
-  pr <- stats::predict(fit, newdata = grid, se.fit = TRUE, type = "link")
   linkinv <- fit$family$linkinv
+  grid$fit <- linkinv(as.numeric(stats::predict(fit, newdata = grid, type = "link")))
 
-  grid$fit <- linkinv(pr$fit)
-  grid$lwr <- linkinv(pr$fit - 1.96 * pr$se.fit)
-  grid$upr <- linkinv(pr$fit + 1.96 * pr$se.fit)
+  # 95% ribbon: bootstrap individuals (Schluter 1988) or parametric Wald interval
+  ci_method <- if (bootstrap) "bootstrap (percentile)" else "parametric (Wald)"
+  if (bootstrap) {
+    n <- nrow(df)
+    boot_fits <- matrix(NA_real_, nrow = nrow(grid), ncol = n_boot)
+    for (b in seq_len(n_boot)) {
+      fit_b <- fit_gam(df[sample.int(n, n, replace = TRUE), , drop = FALSE])
+      if (is.null(fit_b)) next
+      boot_fits[, b] <- fit_b$family$linkinv(
+        as.numeric(stats::predict(fit_b, newdata = grid, type = "link"))
+      )
+    }
+    n_ok <- sum(!is.na(boot_fits[1, ]))
+    if (n_ok < 2) {
+      warning("Bootstrap ribbon failed (", n_ok, " usable resamples); using parametric interval")
+      ci_method <- "parametric (Wald)"
+      bootstrap <- FALSE
+    } else {
+      if (n_ok < n_boot) {
+        warning(n_boot - n_ok, " of ", n_boot, " bootstrap resamples failed and were dropped")
+      }
+      grid$lwr <- apply(boot_fits, 1, stats::quantile, probs = 0.025, na.rm = TRUE)
+      grid$upr <- apply(boot_fits, 1, stats::quantile, probs = 0.975, na.rm = TRUE)
+    }
+  }
+  if (!bootstrap) {
+    pr <- stats::predict(fit, newdata = grid, se.fit = TRUE, type = "link")
+    grid$lwr <- linkinv(pr$fit - 1.96 * pr$se.fit)
+    grid$upr <- linkinv(pr$fit + 1.96 * pr$se.fit)
+  }
 
   # Ensure confidence bounds stay within [0,1] for binary fitness
   if (fitness_type == "binary") {
@@ -223,6 +250,8 @@ univariate_spline <- function(data,
     fitness_type = fitness_type,
     family = family_name,
     k = k,
+    spline_type = "cubic regression spline (GCV)",
+    ci_method = ci_method,
     n_obs = n_obs,
     fit_note = fit_note,
     group_used = group,
