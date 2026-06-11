@@ -25,6 +25,7 @@ Description: Provides a comprehensive suite of functions for estimating linear,
     visualizing correlated fitness surfaces and population-level adaptive landscapes.
 License: MIT + file LICENSE
 Encoding: UTF-8
+LazyData: true
 Depends:
     R (>= 4.0.0)
 Imports:
