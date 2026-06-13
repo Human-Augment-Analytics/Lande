@@ -11,7 +11,9 @@ univariate_spline(
   fitness_type = c("binary", "continuous"),
   group = NULL,
   relative_col = NULL,
-  k = 10
+  k = 10,
+  bootstrap = TRUE,
+  n_boot = 1000
 )
 }
 \arguments{
@@ -27,7 +29,11 @@ univariate_spline(
 
 \item{relative_col}{Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).}
 
-\item{k}{Integer specifying the basis dimension for the GAM smooth term. Default is 10.}
+\item{k}{Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.}
+
+\item{bootstrap}{Logical; if \code{TRUE} (default) the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988), rather than from a parametric Wald interval.}
+
+\item{n_boot}{Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.}
 }
 \value{
 A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
@@ -35,6 +41,11 @@ A list of class \code{"univariate_fitness"} containing the fitted GAM model, a p
 \description{
 This function calculates a univariate correlated fitness function using a GAM smooth term.
 The formula is \code{w ~ f(z)}. Traits should be standardized BEFORE calling this function.
+}
+\details{
+The fitness function is a penalised cubic regression spline
+  (\code{mgcv::s(..., bs = "cr")}) with the smoothing parameter chosen by
+  generalised cross-validation, following Schluter (1988).
 }
 \examples{
 \dontrun{
