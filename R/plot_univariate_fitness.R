@@ -15,6 +15,7 @@
 #' @param point_alpha Numeric value for point transparency. Default is 0.25.
 #' @param ribbon_fill Color for the confidence interval ribbon. Default is \code{NA} (transparent).
 #' @param ribbon_linetype Linetype for the confidence interval bounds. Default is \code{"dashed"}.
+#' @param classic_plot Logical; if \code{TRUE}, draw the plain published style (a single dashed confidence outline, solid fit line, raw points, and a minimal theme). Default is \code{FALSE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object representing the univariate fitness function.
@@ -26,6 +27,7 @@ plot_univariate_fitness <- function(uni,
                                     point_alpha = 0.25,
                                     ribbon_fill = NA,
                                     ribbon_linetype = "dashed",
+                                    classic_plot = FALSE,
                                     ...) {
   # Input validation
   if (!inherits(uni, "univariate_fitness")) {
@@ -57,6 +59,52 @@ plot_univariate_fitness <- function(uni,
     y_label <- "Predicted fitness"
   }
 
+  # Resolve the raw data points (if stored on the object)
+  data_points <- NULL
+  if (show_points) {
+    if ("data" %in% names(uni)) {
+      data_points <- uni$data
+    } else if ("original_data" %in% names(uni)) {
+      data_points <- uni$original_data
+    }
+  }
+  has_points <- !is.null(data_points) &&
+    trait_col %in% names(data_points) && ".y" %in% names(data_points)
+
+  # Classic published style: one dashed confidence outline, solid fit line,
+  # raw points, minimal theme.
+  if (classic_plot) {
+    p <- ggplot2::ggplot(grid, ggplot2::aes(x = .data[[trait_col]], y = .data[["fit"]])) +
+      ggplot2::geom_ribbon(
+        ggplot2::aes(ymin = .data[["lwr"]], ymax = .data[["upr"]]),
+        fill = NA, color = "black", linetype = ribbon_linetype, linewidth = 1
+      ) +
+      ggplot2::geom_line(color = "black", linewidth = 1)
+
+    if (has_points) {
+      p <- p + ggplot2::geom_point(
+        data = data_points,
+        ggplot2::aes(x = .data[[trait_col]], y = .data[[".y"]]),
+        size = 2, alpha = point_alpha, inherit.aes = FALSE
+      )
+    }
+
+    p <- p + ggplot2::labs(
+      x = trait_col,
+      y = y_label,
+      title = title,
+      subtitle = "Individual fitness (correlated fitness function)",
+      ...
+    ) +
+      ggplot2::coord_cartesian(ylim = y_limits) +
+      ggplot2::theme_bw() +
+      ggplot2::theme(
+        plot.background = ggplot2::element_blank(),
+        panel.grid.major = ggplot2::element_blank(),
+        panel.grid.minor = ggplot2::element_blank()
+      )
+    return(p)
+  }
 
   p <- ggplot2::ggplot()
 

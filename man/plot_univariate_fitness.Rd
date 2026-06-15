@@ -12,6 +12,7 @@ plot_univariate_fitness(
   point_alpha = 0.25,
   ribbon_fill = NA,
   ribbon_linetype = "dashed",
+  classic_plot = FALSE,
   ...
 )
 }
@@ -29,6 +30,8 @@ plot_univariate_fitness(
 \item{ribbon_fill}{Color for the confidence interval ribbon. Default is \code{NA} (transparent).}
 
 \item{ribbon_linetype}{Linetype for the confidence interval bounds. Default is \code{"dashed"}.}
+
+\item{classic_plot}{Logical; if \code{TRUE}, draw the plain published style (a single dashed confidence outline, solid fit line, raw points, and a minimal theme). Default is \code{FALSE}.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }
