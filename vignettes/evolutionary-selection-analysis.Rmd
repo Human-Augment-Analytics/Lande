@@ -31,6 +31,30 @@ This project implements a comprehensive quantitative genetic framework for analy
 | Adaptive landscapes | Mean fitness as a function of population mean phenotype (requires simulation) |
 | Binary fitness handling | Logistic regression for survival/reproduction data |
 
+### Example figures
+
+These come from the bundled `bumpus` sparrow data (the full workflow is in
+Section 5):
+
+```r
+prepared <- prepare_selection_data(bumpus, "survival", c("weight", "total_length"))
+
+uni <- univariate_spline(prepared, "survival", "weight", fitness_type = "binary")
+plot_univariate_fitness(uni, "weight", classic_plot = TRUE)
+```
+
+```{r univariate-fig, echo=FALSE, eval=TRUE, out.width="70%", fig.cap="Univariate fitness function: a cubic spline with a bootstrapped 95% interval."}
+knitr::include_graphics("figures/univariate_fitness_weight.png")
+```
+
+```{r surface-fig, echo=FALSE, eval=TRUE, out.width="70%", fig.cap="Correlated fitness surface over two standardised traits."}
+knitr::include_graphics("figures/correlated_surface.png")
+```
+
+```{r landscape-fig, echo=FALSE, eval=TRUE, out.width="70%", fig.cap="Adaptive landscape: mean fitness across population mean phenotypes."}
+knitr::include_graphics("figures/adaptive_landscape.png")
+```
+
 ---
 
 ## 2. Mathematical Framework
