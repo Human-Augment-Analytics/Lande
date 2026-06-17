@@ -34,10 +34,14 @@ Imports:
     Matrix,
     ggplot2,
     dplyr,
-    rlang
+    rlang,
+    grDevices,
+    stats,
+    utils
 Suggests:
     akima,
     car,
+    DiagrammeR,
     fields,
     ggrepel,
     patchwork,
