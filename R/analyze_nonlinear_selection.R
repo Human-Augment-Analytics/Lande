@@ -37,8 +37,8 @@
 #' @export
 analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_type,
                                         binary_response_col = NULL) {
-  if (length(trait_cols) < 2) {
-    stop("Nonlinear selection requires at least 2 traits")
+  if (length(trait_cols) < 1) {
+    stop("Nonlinear selection requires at least one trait")
   }
 
   if (nrow(data) < 20) {
@@ -48,8 +48,12 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
   # Quadratic terms: I(trait1^2), I(trait2^2), ...
   quad <- paste0("I(", trait_cols, "^2)")
 
-  # Interaction terms: trait1:trait2, trait1:trait3, ...
-  inter <- combn(trait_cols, 2, FUN = function(x) paste(x, collapse = ":"), simplify = TRUE)
+  # Interaction terms (correlational selection) only exist with two or more traits.
+  inter <- if (length(trait_cols) >= 2) {
+    combn(trait_cols, 2, FUN = function(x) paste(x, collapse = ":"), simplify = TRUE)
+  } else {
+    character(0)
+  }
 
   rhs <- paste(c(trait_cols, quad, inter), collapse = " + ")
   n_params <- length(trait_cols) + length(quad) + length(inter) + 1 # +1 for intercept

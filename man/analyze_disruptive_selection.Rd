@@ -24,11 +24,15 @@ analyze_disruptive_selection(
 
 \item{standardize}{Logical indicating whether to standardize the trait to mean 0 and SD 1. Default is \code{TRUE}.}
 
-\item{group}{Optional string specifying a grouping variable.}
+\item{group}{Optional string specifying a grouping variable; standardisation and
+relative fitness are then computed within each group.}
 }
 \value{
-A data frame containing selection coefficients and statistics.
+A data frame with one row per gradient (\code{Term}, \code{Type},
+  \code{Beta_Coefficient}, \code{Standard_Error}, \code{P_Value}, \code{Variance}).
 }
 \description{
-Detects disruptive or stabilizing selection on a single trait by estimating linear and quadratic gradients.
+Detects disruptive or stabilizing selection on a single trait by estimating its
+linear (beta) and quadratic (gamma) selection gradients. A positive gamma indicates
+disruptive selection; a negative gamma indicates stabilizing selection.
 }
