@@ -113,24 +113,44 @@ prepare_selection_data <- function(data,
   }
 
 
-  # Standardize traits, z = (x - mean(x)) / sd(x)
+  # Standardize traits, z = (x - mean(x)) / sd(x). A constant trait has no
+  # variance, so scale() returns NaN and every row would be dropped downstream.
+  # Name any such trait in a warning and leave it unstandardized instead.
   if (standardize) {
-    if (!is.null(group)) {
-      # Standardize within each group
-      df <- df %>%
-        dplyr::group_by(.data[[group]]) %>%
-        dplyr::mutate(
-          dplyr::across(
-            dplyr::all_of(trait_cols),
-            ~ as.numeric(scale(.)),
-            .names = "{.col}"
-          )
-        ) %>%
-        dplyr::ungroup()
-    } else {
-      # Standardize across all data
-      for (t in trait_cols) {
-        df[[t]] <- as.numeric(scale(df[[t]]))
+    const_traits <- trait_cols[vapply(
+      trait_cols,
+      function(t) {
+        s <- stats::sd(df[[t]], na.rm = TRUE)
+        !is.finite(s) || s == 0
+      },
+      logical(1)
+    )]
+    if (length(const_traits)) {
+      warning(
+        "Zero-variance trait(s) left unstandardized: ",
+        paste(const_traits, collapse = ", ")
+      )
+    }
+    scale_traits <- setdiff(trait_cols, const_traits)
+
+    if (length(scale_traits)) {
+      if (!is.null(group)) {
+        # Standardize within each group
+        df <- df %>%
+          dplyr::group_by(.data[[group]]) %>%
+          dplyr::mutate(
+            dplyr::across(
+              dplyr::all_of(scale_traits),
+              ~ as.numeric(scale(.)),
+              .names = "{.col}"
+            )
+          ) %>%
+          dplyr::ungroup()
+      } else {
+        # Standardize across all data
+        for (t in scale_traits) {
+          df[[t]] <- as.numeric(scale(df[[t]]))
+        }
       }
     }
   }

@@ -40,6 +40,12 @@ test_that("quadratic gradients are twice the OLS quadratic coefficient", {
 
   got <- res$Beta_Coefficient[res$Term == "z1²"]
   expect_equal(unname(got), unname(ref_gamma), tolerance = 1e-6)
+
+  # The standard error is doubled alongside the estimate (Stinchcombe 2008), so
+  # a refactor that dropped the SE doubling would be caught here.
+  ref_gamma_se <- 2 * summary(fit)$coefficients["I(zz1^2)", "Std. Error"]
+  got_se <- res$Standard_Error[res$Term == "z1²"]
+  expect_equal(unname(got_se), unname(ref_gamma_se), tolerance = 1e-6)
 })
 
 test_that("binary gradients are estimated on relative fitness, not absolute 0/1", {
@@ -60,6 +66,18 @@ test_that("binary gradients are estimated on relative fitness, not absolute 0/1"
   expect_equal(unname(got), unname(rel), tolerance = 1e-6)
   # And they must differ from the absolute-scale gradients by the survival rate
   expect_false(isTRUE(all.equal(unname(got), unname(abs), tolerance = 1e-3)))
+
+  # P-values must come from the logistic GLM on the raw 0/1 outcome
+  # (Janzen & Stern 1998), not from the OLS fit on relative fitness.
+  glm_p <- coef(summary(glm(surv ~ zz1 + zz2, family = binomial)))[c("zz1", "zz2"), "Pr(>|z|)"]
+  ols_p <- coef(summary(lm((surv / mean(surv)) ~ zz1 + zz2)))[c("zz1", "zz2"), "Pr(>|t|)"]
+  got_p <- res$P_Value[match(c("z1", "z2"), res$Term)]
+
+  expect_equal(unname(got_p), unname(glm_p), tolerance = 1e-6)
+  # The GLM p-values are not the OLS ones. Compare on a relative scale, since
+  # both can be tiny and an absolute tolerance would call them equal.
+  rel_gap <- abs(got_p - ols_p) / pmax(abs(ols_p), .Machine$double.eps)
+  expect_true(any(rel_gap > 0.05))
 })
 
 test_that("count fitness is analysed without crashing", {
@@ -96,6 +114,19 @@ test_that("prepare_selection_data standardizes traits and centres relative fitne
   expect_equal(mean(out$z1), 0, tolerance = 1e-8)
   expect_equal(sd(out$z1), 1, tolerance = 1e-8)
   expect_equal(mean(out$w_relative), 1, tolerance = 1e-8)
+})
+
+test_that("a zero-variance trait warns and does not drop every row", {
+  d <- make_data(n = 100)
+  df <- data.frame(w = runif(100, 1, 10), z1 = d$z1[1:100], flat = 5)
+
+  expect_warning(
+    out <- prepare_selection_data(df, "w", c("z1", "flat"), name_relative = "w_rel"),
+    "zero-variance", ignore.case = TRUE
+  )
+  expect_equal(nrow(out), 100) # rows preserved, not silently dropped
+  expect_equal(sd(out$z1), 1, tolerance = 1e-8) # the good trait is still standardized
+  expect_true(all(out$flat == 5)) # the constant trait is left as-is
 })
 
 test_that("detect_family classifies the common fitness shapes", {
