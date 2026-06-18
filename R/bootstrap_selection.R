@@ -19,7 +19,8 @@
 #'
 #' @return A data frame with one row per coefficient and columns \code{Term},
 #'   \code{Type}, \code{Estimate} (point estimate on the full data),
-#'   \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, and \code{P_Value}.
+#'   \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, \code{P_Value}, and
+#'   \code{N_Boot} (usable resamples for that coefficient).
 #' @export
 #'
 #' @examples
@@ -67,12 +68,17 @@ bootstrap_selection <- function(data,
     boot[, b] <- res$Beta_Coefficient[match(keys, paste(res$Term, res$Type))]
   }
 
-  n_ok <- sum(!is.na(boot[1, ]))
-  if (n_ok < 2) {
-    stop("Bootstrap failed: fewer than 2 usable resamples")
+  # Usable resamples per coefficient. A term that drops out of some fits (e.g. a
+  # collinear interaction) has fewer usable resamples than the rest, so count
+  # each row on its own instead of reading only the first.
+  n_used <- rowSums(!is.na(boot))
+  n_min <- min(n_used)
+  if (n_min < 2) {
+    stop("Bootstrap failed: fewer than 2 usable resamples for at least one term")
   }
-  if (n_ok < n_boot) {
-    warning(n_boot - n_ok, " of ", n_boot, " resamples failed and were dropped")
+  if (n_min < n_boot) {
+    warning(n_boot - n_min, " of ", n_boot,
+            " resamples were unusable for at least one term and were dropped")
   }
 
   a <- (1 - conf) / 2
@@ -84,11 +90,12 @@ bootstrap_selection <- function(data,
     CI_lower = apply(boot, 1, stats::quantile, probs = a, na.rm = TRUE),
     CI_upper = apply(boot, 1, stats::quantile, probs = 1 - a, na.rm = TRUE),
     P_Value = point$P_Value,
+    N_Boot = as.integer(n_used),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
   rownames(out) <- NULL
-  attr(out, "n_boot") <- n_ok
+  attr(out, "n_boot") <- n_min
   attr(out, "conf") <- conf
   out
 }
