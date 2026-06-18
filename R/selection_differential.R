@@ -20,7 +20,7 @@
 #   data               : data frame with fitness and trait measurements
 #   fitness_col        : name of the fitness column
 #   trait_col          : name of the trait column
-#   assume_standardized: if TRUE, assume trait is already standardized
+#   standardized       : if TRUE, assume trait is already standardized
 #                        if FALSE, standardize the trait
 #   use_relative       : if TRUE, use relative fitness (w / mean(w))
 #   group              : optional grouping variable (e.g., "year", "site")
@@ -114,8 +114,13 @@ selection_differential <- function(data,
       stop("Group column '", group, "' not found in data")
     }
 
+    # Drop rows missing trait or fitness up front so each group's n counts only
+    # the observations calc_S uses; otherwise a group with more missing
+    # data would be over-weighted in the pooled mean below.
+    usable <- stats::complete.cases(data[[trait_col]], data[[fitness_col]])
+
     # Calculate S for each group
-    S_by_group <- data %>%
+    S_by_group <- data[usable, , drop = FALSE] %>%
       dplyr::group_by(.data[[group]]) %>%
       dplyr::summarise(
         S = calc_S(dplyr::pick(dplyr::everything())),
