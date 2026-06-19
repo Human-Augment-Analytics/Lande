@@ -58,7 +58,10 @@ plot_fitness_surfaces_comparison <- function(
     )) +
         ggplot2::geom_contour_filled(bins = bins) +
         ggplot2::scale_fill_manual(
-            values = colorRampPalette(c("lightblue", "steelblue", "darkblue", "navy"))(bins),
+            # geom_contour_filled can produce up to bins + 1 bands; supply a
+            # couple of extra colours (surplus are ignored) so the fill scale
+            # never runs short.
+            values = colorRampPalette(c("lightblue", "steelblue", "darkblue", "navy"))(bins + 2),
             name = "Fitness"
         ) +
         ggplot2::labs(
@@ -88,7 +91,9 @@ plot_fitness_surfaces_comparison <- function(
     )) +
         ggplot2::geom_contour_filled(bins = bins) +
         ggplot2::scale_fill_manual(
-            values = colorRampPalette(c("lightcoral", "coral", "darkred", "brown"))(bins),
+            # See the note on the correlated-fitness panel: provide a couple of
+            # extra colours so the fill scale never runs short.
+            values = colorRampPalette(c("lightcoral", "coral", "darkred", "brown"))(bins + 2),
             name = "Mean Fitness"
         ) +
         ggplot2::labs(

@@ -46,19 +46,6 @@ plot_univariate_fitness <- function(uni,
     title <- "Univariate Correlated Fitness Function"
   }
 
-  # Determine y-axis limits based on fitness type
-  if (uni$fitness_type == "binary") {
-    y_limits <- c(0, 1)
-    y_label <- "Predicted survival probability"
-  } else {
-    # For continuous, use data range
-    y_limits <- c(
-      min(grid$lwr, na.rm = TRUE),
-      max(grid$upr, na.rm = TRUE)
-    )
-    y_label <- "Predicted fitness"
-  }
-
   # Resolve the raw data points (if stored on the object)
   data_points <- NULL
   if (show_points) {
@@ -70,6 +57,21 @@ plot_univariate_fitness <- function(uni,
   }
   has_points <- !is.null(data_points) &&
     trait_col %in% names(data_points) && ".y" %in% names(data_points)
+
+  # Determine y-axis limits based on fitness type
+  if (uni$fitness_type == "binary") {
+    y_limits <- c(0, 1)
+    y_label <- "Predicted survival probability"
+  } else {
+    # Continuous: span the fit, its confidence ribbon, and any raw points shown,
+    # so no plotted observation is clipped by coord_cartesian().
+    y_vals <- c(grid$fit, grid$lwr, grid$upr)
+    if (has_points) {
+      y_vals <- c(y_vals, data_points[[".y"]])
+    }
+    y_limits <- range(y_vals, na.rm = TRUE)
+    y_label <- "Predicted fitness"
+  }
 
   # Classic published style: one dashed confidence outline, solid fit line,
   # raw points, minimal theme.
