@@ -438,50 +438,8 @@ invisible(lapply(required_packages, library, character.only = TRUE))
 
 ### Required functions and scripts 
 ```{r, message=FALSE, warning=FALSE}
-function_files <- c(
-  "compare_fitness_surfaces.R",
-  "correlated_fitness_surface.R",
-  "detect_family.R",
-  "extract_results.R",
-  "selection_analysis.R",
-  "selection_differential.R",
-  "selection_coefficients.R",
-  "univariate_spline.R"
-)
-
-scripts_files <- c(
-  "1_prepare_selection_data.R",
-  "2_linear_selection_analysis.R",
-  "3_nonlinear_selection_analysis.R",
-  "4_disruptive_selection_analysis.R",
-  "5_adaptive_landscape_analysis.R"
-)
-
-plotting_files <- c(
-  "plot_adaptive_landscape.R",
-  "plot_correlated_fitness.R",
-  "plot_univariate_fitness.R",
-  "plot_fitness_surfaces_comparison.R"
-)
-
-all_files <- list(
-  functions = list(path = c("R", "functions"), files = function_files),
-  scripts   = list(path = c("R", "scripts"), files = scripts_files),
-  plotting  = list(path = c("R", "plotting"), files = plotting_files)
-)
-
-for (group in all_files) {
-  for (f in group$files) {
-    file_path <- do.call(here::here, as.list(c(group$path, f)))
-
-    if (file.exists(file_path)) {
-      source(file_path)
-      cat("Loaded:", file_path, "\n")
-    } else {
-      cat("Missing:", file_path, "\n")
-    }
-  }
-}
+# All modelling, plotting, and helper functions ship with the installed package.
+library(RforEvolution)
 ```
 
 ### 4.2 Package Descriptions
@@ -495,10 +453,8 @@ for (group in all_files) {
 | `car` | Type III ANOVA and variance inflation factor (VIF) diagnostics |
 | `ggplot2` | Visualization of fitness functions and contour surfaces |
 | `dplyr` | Data manipulation and transformation (filtering, summarizing) |
-| `tidyr` | Data reshaping (long/wide format conversion) |
 | `ggrepel` | Improved text labeling in plots (avoids overlap) |
 | `viridis` | Perceptually uniform color scales for scientific visualization |
-| `here` | Robust and reproducible file path management |
 
 ---
 
@@ -586,7 +542,7 @@ selection_differential(
   data,
   fitness_col,
   trait_col,
-  assume_standardized = TRUE, # Whether trait is already standardized
+  standardized = TRUE, # Whether trait is already standardized
   use_relative = TRUE # Use relative fitness
 )
 ```
@@ -605,7 +561,7 @@ S_size <- selection_differential(
   data = prepared,
   fitness_col = "relative_fitness",
   trait_col = "size",
-  assume_standardized = TRUE,
+  standardized = TRUE,
   use_relative = TRUE
 )
 
@@ -614,7 +570,7 @@ S_color <- selection_differential(
   data = prepared,
   fitness_col = "relative_fitness",
   trait_col = "color",
-  assume_standardized = TRUE,
+  standardized = TRUE,
   use_relative = TRUE
 )
 
@@ -1040,22 +996,19 @@ Internal functions used by `selection_coefficients()`:
 
 These functions safely extract coefficients from model objects, handling different column names and missing terms.
 
-### 5.14 `selection_analysis()`
+### 5.14 `selection_report()`
 
-**Purpose:** serve as a wrapper function that combines everything in one call.
+**Purpose:** combine selection differentials and gradients into a single, publication-ready table in one call.
 
 ```{r, message=FALSE, warning=FALSE}
-analysis <- selection_analysis(
+report <- selection_report(
   data = prepared,
   fitness_col = "survival",
-  trait_cols = c("size", "color")
+  trait_cols = c("size", "color"),
+  fitness_type = "binary"
 )
 
-analysis$coefficients_table
-analysis$prepared_data
-analysis$fitness_type
-analysis$models$linear
-analysis$models$nonlinear
+report
 ```
 
 
