@@ -5,21 +5,22 @@
 #
 # Detection logic:
 #   - Binary: values are 0/1 (survival, presence/absence)
-#   - Proportion: values in [0,1] (may be binary or continuous)
 #   - Count: non-negative integers (e.g., offspring number)
-#   - Continuous: any other numeric values (e.g., growth rate, relative fitness)
+#   - Continuous: any other numeric values, including proportions in [0,1]
+#     and relative fitness (mean ~ 1)
 #
-# For count data, Poisson/negative binomial would be appropriate, but the
-# selection gradients still come from OLS. This function returns the family
-# to use for p-value calculation.
+# Selection gradients always come from OLS on relative fitness. Binary fitness
+# additionally uses a logistic GLM for p-values; every other type uses OLS.
+# The returned `family` is a suggestion for a user's own diagnostics, not a
+# family the package fits automatically.
 #
 # Parameters:
 #   y : fitness vector
 #
 # Returns:
 #   list with:
-#     type : "binary", "count", "proportion", or "continuous"
-#     family : GLM family object for p-value calculation
+#     type : "binary", "count", or "continuous" (proportions report "continuous")
+#     family : suggested GLM family object
 #     note : additional information about detection
 # ============================================================================
 
@@ -74,19 +75,18 @@ detect_family <- function(y) {
   is_non_negative <- all(y_clean >= 0)
 
   if (is_integer && is_non_negative && !is_binary) {
-    # For count data, Poisson GLM is appropriate for p-values
-    # Selection gradients still come from OLS
     if (length(y_clean) < 20) {
       warning("Count fitness detected, but sample size < 20 (may be unstable)")
     }
 
-    # Check for overdispersion (optional)
-    # This would require fitting a model first, which we don't have here
-
     return(list(
       type = "count",
       family = stats::poisson("log"),
-      note = "Count fitness detected (non-negative integers). Use Poisson GLM for p-values."
+      note = paste(
+        "Count fitness detected (non-negative integers). Gradients and",
+        "p-values use OLS on relative fitness; Poisson family suggested",
+        "if you want to check p-values with a count GLM."
+      )
     ))
   }
 
