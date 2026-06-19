@@ -38,7 +38,8 @@ bootstrap_selection(
 \value{
 A data frame with one row per coefficient and columns \code{Term},
   \code{Type}, \code{Estimate} (point estimate on the full data),
-  \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, and \code{P_Value}.
+  \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, \code{P_Value}, and
+  \code{N_Boot} (usable resamples for that coefficient).
 }
 \description{
 Resamples individuals with replacement and re-estimates the selection
