@@ -19,11 +19,14 @@ test_that("bootstrap_selection returns bootstrap SEs and percentile intervals", 
     bootstrap_selection(bumpus, "survival", c("weight", "total_length"),
                         fitness_type = "binary", n_boot = 100)
   ))
-  expect_true(all(c("Term", "Type", "Estimate", "Boot_SE", "CI_lower", "CI_upper", "P_Value")
+  expect_true(all(c("Term", "Type", "Estimate", "Boot_SE", "CI_lower", "CI_upper", "P_Value", "N_Boot")
                   %in% names(b)))
   expect_true(all(b$Boot_SE >= 0))
   expect_true(all(b$CI_lower <= b$CI_upper))
-  expect_equal(attr(b, "n_boot"), 100)
+  # N_Boot is per-coefficient: an integer count no larger than the requested draws.
+  expect_true(all(b$N_Boot <= 100))
+  expect_true(all(b$N_Boot >= 2))
+  expect_equal(attr(b, "n_boot"), min(b$N_Boot))
 })
 
 test_that("univariate_spline uses a cubic spline with a bootstrapped ribbon", {

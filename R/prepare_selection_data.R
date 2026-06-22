@@ -117,14 +117,19 @@ prepare_selection_data <- function(data,
   # variance, so scale() returns NaN and every row would be dropped downstream.
   # Name any such trait in a warning and leave it unstandardized instead.
   if (standardize) {
-    const_traits <- trait_cols[vapply(
-      trait_cols,
-      function(t) {
-        s <- stats::sd(df[[t]], na.rm = TRUE)
-        !is.finite(s) || s == 0
-      },
-      logical(1)
-    )]
+    zero_var <- function(x) {
+      s <- stats::sd(x, na.rm = TRUE)
+      !is.finite(s) || s == 0
+    }
+    # scale() is applied within each group when `group` is set, so a trait must
+    # be checked per group: flag it if it has no variance in ANY group level,
+    # otherwise that group's column becomes all-NaN and is dropped downstream.
+    is_const <- if (!is.null(group)) {
+      function(t) any(tapply(df[[t]], df[[group]], zero_var))
+    } else {
+      function(t) zero_var(df[[t]])
+    }
+    const_traits <- trait_cols[vapply(trait_cols, is_const, logical(1))]
     if (length(const_traits)) {
       warning(
         "Zero-variance trait(s) left unstandardized: ",

@@ -129,6 +129,26 @@ test_that("a zero-variance trait warns and does not drop every row", {
   expect_true(all(out$flat == 5)) # the constant trait is left as-is
 })
 
+test_that("a trait constant within a group is caught by the grouped zero-variance guard", {
+  set.seed(3)
+  # `flat` varies globally (1 vs 2) but is constant within each group, so a
+  # global-only check would miss it while per-group scale() would make it NaN.
+  df <- data.frame(
+    w = runif(60, 1, 5),
+    z = rnorm(60),
+    flat = rep(c(1, 2), each = 30),
+    grp = rep(c("A", "B"), each = 30)
+  )
+
+  expect_warning(
+    out <- prepare_selection_data(df, "w", c("z", "flat"), group = "grp", name_relative = "w_rel"),
+    "zero-variance", ignore.case = TRUE
+  )
+  expect_equal(nrow(out), 60) # no group silently dropped
+  expect_false(any(is.nan(out$flat))) # flat left unstandardized, not NaN
+  expect_true(all(is.finite(out$z))) # the good trait is still usable
+})
+
 test_that("detect_family classifies the common fitness shapes", {
   expect_equal(detect_family(c(0, 1, 0, 1, 1, 0, 1, 0, 1, 0))$type, "binary")
   expect_equal(suppressWarnings(detect_family(c(0, 2, 3, 5, 1, 4, 2, 6, 3, 1))$type), "count")

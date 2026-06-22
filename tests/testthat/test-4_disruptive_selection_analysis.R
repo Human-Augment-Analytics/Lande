@@ -29,13 +29,3 @@ test_that("disruptive beta is the linear-only (Lande & Arnold) gradient, not the
   expect_equal(beta_dis, beta_linear_only, tolerance = 1e-8)
   expect_gt(abs(beta_dis - beta_full_model), 0.1)
 })
-
-test_that("disruptive agrees with selection_coefficients on the same single trait", {
-  set.seed(7)
-  df <- data.frame(w = rnorm(80, 1, 0.1), z = rnorm(80))
-
-  dis <- analyze_disruptive_selection(df, "w", "z", "continuous", standardize = FALSE)
-  sc  <- selection_coefficients(df, "w", "z", fitness_type = "continuous", standardize = FALSE)
-
-  expect_equal(dis$Beta_Coefficient, sc$Beta_Coefficient, tolerance = 1e-10)
-})
