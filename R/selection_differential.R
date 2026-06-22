@@ -114,10 +114,11 @@ selection_differential <- function(data,
       stop("Group column '", group, "' not found in data")
     }
 
-    # Drop rows missing trait or fitness up front so each group's n counts only
-    # the observations calc_S uses; otherwise a group with more missing
-    # data would be over-weighted in the pooled mean below.
-    usable <- stats::complete.cases(data[[trait_col]], data[[fitness_col]])
+    # Drop rows missing trait, fitness, or the group label up front so each
+    # group's n counts only the observations calc_S uses; otherwise a
+    # group with more missing data (or an NA-group phantom level) would skew the
+    # pooled mean below.
+    usable <- stats::complete.cases(data[[trait_col]], data[[fitness_col]], data[[group]])
 
     # Calculate S for each group
     S_by_group <- data[usable, , drop = FALSE] %>%
@@ -131,8 +132,13 @@ selection_differential <- function(data,
     if (return_grouped) {
       return(S_by_group)
     } else {
-      # Return weighted mean (by sample size), ignoring groups with no estimate
+      # Return weighted mean (by sample size), ignoring groups with no estimate.
+      # If no group yields an estimate, return NA (not NaN) to match the
+      # ungrouped degenerate path.
       ok <- !is.na(S_by_group$S)
+      if (!any(ok)) {
+        return(NA_real_)
+      }
       weighted_mean <- sum(S_by_group$S[ok] * S_by_group$n[ok]) /
         sum(S_by_group$n[ok])
       return(weighted_mean)
