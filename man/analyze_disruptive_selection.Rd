@@ -8,7 +8,7 @@ analyze_disruptive_selection(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("binary", "continuous"),
+  fitness_type = c("auto", "binary", "continuous"),
   standardize = TRUE,
   group = NULL
 )
@@ -20,7 +20,8 @@ analyze_disruptive_selection(
 
 \item{trait_col}{A string specifying the name of the single trait column.}
 
-\item{fitness_type}{A string indicating the fitness type: \code{"binary"} or \code{"continuous"}.}
+\item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data),
+\code{"binary"}, or \code{"continuous"}. Default is \code{"auto"}.}
 
 \item{standardize}{Logical indicating whether to standardize the trait to mean 0 and SD 1. Default is \code{TRUE}.}
 
