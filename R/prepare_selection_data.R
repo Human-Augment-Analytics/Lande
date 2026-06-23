@@ -125,7 +125,9 @@ prepare_selection_data <- function(data,
     # be checked per group: flag it if it has no variance in ANY group level,
     # otherwise that group's column becomes all-NaN and is dropped downstream.
     is_const <- if (!is.null(group)) {
-      function(t) any(tapply(df[[t]], df[[group]], zero_var))
+      # addNA() keeps the NA-group level, which scale() also standardizes, so a
+      # trait constant only within the NA group is still flagged.
+      function(t) any(tapply(df[[t]], addNA(df[[group]]), zero_var))
     } else {
       function(t) zero_var(df[[t]])
     }
