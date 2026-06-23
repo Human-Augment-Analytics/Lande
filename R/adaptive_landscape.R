@@ -225,6 +225,7 @@ adaptive_landscape <- function(
 #'
 #' @param x An object of class \code{"adaptive_landscape"}.
 #' @param ... Additional arguments passed to \code{print}.
+#' @return The input object \code{x}, invisibly.
 #' @export
 print.adaptive_landscape <- function(x, ...) {
     cat("\nAdaptive Landscape Object\n")

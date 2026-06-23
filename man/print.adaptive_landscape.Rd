@@ -11,6 +11,9 @@
 
 \item{...}{Additional arguments passed to \code{print}.}
 }
+\value{
+The input object \code{x}, invisibly.
+}
 \description{
 Print method for adaptive landscape
 }

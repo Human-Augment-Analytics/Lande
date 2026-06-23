@@ -87,6 +87,7 @@ selection_report <- function(data,
 #'
 #' @param x An object of class \code{"selection_report"}.
 #' @param ... Additional arguments (ignored).
+#' @return The input object \code{x}, invisibly.
 #' @export
 print.selection_report <- function(x, ...) {
   digits <- attr(x, "digits") %||% 4
