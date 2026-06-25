@@ -227,13 +227,17 @@ plot_adaptive_landscape_3d <- function(
     x <- x + seq(0, eps, length.out = length(x))
     y <- y + seq(0, eps, length.out = length(y))
 
+    # The landscape is already a smooth regular grid, so bilinear interpolation
+    # is enough. Akima spline interpolation (linear = FALSE) overshoots wildly
+    # near the edges of the sampled region (values in the millions), which
+    # collapses the colour scale and flattens the surface.
     interp <- akima::interp(
         x = x,
         y = y,
         z = z,
         xo = seq(min(x), max(x), length = grid_n),
         yo = seq(min(y), max(y), length = grid_n),
-        linear = FALSE, # Spline interpolation
+        linear = TRUE,
         extrap = FALSE, # Do not fabricate fitness beyond the observed range
         duplicate = "mean"
     )

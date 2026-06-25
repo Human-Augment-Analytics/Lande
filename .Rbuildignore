@@ -4,6 +4,7 @@
 ^inst/scripts$
 ^inst/extdata$
 ^Evolutionary-Selection-Analysis\.html$
+^docs$
 ^\.git$
 ^\.DS_Store$
 .*\.DS_Store$
