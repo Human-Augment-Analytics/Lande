@@ -113,24 +113,24 @@ prepare_selection_data <- function(data,
   }
 
 
-  # Standardize traits, z = (x - mean(x)) / sd(x). A constant trait has no
-  # variance, so scale() returns NaN and every row would be dropped downstream.
-  # Name any such trait in a warning and leave it unstandardized instead.
+  # Standardize traits, z = (x - mean(x)) / sd(x), over the rows that are
+  # actually analysed: those with complete fitness, traits, and group. Including
+  # individuals with missing fitness -- who are dropped from the gradient models
+  # -- in the mean/SD would shift the standardization and bias the gradients
+  # (Lande & Arnold standardise within the sample under selection). Standardizing
+  # is done within each group when `group` is set. A constant trait has no
+  # variance (scale() would return NaN), so it is named and left unscaled.
   if (standardize) {
     zero_var <- function(x) {
       s <- stats::sd(x, na.rm = TRUE)
       !is.finite(s) || s == 0
     }
-    # scale() is applied within each group when `group` is set, so a trait must
-    # be checked per group: flag it if it has no variance in ANY group level,
-    # otherwise that group's column becomes all-NaN and is dropped downstream.
-    is_const <- if (!is.null(group)) {
-      # addNA() keeps the NA-group level, which scale() also standardizes, so a
-      # trait constant only within the NA group is still flagged.
-      function(t) any(tapply(df[[t]], addNA(df[[group]]), zero_var))
-    } else {
-      function(t) zero_var(df[[t]])
-    }
+    cc <- stats::complete.cases(df[, c(fitness_col, trait_cols, group), drop = FALSE])
+    grp_key <- if (!is.null(group)) df[[group]] else rep(1L, nrow(df))
+
+    # Flag a trait with no variance in any analysed group level; a per-group
+    # constant would otherwise become all-NaN and drop the group downstream.
+    is_const <- function(t) any(tapply(df[[t]][cc], grp_key[cc], zero_var))
     const_traits <- trait_cols[vapply(trait_cols, is_const, logical(1))]
     if (length(const_traits)) {
       warning(
@@ -138,27 +138,13 @@ prepare_selection_data <- function(data,
         paste(const_traits, collapse = ", ")
       )
     }
-    scale_traits <- setdiff(trait_cols, const_traits)
 
-    if (length(scale_traits)) {
-      if (!is.null(group)) {
-        # Standardize within each group
-        df <- df %>%
-          dplyr::group_by(.data[[group]]) %>%
-          dplyr::mutate(
-            dplyr::across(
-              dplyr::all_of(scale_traits),
-              ~ as.numeric(scale(.)),
-              .names = "{.col}"
-            )
-          ) %>%
-          dplyr::ungroup()
-      } else {
-        # Standardize across all data
-        for (t in scale_traits) {
-          df[[t]] <- as.numeric(scale(df[[t]]))
-        }
-      }
+    for (t in setdiff(trait_cols, const_traits)) {
+      # Centre and scale by the analysed rows' mean/SD, computed within group.
+      vals <- ifelse(cc, df[[t]], NA_real_)
+      mu <- stats::ave(vals, grp_key, FUN = function(v) mean(v, na.rm = TRUE))
+      sdev <- stats::ave(vals, grp_key, FUN = function(v) stats::sd(v, na.rm = TRUE))
+      df[[t]] <- (df[[t]] - mu) / sdev
     }
   }
 

@@ -116,6 +116,23 @@ test_that("prepare_selection_data standardizes traits and centres relative fitne
   expect_equal(mean(out$w_relative), 1, tolerance = 1e-8)
 })
 
+test_that("traits are standardized on the analyzed sample when fitness is missing", {
+  d <- make_data(n = 300)
+  w <- 1 + 0.3 * d$z1 - 0.2 * d$z2 + rnorm(300, 0, 0.2)
+  df <- data.frame(w = w, z1 = d$z1, z2 = d$z2)
+  df$w[1:60] <- NA # 60 individuals measured for traits but not fitness
+
+  res <- suppressWarnings(suppressMessages(
+    selection_coefficients(df, "w", c("z1", "z2"), fitness_type = "continuous")))
+  got <- res$Beta_Coefficient[match(c("z1", "z2"), res$Term)]
+
+  # Reference: standardise and relativise on the complete-fitness rows only
+  cc <- df[!is.na(df$w), ]
+  zz1 <- as.numeric(scale(cc$z1)); zz2 <- as.numeric(scale(cc$z2))
+  ref <- coef(lm((cc$w / mean(cc$w)) ~ zz1 + zz2))[c("zz1", "zz2")]
+  expect_equal(unname(got), unname(ref), tolerance = 1e-8)
+})
+
 test_that("a zero-variance trait warns and does not drop every row", {
   d <- make_data(n = 100)
   df <- data.frame(w = runif(100, 1, 10), z1 = d$z1[1:100], flat = 5)
