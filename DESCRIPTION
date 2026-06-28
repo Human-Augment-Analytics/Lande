@@ -34,7 +34,6 @@ Imports:
     Matrix,
     ggplot2,
     dplyr,
-    rlang,
     grDevices,
     stats,
     utils
