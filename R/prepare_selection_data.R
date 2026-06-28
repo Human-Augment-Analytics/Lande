@@ -113,59 +113,51 @@ prepare_selection_data <- function(data,
   }
 
 
-  # Standardize traits, z = (x - mean(x)) / sd(x), over the rows that are
-  # actually analysed: those with complete fitness, traits, and group. Including
-  # individuals with missing fitness -- who are dropped from the gradient models
-  # -- in the mean/SD would shift the standardization and bias the gradients
-  # (Lande & Arnold standardise within the sample under selection). Standardizing
-  # is done within each group when `group` is set. A constant trait has no
-  # variance (scale() would return NaN), so it is named and left unscaled.
+  # Both standardisation and relative fitness are computed from the rows that
+  # are analysed (complete fitness, traits, and group), within each
+  # group when `group` is set. Individuals dropped from the gradient models for
+  # a missing value would otherwise shift the trait mean/SD and the mean fitness
+  # and bias every gradient (Lande & Arnold standardise within the sample under
+  # selection). `stat_by_group()` returns each row's group statistic over the
+  # analysed rows.
+  cc <- stats::complete.cases(df[, c(fitness_col, trait_cols, group), drop = FALSE])
+  grp_key <- if (!is.null(group)) df[[group]] else rep(1L, nrow(df))
+  stat_by_group <- function(x, FUN) {
+    stats::ave(ifelse(cc, x, NA_real_), grp_key, FUN = function(v) FUN(v, na.rm = TRUE))
+  }
+
+  # Standardize traits, z = (x - mean(x)) / sd(x). A trait with no variance in
+  # a group (constant, or a single observation) cannot be scaled there: it is
+  # centred only, so those rows stay in the analysis with z = 0 rather than
+  # becoming NaN, and the other groups are still scaled normally. A trait with
+  # no variance in any group is left unscaled and named in a warning.
   if (standardize) {
-    zero_var <- function(x) {
-      s <- stats::sd(x, na.rm = TRUE)
-      !is.finite(s) || s == 0
-    }
-    cc <- stats::complete.cases(df[, c(fitness_col, trait_cols, group), drop = FALSE])
-    grp_key <- if (!is.null(group)) df[[group]] else rep(1L, nrow(df))
-
-    # Flag a trait with no variance in any analysed group level; a per-group
-    # constant would otherwise become all-NaN and drop the group downstream.
-    is_const <- function(t) any(tapply(df[[t]][cc], grp_key[cc], zero_var))
-    const_traits <- trait_cols[vapply(trait_cols, is_const, logical(1))]
-    if (length(const_traits)) {
-      warning(
-        "Zero-variance trait(s) left unstandardized: ",
-        paste(const_traits, collapse = ", ")
-      )
-    }
-
-    for (t in setdiff(trait_cols, const_traits)) {
-      # Centre and scale by the analysed rows' mean/SD, computed within group.
-      vals <- ifelse(cc, df[[t]], NA_real_)
-      mu <- stats::ave(vals, grp_key, FUN = function(v) mean(v, na.rm = TRUE))
-      sdev <- stats::ave(vals, grp_key, FUN = function(v) stats::sd(v, na.rm = TRUE))
-      df[[t]] <- (df[[t]] - mu) / sdev
+    for (t in trait_cols) {
+      mu <- stat_by_group(df[[t]], mean)
+      sdev <- stat_by_group(df[[t]], stats::sd)
+      scalable <- is.finite(sdev) & sdev > 0
+      if (!any(scalable[cc])) {
+        warning("Zero-variance trait left unstandardized: ", t)
+        next
+      }
+      if (any(!scalable[cc])) {
+        warning(
+          "Trait '", t, "' has no variance in group(s) ",
+          paste(unique(grp_key[cc & !scalable]), collapse = ", "),
+          "; centred only there"
+        )
+      }
+      df[[t]] <- (df[[t]] - mu) / ifelse(scalable, sdev, 1)
     }
   }
 
-  # Add relative fitness, w_i = W_i / mean(W)
+  # Add relative fitness, w_i = W_i / mean(W), with mean(W) over the analysed rows
   if (add_relative) {
-    if (!is.null(group)) {
-      # Calculate relative fitness within each group
-      df <- df %>%
-        dplyr::group_by(.data[[group]]) %>%
-        dplyr::mutate(
-          !!name_relative := .data[[fitness_col]] / mean(.data[[fitness_col]], na.rm = TRUE)
-        ) %>%
-        dplyr::ungroup()
+    mean_fit <- stat_by_group(df[[fitness_col]], mean)
+    if (!any(is.finite(mean_fit) & mean_fit != 0)) {
+      warning("Mean fitness is zero or non-finite; cannot compute relative fitness. Skipping.")
     } else {
-      # Calculate relative fitness across all data
-      mean_fit <- mean(df[[fitness_col]], na.rm = TRUE)
-      if (!is.finite(mean_fit) || mean_fit == 0) {
-        warning("Mean fitness is zero or non-finite; cannot compute relative fitness. Skipping.")
-      } else {
-        df[[name_relative]] <- df[[fitness_col]] / mean_fit
-      }
+      df[[name_relative]] <- df[[fitness_col]] / mean_fit
     }
   }
 

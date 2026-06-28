@@ -67,7 +67,7 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
       warning("GLM did not converge - results may be unreliable")
     }
 
-    if (any(abs(coef(fit_glm)) > 10)) {
+    if (any(abs(coef(fit_glm)) > 10, na.rm = TRUE)) {
       warning("Possible complete separation detected - large coefficients (>10)")
     }
 

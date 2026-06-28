@@ -133,6 +133,41 @@ test_that("traits are standardized on the analyzed sample when fitness is missin
   expect_equal(unname(got), unname(ref), tolerance = 1e-8)
 })
 
+test_that("relative fitness is taken over the analyzed sample when a trait is missing", {
+  d <- make_data(n = 300)
+  w <- 1 + 0.3 * d$z1 - 0.2 * d$z2 + rnorm(300, 0, 0.2)
+  df <- data.frame(w = w, z1 = d$z1, z2 = d$z2)
+  # Drop a trait for the 60 fittest individuals, so mean(W) over everyone with
+  # fitness differs from mean(W) over the rows that reach the models.
+  df$z2[order(-df$w)[1:60]] <- NA
+
+  prep <- suppressWarnings(suppressMessages(
+    prepare_selection_data(df, "w", c("z1", "z2"), name_relative = "w_rel")))
+  cc <- complete.cases(prep[, c("w", "z1", "z2")])
+  expect_equal(mean(prep$w_rel[cc]), 1, tolerance = 1e-10)
+
+  res <- suppressWarnings(suppressMessages(
+    selection_coefficients(df, "w", c("z1", "z2"), fitness_type = "continuous")))
+  got <- res$Beta_Coefficient[match(c("z1", "z2"), res$Term)]
+  d2 <- df[complete.cases(df), ]
+  zz1 <- as.numeric(scale(d2$z1)); zz2 <- as.numeric(scale(d2$z2))
+  ref <- coef(lm((d2$w / mean(d2$w)) ~ zz1 + zz2))[c("zz1", "zz2")]
+  expect_equal(unname(got), unname(ref), tolerance = 1e-8)
+})
+
+test_that("a single-observation group does not switch off standardization elsewhere", {
+  d <- make_data(n = 61)
+  df <- data.frame(w = runif(61, 1, 5), z = d$z1, grp = c(rep("A", 30), rep("B", 30), "C"))
+
+  expect_warning(
+    out <- prepare_selection_data(df, "w", "z", group = "grp", name_relative = "w_rel"),
+    "no variance in group"
+  )
+  expect_equal(sd(out$z[out$grp == "A"]), 1, tolerance = 1e-8)
+  expect_equal(sd(out$z[out$grp == "B"]), 1, tolerance = 1e-8)
+  expect_equal(out$z[out$grp == "C"], 0) # centred only, kept in the data
+})
+
 test_that("a zero-variance trait warns and does not drop every row", {
   d <- make_data(n = 100)
   df <- data.frame(w = runif(100, 1, 10), z1 = d$z1[1:100], flat = 5)
