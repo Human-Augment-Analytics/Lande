@@ -9,6 +9,11 @@
   if (!requireNamespace("car", quietly = TRUE)) {
     return(NULL)
   }
+  # VIF is only defined with two or more predictors; a single-trait model has
+  # nothing to inflate, so return NULL rather than warn.
+  if (length(attr(stats::terms(fit), "term.labels")) < 2) {
+    return(NULL)
+  }
   vif_vals <- tryCatch(
     car::vif(fit),
     error = function(e) {
