@@ -86,7 +86,7 @@ prepare_selection_data <- function(data,
     if (!group %in% names(df)) {
       stop("Group column '", group, "' not found in data")
     }
-    cat("Standardizing and computing relative fitness within groups: '", group, "'\n")
+    message("Standardizing and computing relative fitness within groups: '", group, "'")
   }
 
   # Handle missing values
@@ -107,7 +107,7 @@ prepare_selection_data <- function(data,
       warning(msg)
     } else if (na_action == "drop") {
       df <- df[!na_rows, , drop = FALSE]
-      cat("Dropped", n_bad, "row(s) with missing values\n")
+      message("Dropped ", n_bad, " row(s) with missing values")
     }
     # if na_action == "none": do nothing, but later operations may fail
   }
