@@ -240,14 +240,7 @@ correlated_fitness_surface <- function(
     names(newdat) <- trait_cols
 
     if (!is.null(group)) {
-      group_levels <- unique(grp)
-      # Reference level: the median for numeric groups, the most common level
-      # otherwise (factor or character).
-      if (is.numeric(group_levels)) {
-        ref_group <- group_levels[which.min(abs(group_levels - median(group_levels)))]
-      } else {
-        ref_group <- names(sort(table(df_fit[[group]]), decreasing = TRUE))[1]
-      }
+      ref_group <- .reference_group(df_fit[[group]])
       newdat[[group]] <- ref_group
       cat("Predictions use group = '", ref_group, "' as reference\n")
     }

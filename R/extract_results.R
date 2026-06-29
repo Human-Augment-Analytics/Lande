@@ -39,6 +39,24 @@
 }
 
 #' @noRd
+# internal utility: reference level used when predicting from a model that
+# includes a group term. Numeric groups use the level closest to the median of
+# the observed levels; factor/character groups use the most common level.
+# Missing labels are ignored so a single NA cannot leave the choice empty.
+.reference_group <- function(x) {
+  x <- x[!is.na(x)]
+  if (!length(x)) {
+    stop("Group column has no non-missing values")
+  }
+  if (is.numeric(x)) {
+    lv <- unique(x)
+    lv[which.min(abs(lv - stats::median(lv)))]
+  } else {
+    names(sort(table(x), decreasing = TRUE))[1]
+  }
+}
+
+#' @noRd
 # internal utility: get coefficient-level p-value column name from summary()
 .p_col_from_summary <- function(coef_mat) {
   pcols <- intersect(colnames(coef_mat), c("Pr(>|t|)", "Pr(>|z|)"))
