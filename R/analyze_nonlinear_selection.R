@@ -65,7 +65,14 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
     fit_data <- data[complete.cases(data[, c(fitness_col, glm_col, trait_cols)]), ]
 
     if (is.null(binary_response_col)) {
-      fit_data$.rel_fitness <- fit_data[[fitness_col]] / mean(fit_data[[fitness_col]])
+      raw <- fit_data[[fitness_col]]
+      if (!all(raw %in% c(0, 1))) {
+        stop(
+          "For binary fitness pass the raw 0/1 column as `fitness_col` ",
+          "(it is relativised internally), or name it in `binary_response_col`."
+        )
+      }
+      fit_data$.rel_fitness <- raw / mean(raw)
       ols_resp <- ".rel_fitness"
     } else {
       ols_resp <- fitness_col
