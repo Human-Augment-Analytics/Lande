@@ -111,7 +111,14 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
       fitness_type = "binary"
     ))
   } else {
-    # Continuous, count, or proportion fitness: OLS supplies gradients and p-values.
+    # Continuous, count, or proportion fitness: OLS supplies gradients and
+    # p-values. A direct caller working from prepare_selection_data() output
+    # gets its relative_fitness column picked up automatically.
+    if (is.null(binary_response_col) && fitness_col != "relative_fitness" &&
+        "relative_fitness" %in% names(data)) {
+      message("Using 'relative_fitness' as the response for gradient estimation")
+      fitness_col <- "relative_fitness"
+    }
     fit_data <- data[complete.cases(data[, c(fitness_col, trait_cols)]), ]
     .warn_small_sample(nrow(fit_data), n_params)
 

@@ -103,7 +103,14 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
     ))
   } else {
     # Continuous, count, or proportion fitness: OLS supplies gradients and
-    # p-values. The caller passes relative fitness as `fitness_col`.
+    # p-values. selection_coefficients() passes relative fitness as
+    # `fitness_col`; a direct caller working from prepare_selection_data()
+    # output gets its relative_fitness column picked up automatically.
+    if (is.null(binary_response_col) && fitness_col != "relative_fitness" &&
+        "relative_fitness" %in% names(data)) {
+      message("Using 'relative_fitness' as the response for gradient estimation")
+      fitness_col <- "relative_fitness"
+    }
     fit_data <- data[complete.cases(data[, c(fitness_col, trait_cols)]), ]
     fit_ols <- lm(as.formula(paste(fitness_col, "~", rhs)), data = fit_data)
     sm_ols <- summary(fit_ols)
