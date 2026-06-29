@@ -204,11 +204,9 @@ plot_adaptive_landscape_3d <- function(
         warning("Object is not of class 'adaptive_landscape'")
     }
 
-    for (pkg in c("akima", "fields")) {
-        if (!requireNamespace(pkg, quietly = TRUE)) {
-            stop("Package '", pkg, "' is required for 3D landscape plots. ",
-                 "Install it with install.packages('", pkg, "').")
-        }
+    if (!requireNamespace("fields", quietly = TRUE)) {
+        stop("Package 'fields' is required for 3D landscape plots. ",
+             "Install it with install.packages('fields').")
     }
 
     df <- landscape$grid
@@ -221,26 +219,18 @@ plot_adaptive_landscape_3d <- function(
     y <- df[[trait_cols[2]]]
     z <- df$.mean_fit
 
-    # Nudge coordinates by a deterministic, negligible amount to avoid akima
-    # collinearity warnings without touching the caller's RNG state.
-    eps <- 1e-8
-    x <- x + seq(0, eps, length.out = length(x))
-    y <- y + seq(0, eps, length.out = length(y))
-
-    # The landscape is already a smooth regular grid, so bilinear interpolation
-    # is enough. Akima spline interpolation (linear = FALSE) overshoots wildly
-    # near the edges of the sampled region (values in the millions), which
-    # collapses the colour scale and flattens the surface.
-    interp <- akima::interp(
-        x = x,
-        y = y,
-        z = z,
-        xo = seq(min(x), max(x), length = grid_n),
-        yo = seq(min(y), max(y), length = grid_n),
-        linear = TRUE,
-        extrap = FALSE, # Do not fabricate fitness beyond the observed range
-        duplicate = "mean"
-    )
+    # adaptive_landscape() evaluates mean fitness on a regular grid, so the
+    # surface can be reshaped directly into a matrix. Interpolating it again
+    # (as earlier versions did with akima) either overshoots at the edges or
+    # leaves the border undefined, and is not needed. `grid_n` is kept for
+    # backwards compatibility; the landscape's own resolution is used.
+    xu <- sort(unique(x))
+    yu <- sort(unique(y))
+    zmat <- matrix(NA_real_, nrow = length(xu), ncol = length(yu))
+    zmat[cbind(match(x, xu), match(y, yu))] <- z
+    if (anyNA(zmat)) {
+        stop("landscape$grid is not a complete regular grid; cannot draw a 3D surface")
+    }
 
     if (is.null(color_palette)) {
         if (requireNamespace("viridis", quietly = TRUE)) {
@@ -251,9 +241,9 @@ plot_adaptive_landscape_3d <- function(
     }
 
     fields::drape.plot(
-        x = interp$x,
-        y = interp$y,
-        z = interp$z,
+        x = xu,
+        y = yu,
+        z = zmat,
         theta = theta,
         phi = phi,
         xlab = trait_cols[1],
