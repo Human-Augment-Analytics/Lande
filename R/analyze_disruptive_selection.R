@@ -28,6 +28,9 @@
 #' @param standardize Logical indicating whether to standardize the trait to mean 0 and SD 1. Default is \code{TRUE}.
 #' @param group Optional string specifying a grouping variable; standardisation and
 #'   relative fitness are then computed within each group.
+#' @param return_grouped Logical; if \code{TRUE} and \code{group} is given, the
+#'   gradients are estimated separately for each group and returned with a
+#'   \code{Group} column. Default is \code{FALSE}.
 #'
 #' @return A data frame with one row per gradient (\code{Term}, \code{Type},
 #'   \code{Beta_Coefficient}, \code{Standard_Error}, \code{P_Value}, \code{Variance}).
@@ -38,7 +41,8 @@ analyze_disruptive_selection <- function(
   trait_col,
   fitness_type = c("auto", "binary", "continuous"),
   standardize = TRUE,
-  group = NULL
+  group = NULL,
+  return_grouped = FALSE
 ) {
   fitness_type <- match.arg(fitness_type)
 
@@ -47,11 +51,12 @@ analyze_disruptive_selection <- function(
   }
 
   selection_coefficients(
-    data         = data,
-    fitness_col  = fitness_col,
-    trait_cols   = trait_col,
-    fitness_type = fitness_type,
-    standardize  = standardize,
-    group        = group
+    data           = data,
+    fitness_col    = fitness_col,
+    trait_cols     = trait_col,
+    fitness_type   = fitness_type,
+    standardize    = standardize,
+    group          = group,
+    return_grouped = return_grouped
   )
 }
