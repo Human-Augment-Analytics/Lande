@@ -172,21 +172,25 @@ univariate_spline <- function(data,
   # a genuine cubic spline basis rather than the default thin-plate basis.
   if (!is.null(group)) {
     fml <- stats::as.formula(paste0(".y ~ ", group, " + s(", trait_col, ", bs = 'cr', k = ", k, ")"))
-    cat("Including group fixed effect: '", group, "'\n")
+    message("Including group fixed effect: '", group, "'")
   } else {
     fml <- stats::as.formula(paste0(".y ~ s(", trait_col, ", bs = 'cr', k = ", k, ")"))
   }
 
+  last_error <- NULL
   fit_gam <- function(d) {
     tryCatch(
       mgcv::gam(fml, data = d, family = fam, method = "GCV.Cp", na.action = stats::na.omit),
-      error = function(e) NULL
+      error = function(e) {
+        last_error <<- conditionMessage(e)
+        NULL
+      }
     )
   }
 
   fit <- fit_gam(df)
   if (is.null(fit)) {
-    stop("GAM fitting failed. Try reducing k (currently k = ", k, ").")
+    stop("GAM fitting failed: ", last_error, "\nTry reducing k (currently k = ", k, ").")
   }
   if (!is.null(fit$converged) && !fit$converged) {
     warning("GAM algorithm did not fully converge")
