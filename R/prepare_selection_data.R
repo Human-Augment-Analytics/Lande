@@ -114,16 +114,20 @@ prepare_selection_data <- function(data,
 
 
   # Both standardisation and relative fitness are computed from the rows that
-  # are analysed (complete fitness, traits, and group), within each
-  # group when `group` is set. Individuals dropped from the gradient models for
-  # a missing value would otherwise shift the trait mean/SD and the mean fitness
-  # and bias every gradient (Lande & Arnold standardise within the sample under
-  # selection). `stat_by_group()` returns each row's group statistic over the
-  # analysed rows.
-  cc <- stats::complete.cases(df[, c(fitness_col, trait_cols, group), drop = FALSE])
-  grp_key <- if (!is.null(group)) df[[group]] else rep(1L, nrow(df))
+  # are analysed (complete fitness and traits), within each group when
+  # `group` is set. Individuals dropped from the gradient models for a missing
+  # value would otherwise shift the trait mean/SD and the mean fitness and bias
+  # every gradient (Lande & Arnold standardise within the sample under
+  # selection). Rows whose group label is missing are kept and treated as their
+  # own group, as before; use na_action = "drop" to exclude them.
+  # `stat_by_group()` returns each row's group statistic over the analysed rows.
+  cc <- stats::complete.cases(df[, c(fitness_col, trait_cols), drop = FALSE])
+  grp_key <- if (!is.null(group)) addNA(factor(df[[group]]), ifany = TRUE) else rep(1L, nrow(df))
   stat_by_group <- function(x, FUN) {
     stats::ave(ifelse(cc, x, NA_real_), grp_key, FUN = function(v) FUN(v, na.rm = TRUE))
+  }
+  group_label <- function(rows) {
+    paste(unique(as.character(grp_key[rows])), collapse = ", ")
   }
 
   # Standardize traits, z = (x - mean(x)) / sd(x). A trait with no variance in
@@ -143,8 +147,7 @@ prepare_selection_data <- function(data,
       if (any(!scalable[cc])) {
         warning(
           "Trait '", t, "' has no variance in group(s) ",
-          paste(unique(grp_key[cc & !scalable]), collapse = ", "),
-          "; centred only there"
+          group_label(cc & !scalable), "; centred only there"
         )
       }
       df[[t]] <- (df[[t]] - mu) / ifelse(scalable, sdev, 1)
