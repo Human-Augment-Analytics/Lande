@@ -26,16 +26,18 @@
 #' @param data A data frame containing fitness and trait measurements.
 #' @param fitness_col A string specifying the name of the fitness column.
 #' @param trait_col A string specifying the name of the trait column (must be numeric and standardized).
-#' @param fitness_type A string indicating the fitness type: either \code{"binary"} or \code{"continuous"}.
+#' @param fitness_type A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, or \code{"continuous"}.
 #' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
 #' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
 #' @param k Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.
-#' @param bootstrap Logical; if \code{TRUE} (default) the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988), rather than from a parametric Wald interval.
+#' @param bootstrap Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.
 #' @param n_boot Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.
 #'
 #' @details The fitness function is a penalised cubic regression spline
 #'   (\code{mgcv::s(..., bs = "cr")}) with the smoothing parameter chosen by
-#'   generalised cross-validation, following Schluter (1988).
+#'   generalised cross-validation, following Schluter (1988). With
+#'   \code{bootstrap = TRUE} the result depends on the random seed; call
+#'   \code{set.seed()} first for a reproducible ribbon.
 #'
 #' @return A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
 #' @export
@@ -47,11 +49,11 @@
 univariate_spline <- function(data,
                               fitness_col,
                               trait_col,
-                              fitness_type = c("binary", "continuous"),
+                              fitness_type = c("auto", "binary", "continuous"),
                               group = NULL,
                               relative_col = NULL,
                               k = 10,
-                              bootstrap = TRUE,
+                              bootstrap = FALSE,
                               n_boot = 1000) {
   fitness_type <- match.arg(fitness_type)
 
@@ -64,6 +66,13 @@ univariate_spline <- function(data,
   }
   if (!is.numeric(data[[trait_col]])) {
     stop("`trait_col` must be numeric (standardize upstream if needed).")
+  }
+  if (!fitness_col %in% names(data)) {
+    stop("Fitness column '", fitness_col, "' not found in data")
+  }
+  if (fitness_type == "auto") {
+    fitness_type <- if (detect_family(data[[fitness_col]])$type == "binary") "binary" else "continuous"
+    message("Fitness type detected: ", fitness_type)
   }
 
   # Check if group column exists

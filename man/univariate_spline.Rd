@@ -8,11 +8,11 @@ univariate_spline(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("binary", "continuous"),
+  fitness_type = c("auto", "binary", "continuous"),
   group = NULL,
   relative_col = NULL,
   k = 10,
-  bootstrap = TRUE,
+  bootstrap = FALSE,
   n_boot = 1000
 )
 }
@@ -23,7 +23,7 @@ univariate_spline(
 
 \item{trait_col}{A string specifying the name of the trait column (must be numeric and standardized).}
 
-\item{fitness_type}{A string indicating the fitness type: either \code{"binary"} or \code{"continuous"}.}
+\item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, or \code{"continuous"}.}
 
 \item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included.}
 
@@ -31,7 +31,7 @@ univariate_spline(
 
 \item{k}{Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.}
 
-\item{bootstrap}{Logical; if \code{TRUE} (default) the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988), rather than from a parametric Wald interval.}
+\item{bootstrap}{Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.}
 
 \item{n_boot}{Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.}
 }
@@ -45,7 +45,9 @@ The formula is \code{w ~ f(z)}. Traits should be standardized BEFORE calling thi
 \details{
 The fitness function is a penalised cubic regression spline
   (\code{mgcv::s(..., bs = "cr")}) with the smoothing parameter chosen by
-  generalised cross-validation, following Schluter (1988).
+  generalised cross-validation, following Schluter (1988). With
+  \code{bootstrap = TRUE} the result depends on the random seed; call
+  \code{set.seed()} first for a reproducible ribbon.
 }
 \examples{
 \dontrun{
