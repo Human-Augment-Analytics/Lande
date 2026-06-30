@@ -178,6 +178,7 @@ selection_coefficients <- function(data,
 
   # Add attributes
   attr(all_coefs, "fitness_type_detected") <- det$type
+  attr(all_coefs, "fitness_type_used") <- fitness_type
   attr(all_coefs, "model_family_used") <- if (fitness_type == "binary") "binomial(logit)" else "gaussian"
   attr(all_coefs, "model_fitness_col") <- ols_response_col
   attr(all_coefs, "relative_available") <- rel_col %in% names(df)

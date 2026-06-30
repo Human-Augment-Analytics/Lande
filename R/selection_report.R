@@ -78,7 +78,11 @@ selection_report <- function(data,
 
   rownames(tab) <- NULL
   attr(tab, "digits") <- digits
-  attr(tab, "fitness_type") <- attr(gradients, "fitness_type_detected")
+  attr(tab, "fitness_type") <- attr(gradients, "fitness_type_used")
+  attr(tab, "scale") <- paste0(
+    if (standardize) "standardised traits" else "unstandardised traits", ", ",
+    if (use_relative_for_fit) "relative fitness" else "absolute fitness"
+  )
   class(tab) <- c("selection_report", "data.frame")
   tab
 }
@@ -110,7 +114,7 @@ print.selection_report <- function(x, ...) {
     check.names = FALSE
   )
 
-  cat("Selection analysis (standardised traits, relative fitness)\n")
+  cat("Selection analysis (", attr(x, "scale") %||% "standardised traits, relative fitness", ")\n", sep = "")
   if (!is.null(attr(x, "fitness_type"))) {
     cat("Fitness type:", attr(x, "fitness_type"), "\n")
   }
