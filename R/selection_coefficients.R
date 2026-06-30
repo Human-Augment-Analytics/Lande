@@ -75,10 +75,17 @@ selection_coefficients <- function(data,
       stop("Group column '", group, "' not found in data")
     }
     groups <- unique(data[[group]])
+    if (anyNA(groups)) {
+      warning(
+        sum(is.na(data[[group]])), " row(s) have a missing '", group,
+        "' label and are excluded from the per-group results"
+      )
+      groups <- groups[!is.na(groups)]
+    }
     results_list <- list()
 
     for (g in groups) {
-      data_g <- data[data[[group]] == g, ]
+      data_g <- data[!is.na(data[[group]]) & data[[group]] == g, , drop = FALSE]
 
       res <- selection_coefficients(
         data = data_g,
