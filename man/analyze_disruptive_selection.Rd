@@ -10,7 +10,8 @@ analyze_disruptive_selection(
   trait_col,
   fitness_type = c("auto", "binary", "continuous"),
   standardize = TRUE,
-  group = NULL
+  group = NULL,
+  return_grouped = FALSE
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ analyze_disruptive_selection(
 
 \item{group}{Optional string specifying a grouping variable; standardisation and
 relative fitness are then computed within each group.}
+
+\item{return_grouped}{Logical; if \code{TRUE} and \code{group} is given, the
+gradients are estimated separately for each group and returned with a
+\code{Group} column. Default is \code{FALSE}.}
 }
 \value{
 A data frame with one row per gradient (\code{Term}, \code{Type},
