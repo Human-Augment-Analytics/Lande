@@ -154,13 +154,23 @@ prepare_selection_data <- function(data,
     }
   }
 
-  # Add relative fitness, w_i = W_i / mean(W), with mean(W) over the analysed rows
+  # Add relative fitness, w_i = W_i / mean(W), with mean(W) over the analysed
+  # rows. A group whose mean fitness is zero (nobody survived) has no relative
+  # fitness: those rows are set to NA and named, so they drop out of the models
+  # visibly rather than silently.
   if (add_relative) {
     mean_fit <- stat_by_group(df[[fitness_col]], mean)
-    if (!any(is.finite(mean_fit) & mean_fit != 0)) {
+    usable <- is.finite(mean_fit) & mean_fit != 0
+    if (!any(usable[cc])) {
       warning("Mean fitness is zero or non-finite; cannot compute relative fitness. Skipping.")
     } else {
-      df[[name_relative]] <- df[[fitness_col]] / mean_fit
+      if (any(!usable[cc])) {
+        warning(
+          "Mean fitness is zero or non-finite in group(s) ", group_label(cc & !usable),
+          "; relative fitness is NA there and those rows are excluded from the models"
+        )
+      }
+      df[[name_relative]] <- ifelse(usable, df[[fitness_col]] / mean_fit, NA_real_)
     }
   }
 
