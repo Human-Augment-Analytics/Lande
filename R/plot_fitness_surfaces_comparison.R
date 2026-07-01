@@ -156,30 +156,28 @@ plot_fitness_surfaces_comparison <- function(
             linetype = "solid",
             bins = bins,
             linewidth = linewidth
-        ) +
-        # Optimum points
+        )
+
+    # Optimum points, only when requested and available
+    optimum_layer <- function(opt, label) {
+        if (!show_optima || is.null(opt) || !all(trait_cols %in% names(opt))) {
+            return(NULL)
+        }
         ggplot2::geom_point(
-            data = optimum_individual,
+            data = opt,
             ggplot2::aes(
                 x = .data[[trait_cols[1]]],
                 y = .data[[trait_cols[2]]],
-                color = "Individual Optimum"
+                color = label
             ),
             size = 4,
             shape = 18,
             alpha = point_alpha
-        ) +
-        ggplot2::geom_point(
-            data = optimum_population,
-            ggplot2::aes(
-                x = .data[[trait_cols[1]]],
-                y = .data[[trait_cols[2]]],
-                color = "Population Optimum"
-            ),
-            size = 4,
-            shape = 18,
-            alpha = point_alpha
-        ) +
+        )
+    }
+    p_overlay <- p_overlay +
+        optimum_layer(optimum_individual, "Individual Optimum") +
+        optimum_layer(optimum_population, "Population Optimum") +
         # Color scale
         ggplot2::scale_color_manual(
             name = "",
