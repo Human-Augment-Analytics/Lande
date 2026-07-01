@@ -29,7 +29,7 @@ bootstrap_selection(
 
 \item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
 
-\item{use_relative_for_fit}{Logical indicating whether to use relative fitness for continuous data. Default is \code{TRUE}.}
+\item{use_relative_for_fit}{Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.}
 
 \item{n_boot}{Integer number of bootstrap resamples. Default is 1000.}
 
@@ -39,12 +39,22 @@ bootstrap_selection(
 A data frame with one row per coefficient and columns \code{Term},
   \code{Type}, \code{Estimate} (point estimate on the full data),
   \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, \code{P_Value}, and
-  \code{N_Boot} (usable resamples for that coefficient).
+  \code{N_Boot} (usable resamples for that coefficient). \code{P_Value} is
+  the parametric p-value from the point-estimate fit (OLS t-test, or the
+  logistic-GLM Wald test for binary fitness), not a bootstrap p-value.
 }
 \description{
 Resamples individuals with replacement and re-estimates the selection
 gradients on each resample to obtain bootstrap standard errors and percentile
 confidence intervals for every coefficient (beta, gamma, gamma_ij).
+}
+\details{
+When \code{group} is given, individuals are resampled within each
+  group so every resample keeps the original group sizes. A resample in
+  which a trait has no variance within a group (so it could only be centred)
+  is discarded rather than fitted on a degenerate value. The point estimate
+  is the ordinary \code{selection_coefficients()} fit on the full data and
+  its warnings are reported as usual.
 }
 \examples{
 \dontrun{
