@@ -140,6 +140,23 @@ adaptive_landscape <- function(
 
     mean_fitness <- numeric(nrow(population_grid))
 
+    # A GAM fitted with a group term (correlated_fitness_surface(..., group =))
+    # needs that variable to predict from. Hold every non-trait predictor at a
+    # reference level taken from `data`, as the surface functions do.
+    extra_vars <- list()
+    if (inherits(fitness_model, "gam")) {
+        mf_names <- names(fitness_model$model)
+        model_vars <- setdiff(mf_names[-1], trait_cols) # first column is the response
+        model_vars <- model_vars[!grepl("^\\(", model_vars)] # skip (weights), (offset)
+        for (v in model_vars) {
+            if (!v %in% names(data)) {
+                stop("The fitness model uses '", v, "', which is not in `data`")
+            }
+            extra_vars[[v]] <- .reference_group(data[[v]])
+            cat("Holding '", v, "' at reference level '", extra_vars[[v]], "'\n", sep = "")
+        }
+    }
+
     # Progress indicator
     cat("Calculating mean fitness for", nrow(population_grid), "grid points...\n")
 
@@ -155,6 +172,7 @@ adaptive_landscape <- function(
 
         colnames(simulated) <- trait_cols
         sim_df <- as.data.frame(simulated)
+        for (v in names(extra_vars)) sim_df[[v]] <- extra_vars[[v]]
 
         # Predict individual fitness
         if (inherits(fitness_model, "gam")) {
