@@ -25,7 +25,9 @@
 #   group                : optional grouping variable (e.g., "year", "site")
 #                          When specified, standardization and relative fitness
 #                          are calculated separately within each group.
-#   use_relative_for_fit : if TRUE, use relative fitness for continuous data
+#   use_relative_for_fit : if TRUE (default), gradients are estimated on relative
+#                          fitness W / mean(W) for every fitness type; FALSE
+#                          gives coefficients on the absolute fitness scale
 #
 # Returns:
 #   Data frame with columns:
@@ -47,7 +49,7 @@
 #' @param fitness_type A string indicating the fitness type: \code{"auto"}, \code{"binary"}, or \code{"continuous"}.
 #' @param standardize Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.
 #' @param group Optional string specifying a grouping variable (e.g., "year", "site").
-#' @param use_relative_for_fit Logical indicating whether to use relative fitness for continuous data. Default is \code{TRUE}.
+#' @param use_relative_for_fit Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.
 #' @param return_grouped Logical indicating whether to return results grouped if a \code{group} is specified.
 #'
 #' @return A data frame containing selection coefficients (Term, Type, Beta_Coefficient, Standard_Error, P_Value, Variance).
@@ -132,8 +134,9 @@ selection_coefficients <- function(data,
     fitness_type <- det$type
   }
 
-  # Selection gradients always come from OLS on relative fitness. Binary fitness
-  # additionally uses the raw 0/1 column for logistic-GLM p-values.
+  # Selection gradients come from OLS on relative fitness (or on absolute
+  # fitness if use_relative_for_fit = FALSE). Binary fitness additionally uses
+  # the raw 0/1 column for logistic-GLM p-values.
   ols_response_col <- if (use_relative_for_fit) {
     if (!rel_col %in% names(df)) {
       stop(

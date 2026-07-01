@@ -28,7 +28,7 @@ selection_coefficients(
 
 \item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
 
-\item{use_relative_for_fit}{Logical indicating whether to use relative fitness for continuous data. Default is \code{TRUE}.}
+\item{use_relative_for_fit}{Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.}
 
 \item{return_grouped}{Logical indicating whether to return results grouped if a \code{group} is specified.}
 }
