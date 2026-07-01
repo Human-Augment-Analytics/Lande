@@ -29,7 +29,7 @@ selection_report(
 
 \item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
 
-\item{use_relative_for_fit}{Logical indicating whether to use relative fitness for continuous data. Default is \code{TRUE}.}
+\item{use_relative_for_fit}{Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.}
 
 \item{include_differentials}{Logical; if \code{TRUE} (default) selection
 differentials S are included alongside the gradients.}
@@ -47,6 +47,15 @@ selection differentials (S) and linear (beta), quadratic (gamma), and
 correlational (gamma_ij) gradients. All estimates use traits standardised to
 mean 0, SD 1 and relative fitness, so the table is directly comparable across
 studies.
+}
+\details{
+Differentials and gradients are computed on the same individuals
+  (those with complete fitness and trait values) and on the same trait and
+  fitness scales, so the rows are directly comparable. S is the
+  population covariance (divides by n) while the OLS gradient on
+  sd-standardised traits corresponds to the sample covariance (n - 1), so
+  for a single trait the Differential and Linear rows differ by the factor
+  (n - 1) / n.
 }
 \examples{
 \dontrun{

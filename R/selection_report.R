@@ -19,6 +19,14 @@
 #'   differentials S are included alongside the gradients.
 #' @param digits Integer number of digits used when printing. Default is 4.
 #'
+#' @details Differentials and gradients are computed on the same individuals
+#'   (those with complete fitness and trait values) and on the same trait and
+#'   fitness scales, so the rows are directly comparable. S is the
+#'   population covariance (divides by n) while the OLS gradient on
+#'   sd-standardised traits corresponds to the sample covariance (n - 1), so
+#'   for a single trait the Differential and Linear rows differ by the factor
+#'   (n - 1) / n.
+#'
 #' @return A data frame of class \code{"selection_report"} with columns
 #'   \code{Term}, \code{Type}, \code{Estimate}, \code{Std_Error}, and
 #'   \code{P_Value}.
