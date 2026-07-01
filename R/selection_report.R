@@ -66,9 +66,21 @@ selection_report <- function(data,
   )
 
   if (include_differentials) {
+    # Prepare the data exactly as selection_coefficients() does and keep only
+    # the rows that reach the gradient models, so S and beta share a sample
+    # and a scale (standardised traits, relative fitness unless the caller
+    # asked for absolute fitness).
+    rel_col <- paste0(fitness_col, "_relative")
+    prep <- suppressWarnings(suppressMessages(prepare_selection_data(
+      data, fitness_col, trait_cols,
+      standardize = standardize, group = group, add_relative = TRUE,
+      na_action = "none", name_relative = rel_col
+    )))
+    prep <- prep[stats::complete.cases(prep[, c(fitness_col, trait_cols, group), drop = FALSE]), , drop = FALSE]
+    w_col <- if (use_relative_for_fit && rel_col %in% names(prep)) rel_col else fitness_col
     S <- vapply(trait_cols, function(t) {
       suppressWarnings(suppressMessages(
-        selection_differential(data, fitness_col, t, standardized = !standardize, group = group)
+        selection_differential(prep, w_col, t, standardized = TRUE, use_relative = FALSE, group = group)
       ))
     }, numeric(1))
 
