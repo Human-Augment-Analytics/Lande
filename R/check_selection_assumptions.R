@@ -60,7 +60,10 @@
 #'   gradient model. The rows-per-term check counts the individuals, or for
 #'   binary fitness the rarer outcome, per term of the quadratic model, with
 #'   ten as the working minimum. With more than 2000 individuals Mardia's
-#'   statistics use a random subsample of 2000.
+#'   statistics use a random subsample of 2000. If the \code{performance}
+#'   package is installed its heteroscedasticity and overdispersion tests are
+#'   added beside the package's own, along with an R squared for the gradient
+#'   model.
 #'
 #' @inheritParams selection_coefficients
 #' @return A data frame of class \code{"selection_assumptions"} with one row
@@ -145,7 +148,8 @@ check_selection_assumptions <- function(data,
       if (per_term < 10) sprintf("%d %s for %d terms; treat gamma with care", events,
                                  if (fitness_type == "binary") "of the rarer outcome" else "rows", terms) else "")
 
-  # the gradient models
+  # the gradient models; the performance package adds its own tests and an R2 when installed
+  has_perf <- requireNamespace("performance", quietly = TRUE)
   lin <- paste(trait_cols, collapse = " + ")
   if (fitness_type == "continuous") {
     fit <- stats::lm(stats::as.formula(paste(".w ~", lin)), data = prep)
@@ -158,6 +162,11 @@ check_selection_assumptions <- function(data,
     bp <- .breusch_pagan(fit)
     add("Linear model residuals: heteroscedasticity (Breusch-Pagan)", bp[["statistic"]], bp[["p"]],
         if (bp[["p"]] < 0.05) "variance changes with the fitted value; bootstrap the intervals" else "")
+    if (has_perf) {
+      ph <- tryCatch(as.numeric(performance::check_heteroscedasticity(fit)), error = function(e) NA_real_)
+      add("Linear model residuals: heteroscedasticity (performance)", NA_real_, ph,
+          if (isTRUE(ph < 0.05)) "performance agrees the variance is not constant" else "")
+    }
   } else if (fitness_type == "binary") {
     fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", lin)), data = prep, family = stats::binomial()))
     coefs <- stats::coef(fit)[-1]
@@ -168,8 +177,19 @@ check_selection_assumptions <- function(data,
   } else {
     fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", lin)), data = prep, family = stats::poisson()))
     disp <- sum(stats::residuals(fit, type = "pearson")^2) / stats::df.residual(fit)
-    add("Poisson model: dispersion ratio", disp, NA_real_,
+    p_disp <- NA_real_
+    if (has_perf) {
+      od <- tryCatch(performance::check_overdispersion(fit), error = function(e) NULL)
+      if (!is.null(od)) p_disp <- as.numeric(od$p_value)
+    }
+    add("Poisson model: dispersion ratio", disp, p_disp,
         if (disp > 1.5) "overdispersed; the gradients use a negative binomial model" else "")
+  }
+  if (has_perf) {
+    r2 <- tryCatch(performance::r2(fit), error = function(e) NULL)
+    if (!is.null(r2) && length(r2)) {
+      add(paste0("Model fit: ", names(r2)[1], " (performance)"), as.numeric(r2[[1]]), NA_real_, "")
+    }
   }
 
   out <- do.call(rbind, rows)

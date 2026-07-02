@@ -51,7 +51,10 @@ Lande and Arnold (1983) showed that the regression gradients equal
   gradient model. The rows-per-term check counts the individuals, or for
   binary fitness the rarer outcome, per term of the quadratic model, with
   ten as the working minimum. With more than 2000 individuals Mardia's
-  statistics use a random subsample of 2000.
+  statistics use a random subsample of 2000. If the \code{performance}
+  package is installed its heteroscedasticity and overdispersion tests are
+  added beside the package's own, along with an R squared for the gradient
+  model.
 }
 \examples{
 \dontrun{

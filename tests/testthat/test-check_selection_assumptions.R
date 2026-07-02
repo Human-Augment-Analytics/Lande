@@ -45,6 +45,22 @@ test_that("count fitness reports the dispersion ratio and normal traits pass Mar
   expect_true(all(m$p_value > 0.01))
 })
 
+test_that("performance adds its tests and an R squared when installed", {
+  skip_if_not_installed("performance")
+  chk <- check_selection_assumptions(bumpus, "survival", c("total_length", "weight"))
+  expect_true(any(grepl("Model fit: .*\\(performance\\)", chk$check)))
+  set.seed(24)
+  n <- 300
+  d <- data.frame(z1 = rnorm(n), z2 = rnorm(n))
+  d$kids <- MASS::rnegbin(n, mu = exp(0.5 + 0.3 * d$z1), theta = 1.2)
+  cnt <- check_selection_assumptions(d, "kids", c("z1", "z2"))
+  disp <- cnt[grepl("dispersion ratio", cnt$check), ]
+  expect_false(is.na(disp$p_value))
+  d$w <- 1 + 0.4 * d$z1 + rnorm(n, 0, 0.1 + 0.4 * (d$z1 - min(d$z1)))
+  cont <- check_selection_assumptions(d, "w", c("z1", "z2"))
+  expect_true(any(grepl("heteroscedasticity \\(performance\\)", cont$check)))
+})
+
 test_that("skewed traits fail Mardia and one trait skips the multivariate checks", {
   set.seed(23)
   n <- 300
