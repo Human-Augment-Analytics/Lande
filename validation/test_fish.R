@@ -91,13 +91,13 @@ cat("  Models: ", model_dir, "\n")
 # ------------------------------------------------------
 cat("\n=== Loading Pupfish Datasets ===\n")
 
-data_dirs <- c(here("R", "data"), here("R", "test_data"))
+data_dirs <- c(here("inst", "extdata"), here("inst", "extdata"))
 
 # ======================================================
 # 6.1 Crescent Pond data (main dataset)
 # ======================================================
 crescent_files <- list.files(data_dirs,
-    pattern = "Crescent.*Pond.*\\.csv$",
+    pattern = "crescent.*pond.*\\.csv$", ignore.case = TRUE,
     full.names = TRUE, recursive = TRUE
 )
 
@@ -111,7 +111,7 @@ cat("Columns:", ncol(crescent_data), "\n")
 # 6.2 Little Lake data (comparison dataset)
 # ======================================================
 little_files <- list.files(data_dirs,
-    pattern = "Little.*Lake.*\\.csv$",
+    pattern = "little.*lake.*\\.csv$", ignore.case = TRUE,
     full.names = TRUE, recursive = TRUE
 )
 
