@@ -2,7 +2,6 @@
 ^validation$
 ^case_studies$
 ^inst/scripts$
-^inst/extdata$
 ^Evolutionary-Selection-Analysis\.html$
 ^docs$
 ^\.git$
