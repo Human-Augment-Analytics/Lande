@@ -231,16 +231,16 @@ cat("Correlated fitness surfaces Done\n")
 if (exists("bootstrap_selection")) {
   cat("\nTesting bootstrap_selection...\n")
 
+  set.seed(42)
   boot <- bootstrap_selection(
     data = df_continuous,
     fitness_col = FITNESS,
     trait_cols = c("size", "speed"),
     fitness_type = "continuous",
-    B = 50,
-    seed = 42
+    n_boot = 50
   )
 
-  write.csv(boot$ci, file.path(table_dir, "bootstrap_ci.csv"), row.names = FALSE)
+  write.csv(boot, file.path(table_dir, "bootstrap_ci.csv"), row.names = FALSE)
 
   cat("Bootstrap Done\n")
 }
