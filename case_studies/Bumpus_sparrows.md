@@ -28,7 +28,7 @@ while controlling for the effects of other traits in the model.
 ---
 
 ### 2. Setup and Script
-`R/tests/test_bumpus_sparrows.R`
+`validation/test_bumpus_sparrows.R`
  
 ---
 

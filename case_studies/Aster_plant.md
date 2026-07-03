@@ -14,7 +14,7 @@ Understanding how natural selection shapes phenotypic variation across environme
 ---
 
 ### 2. Setup and Script
-`R/scripts/test_plants.R`
+`validation/test_plant.R`
 
 ---
 

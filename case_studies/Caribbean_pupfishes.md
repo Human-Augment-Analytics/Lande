@@ -21,7 +21,7 @@ In this study, we analyze selection on six functional traits using a large F2 hy
 ---
 
 ### 2. Setup and Script
-`R/scripts/test_fish.R`
+`validation/test_fish.R`
 
 ---
 

@@ -14,7 +14,7 @@ Univariate analyses were conducted for beak size across years to assess temporal
 ---
 
 ### 2. Setup and Script
-`R/scripts/test_birds.R`
+`validation/test_birds.R`
 
 ---
 
