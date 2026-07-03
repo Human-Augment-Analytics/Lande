@@ -842,13 +842,14 @@ for (trait in TRAITS) {
 # Binary - With group
 cat("\n--- Binary (By Lake) ---\n")
 for (trait in TRAITS) {
-    spline_list <- univariate_spline(
-        data = prepared_binary_group,
-        fitness_col = FITNESS_BINARY,
-        trait_col = trait,
-        fitness_type = "binary",
-        group = GROUP
-    )
+    spline_list <- lapply(split(prepared_binary_group, prepared_binary_group[[GROUP]]), function(lake_data) {
+        univariate_spline(
+            data = lake_data,
+            fitness_col = FITNESS_BINARY,
+            trait_col = trait,
+            fitness_type = "binary"
+        )
+    })
 
     for (lake in names(spline_list)) {
         saveRDS(spline_list[[lake]], file.path(model_dir, paste0("spline_binary_", trait, "_", lake, ".rds")))
@@ -881,13 +882,14 @@ for (trait in TRAITS) {
 # Continuous - With group
 cat("\n--- Continuous (By Lake) ---\n")
 for (trait in TRAITS) {
-    spline_list <- univariate_spline(
-        data = prepared_continuous_group,
-        fitness_col = FITNESS_CONTINUOUS,
-        trait_col = trait,
-        fitness_type = "continuous",
-        group = GROUP
-    )
+    spline_list <- lapply(split(prepared_continuous_group, prepared_continuous_group[[GROUP]]), function(lake_data) {
+        univariate_spline(
+            data = lake_data,
+            fitness_col = FITNESS_CONTINUOUS,
+            trait_col = trait,
+            fitness_type = "continuous"
+        )
+    })
 
     for (lake in names(spline_list)) {
         saveRDS(spline_list[[lake]], file.path(model_dir, paste0("spline_continuous_", trait, "_", lake, ".rds")))
@@ -935,16 +937,17 @@ cat("\n--- Binary (By Lake) ---\n")
 for (pair in trait_pairs) {
     pair_name <- paste(pair, collapse = "_")
 
-    cfs_list <- correlated_fitness_surface(
-        data = prepared_binary_group,
-        fitness_col = FITNESS_BINARY,
-        trait_cols = pair,
-        grid_n = 60,
-        method = "auto",
-        scale_traits = FALSE,
-        group = GROUP,
-        k = 20
-    )
+    cfs_list <- lapply(split(prepared_binary_group, prepared_binary_group[[GROUP]]), function(lake_data) {
+        correlated_fitness_surface(
+            data = lake_data,
+            fitness_col = FITNESS_BINARY,
+            trait_cols = pair,
+            grid_n = 60,
+            method = "auto",
+            scale_traits = FALSE,
+            k = 20
+        )
+    })
 
     for (lake in names(cfs_list)) {
         saveRDS(cfs_list[[lake]], file.path(model_dir, paste0("cfs_binary_", pair_name, "_", lake, ".rds")))
@@ -984,16 +987,17 @@ cat("\n--- Continuous (By Lake) ---\n")
 for (pair in trait_pairs) {
     pair_name <- paste(pair, collapse = "_")
 
-    cfs_list <- correlated_fitness_surface(
-        data = prepared_continuous_group,
-        fitness_col = FITNESS_CONTINUOUS,
-        trait_cols = pair,
-        grid_n = 60,
-        method = "auto",
-        scale_traits = FALSE,
-        group = GROUP,
-        k = 20
-    )
+    cfs_list <- lapply(split(prepared_continuous_group, prepared_continuous_group[[GROUP]]), function(lake_data) {
+        correlated_fitness_surface(
+            data = lake_data,
+            fitness_col = FITNESS_CONTINUOUS,
+            trait_cols = pair,
+            grid_n = 60,
+            method = "auto",
+            scale_traits = FALSE,
+            k = 20
+        )
+    })
 
     for (lake in names(cfs_list)) {
         saveRDS(cfs_list[[lake]], file.path(model_dir, paste0("cfs_continuous_", pair_name, "_", lake, ".rds")))
