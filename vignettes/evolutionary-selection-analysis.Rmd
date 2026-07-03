@@ -39,7 +39,8 @@ Section 5):
 ```r
 prepared <- prepare_selection_data(bumpus, "survival", c("weight", "total_length"))
 
-uni <- univariate_spline(prepared, "survival", "weight", fitness_type = "binary")
+uni <- univariate_spline(prepared, "survival", "weight", fitness_type = "binary",
+                         bootstrap = TRUE)
 plot_univariate_fitness(uni, "weight", classic_plot = TRUE)
 ```
 
@@ -663,12 +664,16 @@ analyze_disruptive_selection(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("binary", "continuous"),
-  standardize = TRUE
+  fitness_type = c("auto", "binary", "continuous"),
+  standardize = TRUE,
+  group = NULL
 )
 ```
 
-**Model:** $w \sim z + z^2$
+**Models:** $\beta$ comes from the linear-only model $w \sim z$ and
+$\gamma = 2 b_2$ from $w \sim z + z^2$ (with the standard error doubled as
+well), following Lande & Arnold (1983) and Stinchcombe et al. (2008). Both are
+computed through `selection_coefficients()` on the single trait.
 
 **Returns:** Data frame with:
 - Linear term ($\beta$): Directional selection
@@ -695,16 +700,19 @@ univariate_spline(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("binary", "continuous"),
-  k = 10 # Basis dimension (smoothness parameter)
+  fitness_type = c("auto", "binary", "continuous"),
+  group = NULL,        # optional group fixed effect
+  relative_col = NULL, # pre-computed relative fitness column, if any
+  k = 10,              # basis dimension (smoothness parameter)
+  bootstrap = FALSE,   # TRUE: percentile-bootstrap 95% ribbon (Schluter 1988)
+  n_boot = 1000
 )
 ```
 
 **Technical details:**
-- Uses penalized regression splines with REML smoothing parameter selection
-- For binary fitness: binomial GAM with logit link
-- For continuous: Gaussian GAM
-- Returns predictions with 95% confidence intervals
+- Penalised cubic regression spline (`bs = "cr"`) with the smoothing parameter chosen by generalised cross-validation, following Schluter (1988)
+- For binary fitness: binomial GAM with logit link; for continuous: Gaussian GAM on relative fitness
+- 95% band: parametric (Wald) by default, or a percentile bootstrap over individuals with `bootstrap = TRUE`
 
 **Example:**
 ```{r, message=FALSE, warning=FALSE, cache=FALSE}
@@ -735,7 +743,8 @@ spline_fit <- univariate_spline(
   fitness_col = "survival",
   trait_col = "size",
   fitness_type = "binary",
-  k = k_val
+  k = k_val,
+  bootstrap = TRUE
 )
 
 head(spline_fit$grid)
