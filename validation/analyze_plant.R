@@ -19,46 +19,21 @@ for (pkg in required_packages) {
 
 cat("Project Root:", here(), "\n")
 
-cat("\n2. Loading selection analysis functions\n")
+# ------------------------------------------------------
+# 1 Load the package
+# ------------------------------------------------------
+# Use the installed package if present, otherwise load it from the source tree.
 
-function_files <- c(
-  "extract_results.R",
-  "selection_coefficients.R", 
-  "detect_family.R", 
-  "selection_differential.R",
-  "univariate_spline.R", 
-  "univariate_surface.R", 
-  "correlational_tps.R",
-  "correlation_surface.R", 
-  "bootstrap_selection.R"
-)
-
-scripts_files <- c(
-  "1_prepare_selection_data.R",
-  "2_linear_selection_analysis.R",
-  "3_nonlinear_selection_analysis.R",
-  "4_disruptive_selection_analysis.R"
-)
-
-for (f in function_files) {
-  file_path <- here("R","functions", f)
-  if (file.exists(file_path)) {
-    source(file_path)
-    cat("Sourced:", f, "\n")
-  } else {
-    cat("File not found:", file_path, "\n")
-  }
+if (file.exists(here::here("DESCRIPTION")) && requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(here::here(), quiet = TRUE)
+} else {
+    library(RforEvolution)
 }
-
-for (s in scripts_files) {
-  file_path <- here("R","scripts", s)
-  if (file.exists(file_path)) {
-    source(file_path)
-    cat("Sourced:", s, "\n")
-  } else {
-    cat("File not found:", file_path, "\n")
-  }
-}
+suppressPackageStartupMessages({
+    library(here)
+    library(dplyr)
+    library(ggplot2)
+})
 
 # =============================================================================
 # PART 2: DATA LOADING AND EXPLORATION
@@ -67,10 +42,10 @@ for (s in scripts_files) {
 cat("\n3. Data loading and exploration\n")
 
 data_files <- list(
-  data1 = here("R","data", "Aster_analyses_2011_Cohort.txt"),
-  data2 = here("R","data", "Aster_analyses_2012_Cohort_full.txt"),
-  data3 = here("R","data", "Aster_analyses_2011_Cohort_full.txt"),
-  data4 = here("R","data", "Aster_analyses_2012_Cohort.txt")
+  data1 = here("inst", "extdata", "Aster_analyses_2011_Cohort.txt"),
+  data2 = here("inst", "extdata", "Aster_analyses_2012_Cohort_full.txt"),
+  data3 = here("inst", "extdata", "Aster_analyses_2011_Cohort_full.txt"),
+  data4 = here("inst", "extdata", "Aster_analyses_2012_Cohort.txt")
 )
 
 data1 <- read.delim(data_files$data1, sep = "\t")
@@ -225,7 +200,7 @@ if (length(yearly_results) > 0) {
 
 cat("\n7. Saving results\n")
 
-output_dir <- here("R","results","plant_selection_results")
+output_dir <- here("results","plant_selection_results")
 if (!dir.exists(output_dir)) dir.create(output_dir)
 
 # 1. Save the main multivariate results to CSV

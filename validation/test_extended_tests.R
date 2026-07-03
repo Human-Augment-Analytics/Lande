@@ -24,73 +24,26 @@ set.seed(123)
 cat("Project Root:", here(), "\n")
 
 # ------------------------------------------------------
-# 1 Initialize environment
+# 1 Load the package
 # ------------------------------------------------------
+# Use the installed package if present, otherwise load it from the source tree.
 
-if (file.exists(here("R","scripts","/0.0_initialize.R"))) {
-  source(here("R","scripts","/0.0_initialize.R"))
+if (file.exists(here::here("DESCRIPTION")) && requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(here::here(), quiet = TRUE)
+} else {
+    library(RforEvolution)
 }
-
-# ======================================================
-# 2 Output directories
-# ======================================================
-
-# ======================================================
-# Load scripts
-# ======================================================
-
-cat("\nLoading script files...\n")
-
-script_files <- list.files(
-  here("R","scripts"),
-  pattern = "\\.R$",
-  full.names = TRUE
-)
-
-for (f in script_files) {
-  source(f)
-  cat("Loaded script:", basename(f), "\n")
-}
-
-# ======================================================
-# Load functions
-# ======================================================
-
-cat("\nLoading function files...\n")
-
-fn_files <- list.files(
-  here("R","functions"),
-  pattern = "\\.R$",
-  full.names = TRUE
-)
-
-for (f in fn_files) {
-  source(f)
-  cat("Loaded:", basename(f), "\n")
-}
-
-# ======================================================
-# Load plotting
-# ======================================================
-
-cat("\nLoading plotting functions...\n")
-
-plot_files <- list.files(
-  here("R","plotting"),
-  pattern = "\\.R$",
-  full.names = TRUE
-)
-
-for (f in plot_files) {
-  source(f)
-  cat("Loaded plot:", basename(f), "\n")
-}
+suppressPackageStartupMessages({
+    library(here)
+    library(dplyr)
+    library(ggplot2)
+})
 
 # ======================================================
 # Define Output Directories
 # ======================================================
 
-output_dir <- here("R", "results", "test_extended_tests_results")
+output_dir <- here("results", "test_extended_tests_results")
 figure_dir <- file.path(output_dir, "figures")
 table_dir <- file.path(output_dir, "tables")
 model_dir <- file.path(output_dir, "models")
@@ -375,7 +328,7 @@ cat("\n========================================\n")
 cat("FUNCTION TESTING COMPLETE\n")
 cat("========================================\n")
 
-cat("\nFunctions loaded:", length(fn_files), "\n")
+cat("\nFunctions loaded:", length(getNamespaceExports("RforEvolution")), "\n")
 cat("Plots created:", length(univariate_plots) + length(cfs_plots), "\n")
 
 cat("\nFiles generated:\n")

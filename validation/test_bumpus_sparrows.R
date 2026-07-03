@@ -10,65 +10,20 @@ cat("========================================\n")
 cat("Working directory:", getwd(), "\n")
 
 # ------------------------------------------------------
-# 1 Initialize environment
+# 1 Load the package
 # ------------------------------------------------------
+# Use the installed package if present, otherwise load it from the source tree.
 
-if (file.exists("R/scripts/0.0_initialize.R")) {
-    source("R/scripts/0.0_initialize.R")
+if (file.exists(here::here("DESCRIPTION")) && requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(here::here(), quiet = TRUE)
+} else {
+    library(RforEvolution)
 }
-
-# ======================================================
-# 2 Load scripts
-# ======================================================
-
-cat("\nLoading script files...\n")
-
-script_files <- list.files(
-    "R/scripts",
-    pattern = "\\.R$",
-    full.names = TRUE
-)
-
-for (f in script_files) {
-    if (basename(f) != "0.0_initialize.R") {
-        source(f)
-        cat("Loaded script:", basename(f), "\n")
-    }
-}
-
-# ======================================================
-# 3 Load functions
-# ======================================================
-
-cat("\nLoading function files...\n")
-
-fn_files <- list.files(
-    "R/functions",
-    pattern = "\\.R$",
-    full.names = TRUE
-)
-
-for (f in fn_files) {
-    source(f)
-    cat("Loaded:", basename(f), "\n")
-}
-
-# ======================================================
-# 4 Load plotting
-# ======================================================
-
-cat("\nLoading plotting functions...\n")
-
-plot_files <- list.files(
-    "R/plotting",
-    pattern = "\\.R$",
-    full.names = TRUE
-)
-
-for (f in plot_files) {
-    source(f)
-    cat("Loaded plot:", basename(f), "\n")
-}
+suppressPackageStartupMessages({
+    library(here)
+    library(dplyr)
+    library(ggplot2)
+})
 
 # ======================================================
 # 5 Output directories (defined AFTER scripts)
@@ -78,7 +33,7 @@ library(here)
 
 rm(list = intersect(ls(), c("output_dir", "figure_dir", "table_dir", "model_dir")))
 
-output_dir <- here("R", "results", "bumpus_sparrows_results")
+output_dir <- here("results", "bumpus_sparrows_results")
 figure_dir <- file.path(output_dir, "figures")
 table_dir <- file.path(output_dir, "tables")
 model_dir <- file.path(output_dir, "models")
@@ -98,7 +53,7 @@ cat("  Models: ", model_dir, "\n")
 
 cat("\nLoading Bumpus dataset...\n")
 
-data_path <- here("R", "data", "Bumpus_data.csv")
+data_path <- here("inst", "extdata", "Bumpus_data.csv")
 
 if (!file.exists(data_path)) {
     stop("Cannot find data/Bumpus_data.csv")

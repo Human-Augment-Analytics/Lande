@@ -10,65 +10,20 @@ cat("========================================\n")
 cat("Working directory:", getwd(), "\n")
 
 # ------------------------------------------------------
-# 1 Initialize environment
+# 1 Load the package
 # ------------------------------------------------------
+# Use the installed package if present, otherwise load it from the source tree.
 
-if (file.exists("R/scripts/0.0_initialize.R")) {
-    source("R/scripts/0.0_initialize.R")
+if (file.exists(here::here("DESCRIPTION")) && requireNamespace("pkgload", quietly = TRUE)) {
+    pkgload::load_all(here::here(), quiet = TRUE)
+} else {
+    library(RforEvolution)
 }
-
-# ======================================================
-# 2 Load scripts
-# ======================================================
-
-cat("\nLoading script files...\n")
-
-script_files <- list.files(
-    "R/scripts",
-    pattern = "\\.R$",
-    full.names = TRUE
-)
-
-for (f in script_files) {
-    if (basename(f) != "0.0_initialize.R") {
-        source(f)
-        cat("Loaded script:", basename(f), "\n")
-    }
-}
-
-# ======================================================
-# 3 Load functions
-# ======================================================
-
-cat("\nLoading function files...\n")
-
-fn_files <- list.files(
-    "R/functions",
-    pattern = "\\.R$",
-    full.names = TRUE
-)
-
-for (f in fn_files) {
-    source(f)
-    cat("Loaded:", basename(f), "\n")
-}
-
-# ======================================================
-# 4 Load plotting
-# ======================================================
-
-cat("\nLoading plotting functions...\n")
-
-plot_files <- list.files(
-    "R/plotting",
-    pattern = "\\.R$",
-    full.names = TRUE
-)
-
-for (f in plot_files) {
-    source(f)
-    cat("Loaded plot:", basename(f), "\n")
-}
+suppressPackageStartupMessages({
+    library(here)
+    library(dplyr)
+    library(ggplot2)
+})
 
 # ======================================================
 # 5 Output directories
@@ -76,7 +31,7 @@ for (f in plot_files) {
 
 library(here)
 
-output_dir <- here("R", "results", "plant_results")
+output_dir <- here("results", "plant_results")
 figure_dir <- file.path(output_dir, "figures")
 table_dir <- file.path(output_dir, "tables")
 model_dir <- file.path(output_dir, "models")
@@ -95,7 +50,7 @@ cat("  Models: ", model_dir, "\n")
 
 cat("\nLoading Aster dataset...\n")
 
-data_dir <- here("R", "data")
+data_dir <- here("inst", "extdata")
 
 data1 <- read.delim(file.path(data_dir, "Aster_analyses_2011_Cohort.txt"), sep = "\t")
 data2 <- read.delim(file.path(data_dir, "Aster_analyses_2012_Cohort_full.txt"), sep = "\t")
