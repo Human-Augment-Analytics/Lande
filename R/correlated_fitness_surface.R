@@ -13,6 +13,33 @@
 #' @noRd
 `%||%` <- function(a, b) if (!is.null(a)) a else b
 
+#' @noRd
+# internal utility: the convex hull of the observed trait pairs as a closed
+# polygon (first vertex repeated at the end). Predictions outside it are
+# extrapolation.
+.data_hull <- function(x, y) {
+  pts <- cbind(x, y)
+  pts <- pts[stats::complete.cases(pts), , drop = FALSE]
+  h <- grDevices::chull(pts)
+  pts[c(h, h[1]), , drop = FALSE]
+}
+
+#' @noRd
+# internal utility: blank the grid outside the data when asked to. The full
+# predictions are kept in .fit_all so the plots can draw the surface up to
+# the hull edge and cover the outside with the hull polygon.
+.mask_grid <- function(grid, hull, trait_cols, mask) {
+  grid$.fit_all <- grid$.fit
+  if (!mask) {
+    grid$.inside <- TRUE
+    return(grid)
+  }
+  grid$.inside <- mgcv::in.out(hull, cbind(grid[[trait_cols[1]]], grid[[trait_cols[2]]]))
+  grid$.fit[!grid$.inside] <- NA_real_
+  cat("Masked", sum(!grid$.inside), "of", nrow(grid), "grid points outside the data\n")
+  grid
+}
+
 #' Calculate the Correlated Fitness Surface
 #'
 #' Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).
@@ -30,8 +57,17 @@
 #'   \code{n1} and \code{n2} are the numbers of distinct values of each trait;
 #'   it is always capped at one less than the number of observations. Pass an
 #'   integer to override.
+#' @param mask Logical; if \code{TRUE} (the default) grid points outside the
+#'   convex hull of the observed trait pairs get \code{NA} fitness, so the
+#'   surface is only drawn where there are data. The grid column
+#'   \code{.inside} records which points were kept, \code{.fit_all} holds the
+#'   unmasked predictions, and the result's \code{hull} is the polygon the
+#'   plot functions use to cover the outside.
 #'
-#' @details The smoothing parameter is chosen by REML.
+#' @details The smoothing parameter is chosen by REML. Predicting a fitted
+#'   surface over the full rectangle of the grid extrapolates into corners that
+#'   no individual occupies; \code{mask = TRUE} leaves those blank rather than
+#'   showing a fitted value there.
 #'
 #' @return A list containing the fitted model, grid predictions, and metadata.
 #' @export
@@ -48,7 +84,8 @@ correlated_fitness_surface <- function(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
-  k = NULL
+  k = NULL,
+  mask = TRUE
 ) {
   stopifnot(length(trait_cols) == 2L)
   need <- c(fitness_col, trait_cols)
@@ -161,6 +198,9 @@ correlated_fitness_surface <- function(
 
   # Grid is already in standardized units
   grid_scaled <- grid
+
+  hull <- .data_hull(x1, x2)
+  hull_df <- if (mask) stats::setNames(as.data.frame(hull), trait_cols) else NULL
 
   if (method == "gam") {
     if (!requireNamespace("mgcv", quietly = TRUE)) {
@@ -276,6 +316,7 @@ correlated_fitness_surface <- function(
     }
 
     cat("Success Predictions range:", round(range(grid$.fit), 4), "\n")
+    grid <- .mask_grid(grid, hull, trait_cols, mask)
 
     result <- list(
       model = fit,
@@ -283,6 +324,8 @@ correlated_fitness_surface <- function(
       method = "gam",
       formula_used = formula_used,
       k = k_adj,
+      mask = mask,
+      hull = hull_df,
       data_type = ifelse(is_binary, "binary", "continuous"),
       trait_cols = trait_cols,
       fitness_col = fitness_col,
@@ -324,11 +367,14 @@ correlated_fitness_surface <- function(
     warning("NA predictions, using mean imputation")
     grid$.fit[is.na(grid$.fit)] <- mean(grid$.fit, na.rm = TRUE)
   }
+  grid <- .mask_grid(grid, hull, trait_cols, mask)
 
   result <- list(
     model = tps_model,
     grid = grid,
     method = "tps",
+    mask = mask,
+    hull = hull_df,
     data_type = ifelse(is_binary, "binary", "continuous"),
     trait_cols = trait_cols,
     fitness_col = fitness_col,

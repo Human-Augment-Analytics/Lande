@@ -146,9 +146,11 @@ compare_fitness_surfaces_data <- function(
             x_grid <- seq(x_range[1], x_range[2], length.out = 50)
             y_grid <- seq(y_range[1], y_range[2], length.out = 50)
 
-            # Interpolate both surfaces
+            # Interpolate both surfaces (masked surface cells are NA and are
+            # left out; interp works from the remaining irregular points)
+            cor_ok <- cor_df[!is.na(cor_df$fitness), , drop = FALSE]
             cor_interp <- akima::interp(
-                cor_df[[trait_cols[1]]], cor_df[[trait_cols[2]]], cor_df$fitness,
+                cor_ok[[trait_cols[1]]], cor_ok[[trait_cols[2]]], cor_ok$fitness,
                 xo = x_grid, yo = y_grid, linear = TRUE
             )
             ada_interp <- akima::interp(

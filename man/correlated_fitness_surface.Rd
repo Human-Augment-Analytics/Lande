@@ -12,7 +12,8 @@ correlated_fitness_surface(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
-  k = NULL
+  k = NULL,
+  mask = TRUE
 )
 }
 \arguments{
@@ -35,6 +36,13 @@ from the data as \code{min(30, max(10, floor(sqrt(n1 * n2))))}, where
 \code{n1} and \code{n2} are the numbers of distinct values of each trait;
 it is always capped at one less than the number of observations. Pass an
 integer to override.}
+
+\item{mask}{Logical; if \code{TRUE} (the default) grid points outside the
+convex hull of the observed trait pairs get \code{NA} fitness, so the
+surface is only drawn where there are data. The grid column
+\code{.inside} records which points were kept, \code{.fit_all} holds the
+unmasked predictions, and the result's \code{hull} is the polygon the
+plot functions use to cover the outside.}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata.
@@ -44,7 +52,10 @@ Fits a model for individual fitness based on multiple individual phenotypes (w ~
 Traits MUST be standardized BEFORE calling this function.
 }
 \details{
-The smoothing parameter is chosen by REML.
+The smoothing parameter is chosen by REML. Predicting a fitted
+  surface over the full rectangle of the grid extrapolates into corners that
+  no individual occupies; \code{mask = TRUE} leaves those blank rather than
+  showing a fitted value there.
 }
 \examples{
 \dontrun{

@@ -103,7 +103,7 @@ test_that("a missing group label does not break the reference-group choice", {
 
   s <- suppressWarnings(suppressMessages(
     correlated_fitness_surface(prep, "w", c("z1", "z2"), method = "gam", group = "year")))
-  expect_false(anyNA(s$grid$.fit))
+  expect_false(anyNA(s$grid$.fit[s$grid$.inside]))
 })
 
 test_that("univariate_spline detects continuous fitness by default", {

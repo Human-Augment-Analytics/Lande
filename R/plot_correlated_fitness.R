@@ -11,6 +11,38 @@
 # - DO NOT standardize again within this function
 # ======================================================
 
+#' @noRd
+# internal utility: what to draw for a surface. With a hull the full surface
+# is drawn and everything outside the hull is covered by a polygon, which
+# gives a clean edge; without one, masked (NA) cells are simply dropped.
+.surface_layers <- function(tps, df, trait1, trait2, fit_col) {
+  hull <- tps$hull
+  if (!is.null(hull) && ".fit_all" %in% names(df)) {
+    xr <- range(df[[trait1]])
+    yr <- range(df[[trait2]])
+    # The region outside the hull, as one ring: round the grid rectangle,
+    # along a bridge to the nearest hull vertex, once round the hull the
+    # opposite way, and back. Renders as a frame with a hull-shaped window.
+    h <- cbind(hull[[trait1]], hull[[trait2]])
+    h <- h[-nrow(h), , drop = FALSE]
+    corner <- c(xr[1], yr[1])
+    i <- which.min((h[, 1] - corner[1])^2 + (h[, 2] - corner[2])^2)
+    ring <- h[c(i:nrow(h), seq_len(i)), , drop = FALSE]
+    frame <- rbind(
+      c(xr[1], yr[1]), c(xr[2], yr[1]), c(xr[2], yr[2]), c(xr[1], yr[2]), c(xr[1], yr[1]),
+      ring, c(xr[1], yr[1])
+    )
+    cover <- ggplot2::geom_polygon(
+      data = data.frame(x = frame[, 1], y = frame[, 2]),
+      ggplot2::aes(x = .data$x, y = .data$y),
+      fill = "white", colour = "white", linewidth = 0.5, inherit.aes = FALSE
+    )
+    list(df = df, fit_col = ".fit_all", cover = cover)
+  } else {
+    list(df = df[!is.na(df[[fit_col]]), , drop = FALSE], fit_col = fit_col, cover = NULL)
+  }
+}
+
 #' Plot Correlated Fitness Surface
 #'
 #' @param tps Output list from \code{correlated_fitness_surface()}.
@@ -55,13 +87,18 @@ plot_correlated_fitness <- function(
     stop("No fitness column found in grid.")
   }
 
-  p <- ggplot2::ggplot(df) +
+  # Masked surfaces: draw the full surface, then cover the outside of the data hull
+  layers <- .surface_layers(tps, df, trait_cols[1], trait_cols[2], fitness_col)
+  draw_df <- layers$df
+  z_col <- layers$fit_col
+
+  p <- ggplot2::ggplot(draw_df) +
     # Filled contours
     ggplot2::geom_contour_filled(
       ggplot2::aes(
         x = .data[[trait_cols[1]]],
         y = .data[[trait_cols[2]]],
-        z = .data[[fitness_col]]
+        z = .data[[z_col]]
       ),
       bins = bins,
       inherit.aes = FALSE
@@ -71,13 +108,14 @@ plot_correlated_fitness <- function(
       ggplot2::aes(
         x = .data[[trait_cols[1]]],
         y = .data[[trait_cols[2]]],
-        z = .data[[fitness_col]]
+        z = .data[[z_col]]
       ),
       color = "black",
       alpha = 0.3,
       linewidth = 0.3,
       inherit.aes = FALSE
     ) +
+    layers$cover +
     # Labels
     ggplot2::labs(
       x = trait_cols[1],
@@ -198,27 +236,33 @@ plot_correlated_fitness_enhanced <- function(
     stop("No fitness column found in grid")
   }
 
+  # Masked surfaces: draw the full surface, then cover the outside of the data hull
+  layers <- .surface_layers(tps, df, trait1, trait2, fit_col)
+  draw_df <- layers$df
+  z_col <- layers$fit_col
+
   p <- ggplot2::ggplot() +
     ggplot2::geom_contour_filled(
-      data = df,
+      data = draw_df,
       ggplot2::aes(
         x = .data[[trait1]],
         y = .data[[trait2]],
-        z = .data[[fit_col]]
+        z = .data[[z_col]]
       ),
       bins = bins
     ) +
     ggplot2::geom_contour(
-      data = df,
+      data = draw_df,
       ggplot2::aes(
         x = .data[[trait1]],
         y = .data[[trait2]],
-        z = .data[[fit_col]]
+        z = .data[[z_col]]
       ),
       color = "black",
       alpha = 0.3,
       linewidth = 0.3
     ) +
+    layers$cover +
     ggplot2::theme_bw() +
     ggplot2::theme(
       plot.background = ggplot2::element_blank(),
