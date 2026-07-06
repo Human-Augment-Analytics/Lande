@@ -12,7 +12,7 @@ correlated_fitness_surface(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
-  k = 30
+  k = NULL
 )
 }
 \arguments{
@@ -30,7 +30,11 @@ correlated_fitness_surface(
 
 \item{group}{Optional string specifying a grouping variable.}
 
-\item{k}{Integer specifying the basis dimension for the GAM smooth term.}
+\item{k}{Basis dimension for the GAM smooth. The default \code{NULL} sets it
+from the data as \code{min(30, max(10, floor(sqrt(n1 * n2))))}, where
+\code{n1} and \code{n2} are the numbers of distinct values of each trait;
+it is always capped at one less than the number of observations. Pass an
+integer to override.}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata.
@@ -38,6 +42,9 @@ A list containing the fitted model, grid predictions, and metadata.
 \description{
 Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).
 Traits MUST be standardized BEFORE calling this function.
+}
+\details{
+The smoothing parameter is chosen by REML.
 }
 \examples{
 \dontrun{

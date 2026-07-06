@@ -25,7 +25,13 @@
 #' @param method A string specifying the modeling method: \code{"auto"}, \code{"gam"}, or \code{"tps"}.
 #' @param scale_traits Deprecated. Logical. Set to \code{FALSE} to avoid double standardization.
 #' @param group Optional string specifying a grouping variable.
-#' @param k Integer specifying the basis dimension for the GAM smooth term.
+#' @param k Basis dimension for the GAM smooth. The default \code{NULL} sets it
+#'   from the data as \code{min(30, max(10, floor(sqrt(n1 * n2))))}, where
+#'   \code{n1} and \code{n2} are the numbers of distinct values of each trait;
+#'   it is always capped at one less than the number of observations. Pass an
+#'   integer to override.
+#'
+#' @details The smoothing parameter is chosen by REML.
 #'
 #' @return A list containing the fitted model, grid predictions, and metadata.
 #' @export
@@ -42,7 +48,7 @@ correlated_fitness_surface <- function(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
-  k = 30
+  k = NULL
 ) {
   stopifnot(length(trait_cols) == 2L)
   need <- c(fitness_col, trait_cols)
@@ -127,9 +133,16 @@ correlated_fitness_surface <- function(
     )
   }
 
+  n1 <- length(unique(x1))
+  n2 <- length(unique(x2))
+  if (is.null(k)) {
+    k <- min(30, max(10, floor(sqrt(n1 * n2))))
+  }
+
   cat("Data type:", ifelse(is_binary, "binary", "continuous"), "\n")
   cat("Selected method:", method, "\n")
   cat("Data points:", length(y), "\n")
+  cat("Basis dimension k:", k, "\n")
   if (!is.null(group)) {
     cat("Grouping variable:", group, "\n")
     cat("Number of groups:", length(unique(grp)), "\n")
@@ -269,6 +282,7 @@ correlated_fitness_surface <- function(
       grid = grid,
       method = "gam",
       formula_used = formula_used,
+      k = k_adj,
       data_type = ifelse(is_binary, "binary", "continuous"),
       trait_cols = trait_cols,
       fitness_col = fitness_col,

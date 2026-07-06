@@ -787,7 +787,7 @@ correlated_fitness_surface(
   grid_n = 60, # Grid resolution (grid_n × grid_n points)
   method = "auto", # "auto", "gam", or "tps"
   scale_traits = TRUE,
-  k = 30 # Basis dimension for GAM method
+  k = NULL # Basis dimension for GAM method; chosen from the data if NULL
 )
 ```
 

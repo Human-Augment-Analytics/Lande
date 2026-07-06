@@ -15,3 +15,16 @@ test_that("correlated_fitness_surface computes GAM grids", {
   expect_equal(res$method, "gam")
   expect_true(".fit" %in% names(res$grid))
 })
+
+test_that("the basis dimension follows the data unless overridden", {
+  set.seed(3)
+  n <- 120
+  df <- data.frame(z1 = as.numeric(scale(rnorm(n))), z2 = as.numeric(scale(rnorm(n))))
+  df$w <- 1 + 0.3 * df$z1 - 0.2 * df$z1^2 + rnorm(n, 0, 0.2)
+
+  auto <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 8, method = "gam"))
+  expect_equal(auto$k, min(30, max(10, floor(sqrt(n * n)))))
+
+  fixed <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 8, method = "gam", k = 12))
+  expect_equal(fixed$k, 12)
+})
