@@ -20,7 +20,10 @@ adaptive_landscape(
 
 \item{fitness_model}{A fitted model object (e.g., GAM or Tps) predicting individual fitness.}
 
-\item{trait_cols}{A character vector of length 2 specifying the trait column names.}
+\item{trait_cols}{One or two trait column names. With one trait the model
+is usually the \code{$model} of \code{univariate_spline()} and the result
+is a curve; with two it is the \code{$model} of
+\code{correlated_fitness_surface()} and the result is a surface.}
 
 \item{group_col}{Optional character string specifying a grouping variable.}
 
@@ -38,4 +41,9 @@ An object of class \code{"adaptive_landscape"}.
 \description{
 Computes the adaptive landscape (mean fitness as a function of population mean phenotype)
 using a fitted individual-level fitness model.
+}
+\details{
+For a single trait the grid also carries \code{.ind_fit}, the
+  individual fitness function evaluated at each population mean, so the two
+  curves can be drawn together (see \code{plot_adaptive_landscape()}).
 }

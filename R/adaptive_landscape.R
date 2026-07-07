@@ -27,12 +27,18 @@
 #'
 #' @param data A data frame containing the original trait and fitness data.
 #' @param fitness_model A fitted model object (e.g., GAM or Tps) predicting individual fitness.
-#' @param trait_cols A character vector of length 2 specifying the trait column names.
+#' @param trait_cols One or two trait column names. With one trait the model
+#'   is usually the \code{$model} of \code{univariate_spline()} and the result
+#'   is a curve; with two it is the \code{$model} of
+#'   \code{correlated_fitness_surface()} and the result is a surface.
 #' @param group_col Optional character string specifying a grouping variable.
 #' @param population_variance Optional covariance matrix for the traits. Estimated from data if \code{NULL}.
 #' @param simulation_n Integer specifying the number of individuals to simulate per grid point. Default is 1000.
 #' @param grid_n Integer specifying the resolution of the population mean grid. Default is 50.
 #' @param custom_range Optional list specifying custom ranges for the traits.
+#' @details For a single trait the grid also carries \code{.ind_fit}, the
+#'   individual fitness function evaluated at each population mean, so the two
+#'   curves can be drawn together (see \code{plot_adaptive_landscape()}).
 #' @return An object of class \code{"adaptive_landscape"}.
 #' @export
 adaptive_landscape <- function(
@@ -46,7 +52,7 @@ adaptive_landscape <- function(
   custom_range = NULL
 ) {
     # Input validation
-    stopifnot(length(trait_cols) == 2L)
+    stopifnot(length(trait_cols) %in% c(1L, 2L))
     stopifnot(inherits(fitness_model, "gam") || inherits(fitness_model, "Tps"))
 
     # DOUBLE STANDARDIZATION WARNING
@@ -70,30 +76,27 @@ adaptive_landscape <- function(
     }
 
 
-    x1 <- data[[trait_cols[1]]]
-    x2 <- data[[trait_cols[2]]]
-
-    # Determine range for population mean grid
-    if (!is.null(custom_range)) {
-        x1_range <- custom_range[[trait_cols[1]]]
-        x2_range <- custom_range[[trait_cols[2]]]
-    } else {
+    # Range of the population mean grid, one per trait
+    ranges <- lapply(trait_cols, function(t) {
+        if (!is.null(custom_range) && !is.null(custom_range[[t]])) {
+            return(custom_range[[t]])
+        }
         # Expand range slightly to include possible evolutionary space
-        x1_range <- range(x1, na.rm = TRUE)
-        x2_range <- range(x2, na.rm = TRUE)
-        x1_range <- x1_range + c(-0.2, 0.2) * diff(x1_range)
-        x2_range <- x2_range + c(-0.2, 0.2) * diff(x2_range)
-    }
+        r <- range(data[[t]], na.rm = TRUE)
+        r + c(-0.2, 0.2) * diff(r)
+    })
+    names(ranges) <- trait_cols
 
     cat("Population mean grid ranges:\n")
-    cat("  ", trait_cols[1], ":", round(x1_range, 2), "\n")
-    cat("  ", trait_cols[2], ":", round(x2_range, 2), "\n")
+    for (t in trait_cols) {
+        cat("  ", t, ":", round(ranges[[t]], 2), "\n")
+    }
 
     # Create grid of population mean phenotypes
-    g1 <- seq(x1_range[1], x1_range[2], length.out = grid_n)
-    g2 <- seq(x2_range[1], x2_range[2], length.out = grid_n)
-
-    population_grid <- expand.grid(g1, g2)
+    population_grid <- expand.grid(
+        lapply(ranges, function(r) seq(r[1], r[2], length.out = grid_n)),
+        KEEP.OUT.ATTRS = FALSE
+    )
     names(population_grid) <- trait_cols
 
     # Estimate within-population variance if not provided
@@ -189,6 +192,18 @@ adaptive_landscape <- function(
     # Add mean fitness to grid
     population_grid$.mean_fit <- mean_fitness
 
+    # With one trait keep the individual fitness function at the same means,
+    # so the landscape can be drawn against it.
+    if (length(trait_cols) == 1L) {
+        ind_df <- population_grid[, trait_cols, drop = FALSE]
+        for (v in names(extra_vars)) ind_df[[v]] <- extra_vars[[v]]
+        population_grid$.ind_fit <- if (inherits(fitness_model, "gam")) {
+            as.numeric(predict(fitness_model, newdata = ind_df, type = "response"))
+        } else {
+            as.numeric(predict(fitness_model, as.matrix(ind_df)))
+        }
+    }
+
     # Find optimum (maximum mean fitness)
     optimum <- population_grid[which.max(mean_fitness), ]
     cat("\nOptimal population mean phenotype:\n")
@@ -219,9 +234,9 @@ adaptive_landscape <- function(
         fitness_model_class = class(fitness_model)[1],
         data_summary = list(
             n_individuals = nrow(data),
-            trait_ranges = list(
-                x1 = range(x1, na.rm = TRUE),
-                x2 = range(x2, na.rm = TRUE)
+            trait_ranges = stats::setNames(
+                lapply(trait_cols, function(t) range(data[[t]], na.rm = TRUE)),
+                paste0("x", seq_along(trait_cols))
             ),
             traits_standardized = all(
                 sapply(trait_cols, function(t) {
@@ -248,7 +263,8 @@ adaptive_landscape <- function(
 print.adaptive_landscape <- function(x, ...) {
     cat("\nAdaptive Landscape Object\n")
     cat("========================\n")
-    cat("Traits:", paste(x$trait_cols, collapse = " and "), "\n")
+    cat(if (length(x$trait_cols) == 1L) "Trait:" else "Traits:",
+        paste(x$trait_cols, collapse = " and "), "\n")
     cat("Grid size:", nrow(x$grid), "population means\n")
     cat("Simulations per point:", x$simulation_n, "individuals\n")
     cat("Fitness model:", x$fitness_model_class, "\n")
