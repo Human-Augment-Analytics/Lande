@@ -2,7 +2,7 @@
 % Please edit documentation in R/plot_adaptive_landscape.R
 \name{plot_adaptive_landscape}
 \alias{plot_adaptive_landscape}
-\title{Plot Adaptive Landscape (2D Contour)}
+\title{Plot Adaptive Landscape}
 \usage{
 plot_adaptive_landscape(
   landscape,
@@ -12,6 +12,7 @@ plot_adaptive_landscape(
   bins = 12,
   show_optimum = TRUE,
   show_actual_means = TRUE,
+  show_individual = TRUE,
   point_alpha = 0.8,
   ...
 )
@@ -19,7 +20,7 @@ plot_adaptive_landscape(
 \arguments{
 \item{landscape}{Output object of class \code{"adaptive_landscape"}.}
 
-\item{trait_cols}{Character vector of length 2 specifying the trait column names.}
+\item{trait_cols}{One or two trait column names, matching the landscape.}
 
 \item{original_data}{Optional data frame of original data points. Default is \code{NULL}.}
 
@@ -31,6 +32,9 @@ plot_adaptive_landscape(
 
 \item{show_actual_means}{Logical indicating whether to display actual population means. Default is \code{TRUE}.}
 
+\item{show_individual}{Logical; for a single trait, also draw the
+individual fitness function (dashed). Default is \code{TRUE}.}
+
 \item{point_alpha}{Numeric value for point transparency. Default is 0.8.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
@@ -39,5 +43,7 @@ plot_adaptive_landscape(
 A \code{ggplot} object representing the adaptive landscape.
 }
 \description{
-Plot Adaptive Landscape (2D Contour)
+Two traits give a contour map of mean fitness against the two population
+means. One trait gives a curve of mean fitness against the population mean,
+with the individual fitness function drawn alongside it for comparison.
 }
