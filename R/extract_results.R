@@ -57,6 +57,49 @@
 }
 
 #' @noRd
+# internal utility: does a raw fitness column look like the type claimed?
+.is_raw_fitness <- function(raw, fitness_type) {
+  if (fitness_type == "binary") {
+    return(all(raw %in% c(0, 1)))
+  }
+  all(raw >= 0 & abs(raw - round(raw)) < 1e-8)
+}
+
+#' @noRd
+# internal utility: the GLM that supplies p-values when OLS residuals cannot
+# be trusted. Binary fitness gets a logistic model. Counts get a Poisson
+# model, swapped for a negative binomial when the Pearson dispersion is above
+# 1.5, since overdispersed counts make Poisson p-values too small.
+.fit_pvalue_glm <- function(formula, data, fitness_type) {
+  if (fitness_type == "binary") {
+    fit <- stats::glm(formula, data = data, family = stats::binomial())
+    attr(fit, "family_label") <- "binomial(logit)"
+    return(fit)
+  }
+  fit <- stats::glm(formula, data = data, family = stats::poisson())
+  disp <- sum(stats::residuals(fit, type = "pearson")^2) / fit$df.residual
+  label <- "poisson(log)"
+  if (is.finite(disp) && disp > 1.5) {
+    nb <- tryCatch(
+      suppressWarnings(MASS::glm.nb(formula, data = data)),
+      error = function(e) NULL
+    )
+    if (is.null(nb)) {
+      warning(
+        "Counts are overdispersed (dispersion ", round(disp, 2),
+        ") but the negative binomial fit failed; Poisson p-values kept"
+      )
+    } else {
+      fit <- nb
+      label <- "negative binomial"
+    }
+  }
+  attr(fit, "dispersion") <- disp
+  attr(fit, "family_label") <- label
+  fit
+}
+
+#' @noRd
 # internal utility: get coefficient-level p-value column name from summary()
 .p_col_from_summary <- function(coef_mat) {
   pcols <- intersect(colnames(coef_mat), c("Pr(>|t|)", "Pr(>|z|)"))
@@ -82,7 +125,9 @@
 #' @noRd
 # Helper to get appropriate summary and p-value column
 .get_summary_and_pcol <- function(results) {
-  if (results$fitness_type == "binary") {
+  # Binary and count fitness carry a second model whose p-values replace the
+  # OLS ones; `is_binary` below means "p-values come from that GLM".
+  if (results$fitness_type %in% c("binary", "count")) {
     # Check if summary$glm exists
     if (is.null(results$summary$glm)) {
       sm <- results$summary$ols

@@ -46,7 +46,7 @@
 #' @param data A data frame containing fitness and trait measurements.
 #' @param fitness_col A string specifying the name of the fitness column.
 #' @param trait_cols A character vector of trait column names.
-#' @param fitness_type A string indicating the fitness type: \code{"auto"}, \code{"binary"}, or \code{"continuous"}.
+#' @param fitness_type A string indicating the fitness type: \code{"auto"}, \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness take their p-values from a GLM (logistic, or Poisson and negative binomial) on the raw values; the gradients always come from OLS on relative fitness.
 #' @param standardize Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.
 #' @param group Optional string specifying a grouping variable (e.g., "year", "site").
 #' @param use_relative_for_fit Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.
@@ -62,7 +62,7 @@
 selection_coefficients <- function(data,
                                    fitness_col,
                                    trait_cols,
-                                   fitness_type = c("auto", "binary", "continuous"),
+                                   fitness_type = c("auto", "binary", "count", "continuous"),
                                    standardize = TRUE,
                                    group = NULL,
                                    use_relative_for_fit = TRUE,
@@ -135,8 +135,8 @@ selection_coefficients <- function(data,
   }
 
   # Selection gradients come from OLS on relative fitness (or on absolute
-  # fitness if use_relative_for_fit = FALSE). Binary fitness additionally uses
-  # the raw 0/1 column for logistic-GLM p-values.
+  # fitness if use_relative_for_fit = FALSE). Binary and count fitness
+  # additionally use the raw column for the GLM that supplies p-values.
   ols_response_col <- if (use_relative_for_fit) {
     if (!rel_col %in% names(df)) {
       stop(
@@ -149,7 +149,7 @@ selection_coefficients <- function(data,
     fitness_col
   }
 
-  binary_response_col <- if (fitness_type == "binary") fitness_col else NULL
+  binary_response_col <- if (fitness_type %in% c("binary", "count")) fitness_col else NULL
 
   # Run analyses
   linear_result <- analyze_linear_selection(
@@ -182,7 +182,7 @@ selection_coefficients <- function(data,
   # Add attributes
   attr(all_coefs, "fitness_type_detected") <- det$type
   attr(all_coefs, "fitness_type_used") <- fitness_type
-  attr(all_coefs, "model_family_used") <- if (fitness_type == "binary") "binomial(logit)" else "gaussian"
+  attr(all_coefs, "model_family_used") <- linear_result$glm_family %||% "gaussian"
   attr(all_coefs, "model_fitness_col") <- ols_response_col
   attr(all_coefs, "relative_available") <- rel_col %in% names(df)
   attr(all_coefs, "group_used") <- group

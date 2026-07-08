@@ -39,7 +39,7 @@
 bootstrap_selection <- function(data,
                                 fitness_col,
                                 trait_cols,
-                                fitness_type = c("auto", "binary", "continuous"),
+                                fitness_type = c("auto", "binary", "count", "continuous"),
                                 standardize = TRUE,
                                 group = NULL,
                                 use_relative_for_fit = TRUE,

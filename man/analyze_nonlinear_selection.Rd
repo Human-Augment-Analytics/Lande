@@ -21,7 +21,7 @@ analyze_nonlinear_selection(
 
 \item{fitness_type}{A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.}
 
-\item{binary_response_col}{Optional string naming the raw 0/1 column used for the logistic GLM when \code{fitness_type = "binary"}. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.}
+\item{binary_response_col}{Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.}
 }
 \value{
 A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs.

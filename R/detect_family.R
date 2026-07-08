@@ -10,9 +10,9 @@
 #     and relative fitness (mean ~ 1)
 #
 # Selection gradients always come from OLS on relative fitness. Binary fitness
-# additionally uses a logistic GLM for p-values; every other type uses OLS.
-# The returned `family` is a suggestion for a user's own diagnostics, not a
-# family the package fits automatically.
+# uses a logistic GLM for p-values and count fitness a Poisson (or negative
+# binomial) GLM; continuous fitness uses the OLS tests. The returned `family`
+# is the one those p-value models start from.
 #
 # Parameters:
 #   y : fitness vector
@@ -83,9 +83,9 @@ detect_family <- function(y) {
       type = "count",
       family = stats::poisson("log"),
       note = paste(
-        "Count fitness detected (non-negative integers). Gradients and",
-        "p-values use OLS on relative fitness; Poisson family suggested",
-        "if you want to check p-values with a count GLM."
+        "Count fitness detected (non-negative integers). Gradients from OLS",
+        "on relative fitness; p-values from a Poisson GLM, or a negative",
+        "binomial one if the counts are overdispersed."
       )
     ))
   }

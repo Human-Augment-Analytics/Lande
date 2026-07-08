@@ -21,11 +21,14 @@ analyze_linear_selection(
 
 \item{fitness_type}{A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.}
 
-\item{binary_response_col}{Optional string naming the raw 0/1 column used for the logistic GLM when \code{fitness_type = "binary"}. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.}
+\item{binary_response_col}{Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.}
 }
 \value{
 A list containing the fitted models, summaries, ANOVA tables, and VIFs.
 }
 \description{
-Estimates linear selection gradients by OLS on relative fitness, using logistic regression for valid p-values when fitness is binary.
+Estimates linear selection gradients by OLS on relative fitness. Binary
+fitness gets its p-values from a logistic GLM and count fitness from a
+Poisson GLM (negative binomial if overdispersed), since the OLS tests are not
+valid for either.
 }

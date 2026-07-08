@@ -10,7 +10,9 @@ landscapes.
 Traits are standardised to mean 0 and SD 1 and fitness is relativised (w / mean w)
 before fitting. Quadratic gradients and their standard errors are doubled
 (Stinchcombe et al. 2008); correlational gradients are not. For binary fitness the
-gradients come from OLS on relative fitness and the p-values from a logistic GLM.
+gradients come from OLS on relative fitness and the p-values from a logistic GLM;
+count fitness gets its p-values from a Poisson GLM, or a negative binomial one when
+the counts are overdispersed.
 
 ## Installation
 

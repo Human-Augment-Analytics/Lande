@@ -39,7 +39,7 @@ analyze_disruptive_selection <- function(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("auto", "binary", "continuous"),
+  fitness_type = c("auto", "binary", "count", "continuous"),
   standardize = TRUE,
   group = NULL,
   return_grouped = FALSE

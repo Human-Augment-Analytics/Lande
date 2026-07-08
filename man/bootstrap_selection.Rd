@@ -8,7 +8,7 @@ bootstrap_selection(
   data,
   fitness_col,
   trait_cols,
-  fitness_type = c("auto", "binary", "continuous"),
+  fitness_type = c("auto", "binary", "count", "continuous"),
   standardize = TRUE,
   group = NULL,
   use_relative_for_fit = TRUE,
@@ -23,7 +23,7 @@ bootstrap_selection(
 
 \item{trait_cols}{A character vector of trait column names.}
 
-\item{fitness_type}{A string indicating the fitness type: \code{"auto"}, \code{"binary"}, or \code{"continuous"}.}
+\item{fitness_type}{A string indicating the fitness type: \code{"auto"}, \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness take their p-values from a GLM (logistic, or Poisson and negative binomial) on the raw values; the gradients always come from OLS on relative fitness.}
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 

@@ -7,7 +7,9 @@
 #   - Gradients are estimated by OLS on RELATIVE fitness (w = W / mean W).
 #   - For binary fitness: OLS on relative fitness gives the gradients; p-values
 #     come from a logistic GLM on the raw 0/1 outcome (Wald tests).
-#   - For continuous, count, or proportion fitness: OLS supplies both.
+#   - For count fitness: p-values from a Poisson GLM on the raw counts, or a
+#     negative binomial one when they are overdispersed.
+#   - For continuous or proportion fitness: OLS supplies both.
 #
 # Model:
 #   w = alpha + beta1z1 + beta2z2 + 1/2gamma11z1^2 + 1/2gamma22z2^2 + gamma12z1z2 + epsilon
@@ -31,7 +33,7 @@
 #' @param fitness_col A string specifying the response column for the OLS gradient model (relative fitness).
 #' @param trait_cols A character vector of trait column names.
 #' @param fitness_type A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.
-#' @param binary_response_col Optional string naming the raw 0/1 column used for the logistic GLM when \code{fitness_type = "binary"}. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.
+#' @param binary_response_col Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.
 #'
 #' @return A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs.
 #' @export
@@ -58,18 +60,20 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
   rhs <- paste(c(trait_cols, quad, inter), collapse = " + ")
   n_params <- length(trait_cols) + length(quad) + length(inter) + 1 # +1 for intercept
 
-  if (fitness_type == "binary") {
-    # Gradients from OLS on relative fitness; p-values from a logistic GLM on
-    # the raw 0/1 outcome.
+  if (fitness_type %in% c("binary", "count")) {
+    # Gradients from OLS on relative fitness; p-values from a GLM on the raw
+    # outcome (logistic for 0/1, Poisson or negative binomial for counts).
     glm_col <- if (!is.null(binary_response_col)) binary_response_col else fitness_col
     fit_data <- data[complete.cases(data[, c(fitness_col, glm_col, trait_cols)]), ]
 
     if (is.null(binary_response_col)) {
       raw <- fit_data[[fitness_col]]
-      if (!all(raw %in% c(0, 1))) {
+      if (!.is_raw_fitness(raw, fitness_type)) {
         stop(
-          "For binary fitness pass the raw 0/1 column as `fitness_col` ",
-          "(it is relativised internally), or name it in `binary_response_col`."
+          "For ", fitness_type, " fitness pass the raw ",
+          if (fitness_type == "binary") "0/1" else "count",
+          " column as `fitness_col` (it is relativised internally), ",
+          "or name it in `binary_response_col`."
         )
       }
       fit_data$.rel_fitness <- raw / mean(raw)
@@ -85,15 +89,15 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
     vif_vals <- .compute_vif(fit_ols)
 
     fit_glm <- tryCatch(
-      glm(as.formula(paste(glm_col, "~", rhs)), data = fit_data, family = binomial),
+      .fit_pvalue_glm(as.formula(paste(glm_col, "~", rhs)), fit_data, fitness_type),
       error = function(e) stop("Nonlinear GLM fitting failed: ", e$message)
     )
     sm_glm <- summary(fit_glm)
 
-    if (!fit_glm$converged) {
+    if (isFALSE(fit_glm$converged)) {
       warning("Nonlinear GLM did not converge - results may be unreliable")
     }
-    if (any(abs(coef(fit_glm)) > 10, na.rm = TRUE)) {
+    if (fitness_type == "binary" && any(abs(coef(fit_glm)) > 10, na.rm = TRUE)) {
       warning("Possible complete separation detected - large coefficients (>10)")
     }
 
@@ -115,10 +119,11 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
       summary = list(ols = sm_ols, glm = sm_glm),
       anova = anova_bin,
       vif = vif_vals,
-      fitness_type = "binary"
+      fitness_type = fitness_type,
+      glm_family = attr(fit_glm, "family_label")
     ))
   } else {
-    # Continuous, count, or proportion fitness: OLS supplies gradients and
+    # Continuous or proportion fitness: OLS supplies gradients and
     # p-values. A direct caller working from prepare_selection_data() output
     # gets its relative_fitness column picked up automatically.
     if (is.null(binary_response_col) && fitness_col != "relative_fitness" &&
