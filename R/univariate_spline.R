@@ -26,7 +26,7 @@
 #' @param data A data frame containing fitness and trait measurements.
 #' @param fitness_col A string specifying the name of the fitness column.
 #' @param trait_col A string specifying the name of the trait column (must be numeric and standardized).
-#' @param fitness_type A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, or \code{"continuous"}.
+#' @param fitness_type A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.
 #' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
 #' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
 #' @param k Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.
@@ -49,7 +49,7 @@
 univariate_spline <- function(data,
                               fitness_col,
                               trait_col,
-                              fitness_type = c("auto", "binary", "continuous"),
+                              fitness_type = c("auto", "binary", "count", "continuous"),
                               group = NULL,
                               relative_col = NULL,
                               k = 10,
@@ -71,7 +71,8 @@ univariate_spline <- function(data,
     stop("Fitness column '", fitness_col, "' not found in data")
   }
   if (fitness_type == "auto") {
-    fitness_type <- if (detect_family(data[[fitness_col]])$type == "binary") "binary" else "continuous"
+    detected <- detect_family(data[[fitness_col]])$type
+    fitness_type <- if (detected %in% c("binary", "count")) detected else "continuous"
     message("Fitness type detected: ", fitness_type)
   }
 
@@ -126,6 +127,18 @@ univariate_spline <- function(data,
     }
     fam <- stats::gaussian()
     family_name <- "gaussian"
+  } else if (fitness_type == "count") {
+    # Count fitness - Poisson on the raw counts, plotted on the response scale
+    y <- data[[fitness_col]]
+    fam <- stats::poisson("log")
+    family_name <- "poisson(log)"
+    if (!.is_raw_fitness(y[!is.na(y)], "count")) {
+      warning(
+        "fitness_type = 'count' but values are not all non-negative integers. ",
+        "Proceeding but results may be unreliable."
+      )
+    }
+    fit_note <- "Using original counts"
   } else {
     # Binary fitness - use original 0/1 values
     y <- data[[fitness_col]]

@@ -8,7 +8,7 @@ univariate_spline(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("auto", "binary", "continuous"),
+  fitness_type = c("auto", "binary", "count", "continuous"),
   group = NULL,
   relative_col = NULL,
   k = 10,
@@ -23,7 +23,7 @@ univariate_spline(
 
 \item{trait_col}{A string specifying the name of the trait column (must be numeric and standardized).}
 
-\item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, or \code{"continuous"}.}
+\item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.}
 
 \item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included.}
 
