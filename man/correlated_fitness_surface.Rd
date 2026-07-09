@@ -13,7 +13,9 @@ correlated_fitness_surface(
   scale_traits = FALSE,
   group = NULL,
   k = NULL,
-  mask = TRUE
+  mask = TRUE,
+  bs = c("tp", "cr", "ps"),
+  smoothing = c("REML", "GCV.Cp", "ML")
 )
 }
 \arguments{
@@ -43,6 +45,12 @@ surface is only drawn where there are data. The grid column
 \code{.inside} records which points were kept, \code{.fit_all} holds the
 unmasked predictions, and the result's \code{hull} is the polygon the
 plot functions use to cover the outside.}
+
+\item{bs}{Basis for the GAM smooth: \code{"tp"} (thin plate, the default),
+\code{"cr"} or \code{"ps"}.}
+
+\item{smoothing}{How the GAM's smoothing parameter is chosen: \code{"REML"}
+(the default), \code{"GCV.Cp"} or \code{"ML"}.}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata.
@@ -52,10 +60,14 @@ Fits a model for individual fitness based on multiple individual phenotypes (w ~
 Traits MUST be standardized BEFORE calling this function.
 }
 \details{
-The smoothing parameter is chosen by REML. Predicting a fitted
-  surface over the full rectangle of the grid extrapolates into corners that
-  no individual occupies; \code{mask = TRUE} leaves those blank rather than
-  showing a fitted value there.
+By default the GAM uses a thin-plate smooth with the smoothing
+  parameter chosen by REML; \code{bs} and \code{smoothing} are there to match
+  another study's smoother and do not apply to \code{method = "tps"}. With
+  \code{"cr"} or \code{"ps"}, which are one-dimensional bases, the two
+  traits enter as a tensor product smooth.
+  Predicting a fitted surface over the full rectangle of the grid
+  extrapolates into corners that no individual occupies; \code{mask = TRUE}
+  leaves those blank rather than showing a fitted value there.
 }
 \examples{
 \dontrun{

@@ -63,11 +63,19 @@
 #'   \code{.inside} records which points were kept, \code{.fit_all} holds the
 #'   unmasked predictions, and the result's \code{hull} is the polygon the
 #'   plot functions use to cover the outside.
+#' @param bs Basis for the GAM smooth: \code{"tp"} (thin plate, the default),
+#'   \code{"cr"} or \code{"ps"}.
+#' @param smoothing How the GAM's smoothing parameter is chosen: \code{"REML"}
+#'   (the default), \code{"GCV.Cp"} or \code{"ML"}.
 #'
-#' @details The smoothing parameter is chosen by REML. Predicting a fitted
-#'   surface over the full rectangle of the grid extrapolates into corners that
-#'   no individual occupies; \code{mask = TRUE} leaves those blank rather than
-#'   showing a fitted value there.
+#' @details By default the GAM uses a thin-plate smooth with the smoothing
+#'   parameter chosen by REML; \code{bs} and \code{smoothing} are there to match
+#'   another study's smoother and do not apply to \code{method = "tps"}. With
+#'   \code{"cr"} or \code{"ps"}, which are one-dimensional bases, the two
+#'   traits enter as a tensor product smooth.
+#'   Predicting a fitted surface over the full rectangle of the grid
+#'   extrapolates into corners that no individual occupies; \code{mask = TRUE}
+#'   leaves those blank rather than showing a fitted value there.
 #'
 #' @return A list containing the fitted model, grid predictions, and metadata.
 #' @export
@@ -85,9 +93,13 @@ correlated_fitness_surface <- function(
   scale_traits = FALSE,
   group = NULL,
   k = NULL,
-  mask = TRUE
+  mask = TRUE,
+  bs = c("tp", "cr", "ps"),
+  smoothing = c("REML", "GCV.Cp", "ML")
 ) {
   stopifnot(length(trait_cols) == 2L)
+  bs <- match.arg(bs)
+  smoothing <- match.arg(smoothing)
   need <- c(fitness_col, trait_cols)
 
   # Input validation
@@ -228,31 +240,19 @@ correlated_fitness_surface <- function(
     # Build formulas
     k_adj <- min(k, nrow(df_fit) - 1)
 
-    if (!is.null(group)) {
-      fml <- as.formula(paste(
-        ".y ~ ", group, " + s(", trait_cols[1], ", ", trait_cols[2],
-        ", bs = 'tp', k = ", k_adj, ")"
-      ))
-      fml_alt1 <- as.formula(paste(
-        ".y ~ ", group, " + s(", trait_cols[1],
-        ", k = min(floor(", k_adj, "/2), nrow(df_fit) - 1)) + s(",
-        trait_cols[2],
-        ", k = min(floor(", k_adj, "/2), nrow(df_fit) - 1))"
-      ))
-      fml_alt2 <- as.formula(paste(".y ~ ", group, " + ", trait_cols[1], " + ", trait_cols[2]))
+    # cr and ps are one-dimensional bases, so with those the two-trait smooth is
+    # a tensor product; tp handles both traits in one isotropic smooth
+    joint <- if (bs == "tp") {
+      paste0("s(", trait_cols[1], ", ", trait_cols[2], ", bs = 'tp', k = ", k_adj, ")")
     } else {
-      fml <- as.formula(paste(
-        ".y ~ s(", trait_cols[1], ", ", trait_cols[2],
-        ", bs = 'tp', k = ", k_adj, ")"
-      ))
-      fml_alt1 <- as.formula(paste(
-        ".y ~ s(", trait_cols[1],
-        ", k = min(floor(", k_adj, "/2), nrow(df_fit) - 1)) + s(",
-        trait_cols[2],
-        ", k = min(floor(", k_adj, "/2), nrow(df_fit) - 1))"
-      ))
-      fml_alt2 <- as.formula(paste(".y ~ ", trait_cols[1], " + ", trait_cols[2]))
+      paste0("te(", trait_cols[1], ", ", trait_cols[2], ", bs = '", bs, "', k = ", max(3, floor(sqrt(k_adj))), ")")
     }
+    k1 <- paste0("min(floor(", k_adj, "/2), nrow(df_fit) - 1)")
+    separate <- paste0("s(", trait_cols[1], ", bs = '", bs, "', k = ", k1, ") + s(", trait_cols[2], ", bs = '", bs, "', k = ", k1, ")")
+    lhs <- if (!is.null(group)) paste0(".y ~ ", group, " + ") else ".y ~ "
+    fml <- as.formula(paste0(lhs, joint))
+    fml_alt1 <- as.formula(paste0(lhs, separate))
+    fml_alt2 <- as.formula(paste0(lhs, trait_cols[1], " + ", trait_cols[2]))
 
     try_formulas <- list(
       main = fml,
@@ -271,7 +271,7 @@ correlated_fitness_surface <- function(
             fit <- mgcv::gam(try_formulas[[form_name]],
               data = df_fit,
               family = fam,
-              method = "REML"
+              method = smoothing
             )
             formula_used <- form_name
             cat("Success with formula:", form_name, "\n")
@@ -324,6 +324,8 @@ correlated_fitness_surface <- function(
       method = "gam",
       formula_used = formula_used,
       k = k_adj,
+      basis = bs,
+      smoothing = smoothing,
       mask = mask,
       hull = hull_df,
       data_type = ifelse(is_binary, "binary", "continuous"),

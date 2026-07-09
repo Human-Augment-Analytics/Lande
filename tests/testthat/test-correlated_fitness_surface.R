@@ -29,6 +29,26 @@ test_that("the basis dimension follows the data unless overridden", {
   expect_equal(fixed$k, 12)
 })
 
+test_that("the surface basis and smoothing method can be chosen", {
+  set.seed(8)
+  n <- 160
+  df <- data.frame(z1 = as.numeric(scale(rnorm(n))), z2 = as.numeric(scale(rnorm(n))))
+  df$w <- 1 + 0.3 * df$z1 - 0.2 * df$z2 - 0.15 * df$z1 * df$z2 + rnorm(n, 0, 0.2)
+
+  default <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 10, method = "gam"))
+  expect_equal(default$basis, "tp")
+  expect_equal(default$smoothing, "REML")
+  expect_equal(default$model$method, "REML")
+
+  cr <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 10, method = "gam", bs = "cr", smoothing = "GCV.Cp"))
+  expect_equal(cr$basis, "cr")
+  expect_true(grepl("te\\(", deparse(formula(cr$model))[1]))
+  ok <- default$grid$.inside
+  expect_gt(cor(default$grid$.fit[ok], cr$grid$.fit[ok]), 0.98)
+
+  expect_error(correlated_fitness_surface(df, "w", c("z1", "z2"), method = "gam", smoothing = "banana"), "should be one of")
+})
+
 test_that("grid points outside the data are masked", {
   set.seed(4)
   n <- 150

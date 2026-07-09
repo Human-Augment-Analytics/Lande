@@ -12,6 +12,8 @@ univariate_spline(
   group = NULL,
   relative_col = NULL,
   k = 10,
+  bs = c("cr", "tp", "ps"),
+  smoothing = c("GCV.Cp", "REML", "ML"),
   bootstrap = FALSE,
   n_boot = 1000
 )
@@ -29,7 +31,13 @@ univariate_spline(
 
 \item{relative_col}{Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).}
 
-\item{k}{Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.}
+\item{k}{Integer specifying the basis dimension for the smooth term. Default is 10.}
+
+\item{bs}{Spline basis: \code{"cr"} (cubic regression spline, the default),
+\code{"tp"} (thin plate) or \code{"ps"} (P-spline).}
+
+\item{smoothing}{How the smoothing parameter is chosen: \code{"GCV.Cp"}
+(generalised cross-validation, the default), \code{"REML"} or \code{"ML"}.}
 
 \item{bootstrap}{Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.}
 
@@ -43,11 +51,14 @@ This function calculates a univariate correlated fitness function using a GAM sm
 The formula is \code{w ~ f(z)}. Traits should be standardized BEFORE calling this function.
 }
 \details{
-The fitness function is a penalised cubic regression spline
-  (\code{mgcv::s(..., bs = "cr")}) with the smoothing parameter chosen by
-  generalised cross-validation, following Schluter (1988). With
-  \code{bootstrap = TRUE} the result depends on the random seed; call
-  \code{set.seed()} first for a reproducible ribbon.
+By default the fitness function is a penalised cubic regression
+  spline with the smoothing parameter chosen by generalised
+  cross-validation, following Schluter (1988). \code{bs} and \code{smoothing}
+  are there to match the smoother of another study; they do not change
+  how much the curve is smoothed, which is always chosen from the data.
+  If mgcv's check suggests the basis dimension was too small a warning
+  says so. With \code{bootstrap = TRUE} the result depends on the random
+  seed; call \code{set.seed()} first for a reproducible ribbon.
 }
 \examples{
 \dontrun{

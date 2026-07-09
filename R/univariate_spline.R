@@ -29,15 +29,22 @@
 #' @param fitness_type A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.
 #' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
 #' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
-#' @param k Integer specifying the basis dimension for the cubic-spline smooth term. Default is 10.
+#' @param k Integer specifying the basis dimension for the smooth term. Default is 10.
+#' @param bs Spline basis: \code{"cr"} (cubic regression spline, the default),
+#'   \code{"tp"} (thin plate) or \code{"ps"} (P-spline).
+#' @param smoothing How the smoothing parameter is chosen: \code{"GCV.Cp"}
+#'   (generalised cross-validation, the default), \code{"REML"} or \code{"ML"}.
 #' @param bootstrap Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.
 #' @param n_boot Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.
 #'
-#' @details The fitness function is a penalised cubic regression spline
-#'   (\code{mgcv::s(..., bs = "cr")}) with the smoothing parameter chosen by
-#'   generalised cross-validation, following Schluter (1988). With
-#'   \code{bootstrap = TRUE} the result depends on the random seed; call
-#'   \code{set.seed()} first for a reproducible ribbon.
+#' @details By default the fitness function is a penalised cubic regression
+#'   spline with the smoothing parameter chosen by generalised
+#'   cross-validation, following Schluter (1988). \code{bs} and \code{smoothing}
+#'   are there to match the smoother of another study; they do not change
+#'   how much the curve is smoothed, which is always chosen from the data.
+#'   If mgcv's check suggests the basis dimension was too small a warning
+#'   says so. With \code{bootstrap = TRUE} the result depends on the random
+#'   seed; call \code{set.seed()} first for a reproducible ribbon.
 #'
 #' @return A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
 #' @export
@@ -53,9 +60,13 @@ univariate_spline <- function(data,
                               group = NULL,
                               relative_col = NULL,
                               k = 10,
+                              bs = c("cr", "tp", "ps"),
+                              smoothing = c("GCV.Cp", "REML", "ML"),
                               bootstrap = FALSE,
                               n_boot = 1000) {
   fitness_type <- match.arg(fitness_type)
+  bs <- match.arg(bs)
+  smoothing <- match.arg(smoothing)
 
   # Input validation
   if (length(trait_col) != 1L) {
@@ -181,19 +192,20 @@ univariate_spline <- function(data,
     )
   }
 
-  # Cubic regression spline with GCV smoothing (Schluter 1988). bs = "cr" gives
-  # a genuine cubic spline basis rather than the default thin-plate basis.
+  # Default: cubic regression spline with GCV smoothing (Schluter 1988). bs = "cr"
+  # gives a genuine cubic spline basis rather than mgcv's thin-plate default.
+  smooth <- paste0("s(", trait_col, ", bs = '", bs, "', k = ", k, ")")
   if (!is.null(group)) {
-    fml <- stats::as.formula(paste0(".y ~ ", group, " + s(", trait_col, ", bs = 'cr', k = ", k, ")"))
+    fml <- stats::as.formula(paste0(".y ~ ", group, " + ", smooth))
     message("Including group fixed effect: '", group, "'")
   } else {
-    fml <- stats::as.formula(paste0(".y ~ s(", trait_col, ", bs = 'cr', k = ", k, ")"))
+    fml <- stats::as.formula(paste0(".y ~ ", smooth))
   }
 
   last_error <- NULL
   fit_gam <- function(d) {
     tryCatch(
-      mgcv::gam(fml, data = d, family = fam, method = "GCV.Cp", na.action = stats::na.omit),
+      mgcv::gam(fml, data = d, family = fam, method = smoothing, na.action = stats::na.omit),
       error = function(e) {
         last_error <<- conditionMessage(e)
         NULL
@@ -207,6 +219,14 @@ univariate_spline <- function(data,
   }
   if (!is.null(fit$converged) && !fit$converged) {
     warning("GAM algorithm did not fully converge")
+  }
+
+  # mgcv's test of whether the basis had room to bend: a low k-index with a
+  # small p-value means the curve may look straighter than the data are
+  kc <- tryCatch(mgcv::k.check(fit), error = function(e) NULL)
+  if (!is.null(kc) && any(kc[, "k-index"] < 1 & kc[, "p-value"] < 0.05, na.rm = TRUE)) {
+    warning("k = ", k, " may be too small for '", trait_col, "' (mgcv k-index ",
+            round(min(kc[, "k-index"]), 2), "); try a larger k")
   }
 
   # Create prediction grid across observed trait range
@@ -269,7 +289,10 @@ univariate_spline <- function(data,
     fitness_type = fitness_type,
     family = family_name,
     k = k,
-    spline_type = "cubic regression spline (GCV)",
+    basis = bs,
+    smoothing = smoothing,
+    spline_type = paste0(switch(bs, cr = "cubic regression spline", tp = "thin-plate spline", ps = "P-spline"),
+                         " (", sub("\\.Cp$", "", smoothing), ")"),
     ci_method = ci_method,
     n_obs = n_obs,
     fit_note = fit_note,
