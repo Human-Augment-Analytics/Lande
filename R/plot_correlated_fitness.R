@@ -12,12 +12,18 @@
 # ======================================================
 
 #' @noRd
-# internal utility: what to draw for a surface. With a hull the full surface
-# is drawn and everything outside the hull is covered by a polygon, which
-# gives a clean edge; without one, masked (NA) cells are simply dropped.
+# internal utility: what to draw for a surface. When the grid carries the
+# unmasked predictions the full surface is drawn and the blanked region is
+# covered: the outside of the hull by a polygon, cells too far from any
+# individual by a white contour band on the distance field. Both give clean
+# edges. Otherwise masked (NA) cells are simply dropped.
 .surface_layers <- function(tps, df, trait1, trait2, fit_col) {
+  if (!".fit_all" %in% names(df)) {
+    return(list(df = df[!is.na(df[[fit_col]]), , drop = FALSE], fit_col = fit_col, cover = NULL))
+  }
+  cover <- list()
   hull <- tps$hull
-  if (!is.null(hull) && ".fit_all" %in% names(df)) {
+  if (!is.null(hull)) {
     xr <- range(df[[trait1]])
     yr <- range(df[[trait2]])
     # The region outside the hull, as one ring: round the grid rectangle,
@@ -32,16 +38,39 @@
       c(xr[1], yr[1]), c(xr[2], yr[1]), c(xr[2], yr[2]), c(xr[1], yr[2]), c(xr[1], yr[1]),
       ring, c(xr[1], yr[1])
     )
-    cover <- ggplot2::geom_polygon(
+    cover <- c(cover, list(ggplot2::geom_polygon(
       data = data.frame(x = frame[, 1], y = frame[, 2]),
       ggplot2::aes(x = .data$x, y = .data$y),
       fill = "white", colour = "white", linewidth = 0.5, inherit.aes = FALSE
-    )
-    list(df = df, fit_col = ".fit_all", cover = cover)
-  } else {
-    list(df = df[!is.na(df[[fit_col]]), , drop = FALSE], fit_col = fit_col, cover = NULL)
+    )))
   }
+  too_far <- tps$too_far
+  if (!is.null(too_far) && ".dist" %in% names(df) && any(df$.dist > too_far)) {
+    # two bands of the distance field, near and far; only the far one is drawn
+    cover <- c(cover, list(
+      ggplot2::layer(
+        stat = .StatDistanceBand, geom = "polygon", position = "identity",
+        data = df,
+        mapping = ggplot2::aes(
+          x = .data[[trait1]], y = .data[[trait2]], z = .data$.dist,
+          alpha = ggplot2::after_stat(.data$level)
+        ),
+        params = list(breaks = c(-1, too_far, max(df$.dist) + 1), fill = "white", na.rm = FALSE),
+        inherit.aes = FALSE
+      ),
+      ggplot2::scale_alpha_manual(values = c(0, 1), guide = "none")
+    ))
+  }
+  list(df = df, fit_col = ".fit_all", cover = cover)
 }
+
+#' @noRd
+# the filled-contour stat without its fill mapping, so the white band drawn
+# over cells far from the data adds no keys to the fitness legend
+.StatDistanceBand <- ggplot2::ggproto(
+  "StatDistanceBand", ggplot2::StatContourFilled,
+  default_aes = ggplot2::aes(order = ggplot2::after_stat(level))
+)
 
 #' Plot Correlated Fitness Surface
 #'
@@ -216,7 +245,7 @@ plot_correlated_fitness_enhanced <- function(
     # Infer from grid columns, excluding any grouping column carried along
     possible_traits <- setdiff(
       names(df),
-      c(".fit", "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
+      c(".fit", ".fit_all", ".inside", ".dist", "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
     )
     if (length(possible_traits) >= 2) {
       trait1 <- possible_traits[1]

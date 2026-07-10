@@ -79,3 +79,42 @@ test_that("grid points outside the data are masked", {
   p <- plot_correlated_fitness(masked, c("z1", "z2"))
   expect_s3_class(p, "ggplot")
 })
+test_that("a distance rule blanks grid points far from any individual", {
+  set.seed(5)
+  n <- 120
+  # two separate clusters: the hull bridges the gap between them, a distance rule does not
+  z1 <- c(rnorm(n / 2, -1.5, 0.3), rnorm(n / 2, 1.5, 0.3))
+  z2 <- c(rnorm(n / 2, -1.5, 0.3), rnorm(n / 2, 1.5, 0.3))
+  df <- data.frame(z1 = as.numeric(scale(z1)), z2 = as.numeric(scale(z2)))
+  df$w <- 1 + 0.2 * df$z1 + rnorm(n, 0, 0.2)
+
+  hull_only <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam"))
+  far <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam", too_far = 0.15))
+  expect_true(".dist" %in% names(far$grid))
+  expect_true(all(far$grid$.dist >= 0))
+  expect_equal(far$too_far, 0.15)
+  # the middle of the gap is inside the hull but far from every individual
+  mid <- which.min(far$grid$z1^2 + far$grid$z2^2)
+  expect_true(hull_only$grid$.inside[mid])
+  expect_false(far$grid$.inside[mid])
+  expect_true(is.na(far$grid$.fit[mid]))
+  expect_lt(sum(far$grid$.inside), sum(hull_only$grid$.inside))
+  # the points that are kept carry the same predictions
+  ok <- far$grid$.inside
+  expect_equal(far$grid$.fit[ok], hull_only$grid$.fit[ok])
+  # a loose rule adds nothing to the hull
+  loose <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam", too_far = 2))
+  expect_equal(loose$grid$.inside, hull_only$grid$.inside)
+  # the rule works on its own
+  only_far <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam", mask = FALSE, too_far = 0.15))
+  expect_null(only_far$hull)
+  expect_true(any(is.na(only_far$grid$.fit)))
+  expect_error(correlated_fitness_surface(df, "w", c("z1", "z2"), method = "gam", too_far = -1), "too_far")
+
+  for (s in list(far, only_far)) {
+    p <- plot_correlated_fitness(s, c("z1", "z2"))
+    expect_s3_class(p, "ggplot")
+    b <- ggplot2::ggplot_build(p)
+    expect_gt(length(b$data), 2)
+  }
+})

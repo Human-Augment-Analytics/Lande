@@ -25,16 +25,40 @@
 }
 
 #' @noRd
-# internal utility: blank the grid outside the data when asked to. The full
-# predictions are kept in .fit_all so the plots can draw the surface up to
-# the hull edge and cover the outside with the hull polygon.
-.mask_grid <- function(grid, hull, trait_cols, mask) {
-  grid$.fit_all <- grid$.fit
-  if (!mask) {
-    grid$.inside <- TRUE
-    return(grid)
+# internal utility: distance from each grid point to the nearest individual,
+# with both scaled so the grid is the unit square. This is the distance
+# mgcv::vis.gam uses for its too.far argument. Done in blocks of grid rows so
+# a fine grid over a large data set does not build one huge matrix.
+.grid_distance <- function(gx, gy, x, y) {
+  rx <- range(gx)
+  ry <- range(gy)
+  gx <- (gx - rx[1]) / diff(rx)
+  gy <- (gy - ry[1]) / diff(ry)
+  x <- (x - rx[1]) / diff(rx)
+  y <- (y - ry[1]) / diff(ry)
+  out <- numeric(length(gx))
+  for (i in split(seq_along(gx), ceiling(seq_along(gx) / 1000))) {
+    d2 <- outer(gx[i], x, "-")^2 + outer(gy[i], y, "-")^2
+    out[i] <- sqrt(apply(d2, 1, min))
   }
-  grid$.inside <- mgcv::in.out(hull, cbind(grid[[trait_cols[1]]], grid[[trait_cols[2]]]))
+  out
+}
+
+#' @noRd
+# internal utility: blank the grid outside the data when asked to, by the
+# convex hull, by distance to the nearest individual, or both. The full
+# predictions are kept in .fit_all so the plots can draw the surface up to
+# the edge and cover the outside cleanly.
+.mask_grid <- function(grid, hull, trait_cols, mask, x = NULL, y = NULL, too_far = NULL) {
+  grid$.fit_all <- grid$.fit
+  gx <- grid[[trait_cols[1]]]
+  gy <- grid[[trait_cols[2]]]
+  grid$.inside <- if (mask) mgcv::in.out(hull, cbind(gx, gy)) else rep(TRUE, nrow(grid))
+  if (!is.null(too_far)) {
+    grid$.dist <- .grid_distance(gx, gy, x, y)
+    grid$.inside <- grid$.inside & grid$.dist <= too_far
+  }
+  if (!mask && is.null(too_far)) return(grid)
   grid$.fit[!grid$.inside] <- NA_real_
   cat("Masked", sum(!grid$.inside), "of", nrow(grid), "grid points outside the data\n")
   grid
@@ -63,6 +87,12 @@
 #'   \code{.inside} records which points were kept, \code{.fit_all} holds the
 #'   unmasked predictions, and the result's \code{hull} is the polygon the
 #'   plot functions use to cover the outside.
+#' @param too_far Optional distance rule for blanking the grid, on top of
+#'   \code{mask}. Grid points farther than this from the nearest individual
+#'   get \code{NA} fitness, with distances measured after scaling the grid to
+#'   the unit square, as in \code{mgcv::vis.gam}. Beausoleil et al. (2023) used
+#'   0.15. The default \code{NULL} applies no distance rule. The distance to
+#'   the nearest individual is kept in the grid column \code{.dist}.
 #' @param bs Basis for the GAM smooth: \code{"tp"} (thin plate, the default),
 #'   \code{"cr"} or \code{"ps"}.
 #' @param smoothing How the GAM's smoothing parameter is chosen: \code{"REML"}
@@ -75,7 +105,9 @@
 #'   traits enter as a tensor product smooth.
 #'   Predicting a fitted surface over the full rectangle of the grid
 #'   extrapolates into corners that no individual occupies; \code{mask = TRUE}
-#'   leaves those blank rather than showing a fitted value there.
+#'   leaves those blank rather than showing a fitted value there. The hull
+#'   still fills gaps between separate clusters of individuals, such as
+#'   several species on one surface; \code{too_far} blanks those too.
 #'
 #' @return A list containing the fitted model, grid predictions, and metadata.
 #' @export
@@ -94,12 +126,18 @@ correlated_fitness_surface <- function(
   group = NULL,
   k = NULL,
   mask = TRUE,
+  too_far = NULL,
   bs = c("tp", "cr", "ps"),
   smoothing = c("REML", "GCV.Cp", "ML")
 ) {
   stopifnot(length(trait_cols) == 2L)
   bs <- match.arg(bs)
   smoothing <- match.arg(smoothing)
+  if (!is.null(too_far)) {
+    if (!is.numeric(too_far) || length(too_far) != 1L || is.na(too_far) || too_far <= 0) {
+      stop("too_far must be a single positive number (a fraction of the grid's range) or NULL")
+    }
+  }
   need <- c(fitness_col, trait_cols)
 
   # Input validation
@@ -316,7 +354,7 @@ correlated_fitness_surface <- function(
     }
 
     cat("Success Predictions range:", round(range(grid$.fit), 4), "\n")
-    grid <- .mask_grid(grid, hull, trait_cols, mask)
+    grid <- .mask_grid(grid, hull, trait_cols, mask, x1, x2, too_far)
 
     result <- list(
       model = fit,
@@ -327,6 +365,7 @@ correlated_fitness_surface <- function(
       basis = bs,
       smoothing = smoothing,
       mask = mask,
+      too_far = too_far,
       hull = hull_df,
       data_type = ifelse(is_binary, "binary", "continuous"),
       trait_cols = trait_cols,
@@ -369,13 +408,14 @@ correlated_fitness_surface <- function(
     warning("NA predictions, using mean imputation")
     grid$.fit[is.na(grid$.fit)] <- mean(grid$.fit, na.rm = TRUE)
   }
-  grid <- .mask_grid(grid, hull, trait_cols, mask)
+  grid <- .mask_grid(grid, hull, trait_cols, mask, x1, x2, too_far)
 
   result <- list(
     model = tps_model,
     grid = grid,
     method = "tps",
     mask = mask,
+    too_far = too_far,
     hull = hull_df,
     data_type = ifelse(is_binary, "binary", "continuous"),
     trait_cols = trait_cols,

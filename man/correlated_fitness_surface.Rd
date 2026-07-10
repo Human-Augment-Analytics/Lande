@@ -14,6 +14,7 @@ correlated_fitness_surface(
   group = NULL,
   k = NULL,
   mask = TRUE,
+  too_far = NULL,
   bs = c("tp", "cr", "ps"),
   smoothing = c("REML", "GCV.Cp", "ML")
 )
@@ -46,6 +47,13 @@ surface is only drawn where there are data. The grid column
 unmasked predictions, and the result's \code{hull} is the polygon the
 plot functions use to cover the outside.}
 
+\item{too_far}{Optional distance rule for blanking the grid, on top of
+\code{mask}. Grid points farther than this from the nearest individual
+get \code{NA} fitness, with distances measured after scaling the grid to
+the unit square, as in \code{mgcv::vis.gam}. Beausoleil et al. (2023) used
+0.15. The default \code{NULL} applies no distance rule. The distance to
+the nearest individual is kept in the grid column \code{.dist}.}
+
 \item{bs}{Basis for the GAM smooth: \code{"tp"} (thin plate, the default),
 \code{"cr"} or \code{"ps"}.}
 
@@ -67,7 +75,9 @@ By default the GAM uses a thin-plate smooth with the smoothing
   traits enter as a tensor product smooth.
   Predicting a fitted surface over the full rectangle of the grid
   extrapolates into corners that no individual occupies; \code{mask = TRUE}
-  leaves those blank rather than showing a fitted value there.
+  leaves those blank rather than showing a fitted value there. The hull
+  still fills gaps between separate clusters of individuals, such as
+  several species on one surface; \code{too_far} blanks those too.
 }
 \examples{
 \dontrun{
