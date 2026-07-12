@@ -12,6 +12,7 @@ correlated_fitness_surface(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
+  group_effect = TRUE,
   k = NULL,
   mask = TRUE,
   too_far = NULL,
@@ -32,7 +33,17 @@ correlated_fitness_surface(
 
 \item{scale_traits}{Deprecated. Logical. Set to \code{FALSE} to avoid double standardization.}
 
-\item{group}{Optional string specifying a grouping variable.}
+\item{group}{Optional string naming a grouping column, such as species or
+year. The result's \code{groups} table then gives each group's mean
+trait values and the highest point of the surface within that group's
+own convex hull, and the plot functions draw both.}
+
+\item{group_effect}{Logical; with \code{TRUE} (the default) the GAM includes
+\code{group} as a fixed effect and predicts the surface at the reference
+level, as the gradient models do for year or site. With \code{FALSE} one
+surface is fitted to everyone and the group is only used for the
+\code{groups} table and the overlay, which is what a community surface
+of several species needs (Beausoleil et al. 2023).}
 
 \item{k}{Basis dimension for the GAM smooth. The default \code{NULL} sets it
 from the data as \code{min(30, max(10, floor(sqrt(n1 * n2))))}, where
@@ -61,7 +72,10 @@ the nearest individual is kept in the grid column \code{.dist}.}
 (the default), \code{"GCV.Cp"} or \code{"ML"}.}
 }
 \value{
-A list containing the fitted model, grid predictions, and metadata.
+A list containing the fitted model, grid predictions, and metadata:
+  \code{original_data} holds the rows that were analysed, and with a
+  \code{group} the \code{groups} data frame has one row per group with its
+  size, mean traits and local peak.
 }
 \description{
 Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).

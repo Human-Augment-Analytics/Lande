@@ -118,3 +118,65 @@ test_that("a distance rule blanks grid points far from any individual", {
     expect_gt(length(b$data), 2)
   }
 })
+
+test_that("a grouped surface reports each group's mean and local peak", {
+  set.seed(6)
+  n <- 160
+  sp <- rep(c("a", "b"), each = n / 2)
+  z1 <- c(rnorm(n / 2, -1, 0.4), rnorm(n / 2, 1, 0.4))
+  z2 <- c(rnorm(n / 2, 1, 0.4), rnorm(n / 2, -1, 0.4))
+  df <- data.frame(sp = sp, z1 = as.numeric(scale(z1)), z2 = as.numeric(scale(z2)))
+  df$w <- 1 - 0.3 * df$z2^2 + rnorm(n, 0, 0.1)
+
+  s <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 25, method = "gam", group = "sp"))
+  g <- s$groups
+  expect_equal(names(g), c("group", "n", "mean_z1", "mean_z2", "peak_z1", "peak_z2", "peak_fit"))
+  expect_equal(g$group, c("a", "b"))
+  expect_equal(g$n, c(n / 2, n / 2))
+  expect_equal(g$mean_z1, as.numeric(tapply(df$z1, df$sp, mean)))
+  expect_equal(g$mean_z2, as.numeric(tapply(df$z2, df$sp, mean)))
+  # each peak sits in its own group's cloud, on the kept part of the surface
+  expect_false(anyNA(g$peak_fit))
+  expect_lt(g$peak_z1[1], 0)
+  expect_gt(g$peak_z1[2], 0)
+  expect_true(all(g$peak_fit <= max(s$grid$.fit, na.rm = TRUE)))
+  # the analysed rows come back with the group
+  expect_equal(nrow(s$original_data), n)
+  expect_true(all(c("z1", "z2", "w", "sp") %in% names(s$original_data)))
+  # no group, no table
+  u <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 25, method = "gam"))
+  expect_null(u$groups)
+
+  p <- plot_correlated_fitness(s, c("z1", "z2"), show_points = TRUE)
+  expect_s3_class(p, "ggplot")
+  b <- ggplot2::ggplot_build(p)
+  labelled <- vapply(b$data, function(d) "label" %in% names(d) && all(c("a", "b") %in% d$label), logical(1))
+  expect_true(any(labelled))
+  p0 <- plot_correlated_fitness(s, c("z1", "z2"), show_groups = FALSE)
+  b0 <- ggplot2::ggplot_build(p0)
+  expect_lt(length(b0$data), length(b$data))
+})
+
+test_that("the group can mark the surface without entering the model", {
+  set.seed(7)
+  n <- 160
+  sp <- rep(c("a", "b"), each = n / 2)
+  z1 <- c(rnorm(n / 2, -1, 0.4), rnorm(n / 2, 1, 0.4))
+  z2 <- rnorm(n)
+  df <- data.frame(sp = sp, z1 = as.numeric(scale(z1)), z2 = as.numeric(scale(z2)))
+  df$w <- 1 + 0.3 * df$z1 - 0.2 * df$z2^2 + rnorm(n, 0, 0.1)
+
+  with_effect <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam", group = "sp"))
+  pooled <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam", group = "sp", group_effect = FALSE))
+  expect_true(with_effect$group_effect)
+  expect_false(pooled$group_effect)
+  expect_true(grepl("sp", deparse(formula(with_effect$model))[1]))
+  expect_false(grepl("sp", deparse(formula(pooled$model))[1]))
+  # the pooled fit is the same as fitting without a group at all
+  none <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam"))
+  expect_equal(pooled$grid$.fit, none$grid$.fit)
+  # the overlay is there either way
+  expect_equal(nrow(pooled$groups), 2)
+  expect_equal(pooled$groups$group, with_effect$groups$group)
+  expect_null(none$group_effect)
+})

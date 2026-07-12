@@ -12,6 +12,7 @@ plot_correlated_fitness_enhanced(
   bins = 12,
   point_alpha = 0.7,
   show_optimum = TRUE,
+  show_groups = TRUE,
   ...
 )
 }
@@ -29,6 +30,10 @@ plot_correlated_fitness_enhanced(
 \item{point_alpha}{Numeric value for point transparency. Default is 0.7.}
 
 \item{show_optimum}{Logical indicating whether to mark the optimum point. Default is \code{TRUE}.}
+
+\item{show_groups}{Logical; when the surface was fitted with a \code{group},
+draw each group's mean and the highest point of the surface within that
+group's hull. Default is \code{TRUE}.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }

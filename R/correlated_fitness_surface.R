@@ -64,6 +64,37 @@
   grid
 }
 
+#' @noRd
+# internal utility: for each group, the mean of the two traits and the
+# highest point of the masked surface within that group's own convex hull,
+# which is where a species or year sits on a shared surface.
+.group_peaks <- function(grid, trait_cols, x, y, grp) {
+  gx <- grid[[trait_cols[1]]]
+  gy <- grid[[trait_cols[2]]]
+  seen <- grp[!is.na(grp)]
+  levels_used <- if (is.factor(seen)) levels(droplevels(seen)) else sort(unique(seen))
+  rows <- lapply(levels_used, function(g) {
+    sel <- !is.na(grp) & grp == g
+    peak <- rep(NA_real_, 3)
+    if (sum(sel) >= 3 && length(unique(x[sel])) >= 2 && length(unique(y[sel])) >= 2) {
+      h <- .data_hull(x[sel], y[sel])
+      if (nrow(h) >= 4) {
+        inside <- mgcv::in.out(h, cbind(gx, gy)) & !is.na(grid$.fit)
+        if (any(inside)) {
+          i <- which(inside)[which.max(grid$.fit[inside])]
+          peak <- c(gx[i], gy[i], grid$.fit[i])
+        }
+      }
+    }
+    data.frame(group = as.character(g), n = sum(sel), m1 = mean(x[sel]), m2 = mean(y[sel]),
+               p1 = peak[1], p2 = peak[2], peak_fit = peak[3], stringsAsFactors = FALSE)
+  })
+  out <- do.call(rbind, rows)
+  names(out) <- c("group", "n", paste0("mean_", trait_cols), paste0("peak_", trait_cols), "peak_fit")
+  rownames(out) <- NULL
+  out
+}
+
 #' Calculate the Correlated Fitness Surface
 #'
 #' Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).
@@ -75,7 +106,16 @@
 #' @param grid_n Integer specifying the resolution of the prediction grid. Default is 60.
 #' @param method A string specifying the modeling method: \code{"auto"}, \code{"gam"}, or \code{"tps"}.
 #' @param scale_traits Deprecated. Logical. Set to \code{FALSE} to avoid double standardization.
-#' @param group Optional string specifying a grouping variable.
+#' @param group Optional string naming a grouping column, such as species or
+#'   year. The result's \code{groups} table then gives each group's mean
+#'   trait values and the highest point of the surface within that group's
+#'   own convex hull, and the plot functions draw both.
+#' @param group_effect Logical; with \code{TRUE} (the default) the GAM includes
+#'   \code{group} as a fixed effect and predicts the surface at the reference
+#'   level, as the gradient models do for year or site. With \code{FALSE} one
+#'   surface is fitted to everyone and the group is only used for the
+#'   \code{groups} table and the overlay, which is what a community surface
+#'   of several species needs (Beausoleil et al. 2023).
 #' @param k Basis dimension for the GAM smooth. The default \code{NULL} sets it
 #'   from the data as \code{min(30, max(10, floor(sqrt(n1 * n2))))}, where
 #'   \code{n1} and \code{n2} are the numbers of distinct values of each trait;
@@ -109,7 +149,10 @@
 #'   still fills gaps between separate clusters of individuals, such as
 #'   several species on one surface; \code{too_far} blanks those too.
 #'
-#' @return A list containing the fitted model, grid predictions, and metadata.
+#' @return A list containing the fitted model, grid predictions, and metadata:
+#'   \code{original_data} holds the rows that were analysed, and with a
+#'   \code{group} the \code{groups} data frame has one row per group with its
+#'   size, mean traits and local peak.
 #' @export
 #'
 #' @examples
@@ -124,6 +167,7 @@ correlated_fitness_surface <- function(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
+  group_effect = TRUE,
   k = NULL,
   mask = TRUE,
   too_far = NULL,
@@ -233,7 +277,9 @@ correlated_fitness_surface <- function(
   if (!is.null(group)) {
     cat("Grouping variable:", group, "\n")
     cat("Number of groups:", length(unique(grp)), "\n")
+    cat(if (group_effect) "Group enters the model as a fixed effect\n" else "One surface for all groups; the group only marks means and peaks\n")
   }
+  use_effect <- !is.null(group) && isTRUE(group_effect)
 
   x1s <- x1
   x2s <- x2
@@ -252,6 +298,10 @@ correlated_fitness_surface <- function(
   hull <- .data_hull(x1, x2)
   hull_df <- if (mask) stats::setNames(as.data.frame(hull), trait_cols) else NULL
 
+  # the rows that were analysed, for overlaying on the surface
+  pts <- stats::setNames(data.frame(x1, x2, y), c(trait_cols, fitness_col))
+  if (!is.null(group)) pts[[group]] <- grp
+
   if (method == "gam") {
     if (!requireNamespace("mgcv", quietly = TRUE)) {
       stop("mgcv package required. Please install.packages('mgcv')")
@@ -267,7 +317,7 @@ correlated_fitness_surface <- function(
     )
     names(df_fit)[2:3] <- trait_cols
 
-    if (!is.null(group)) {
+    if (use_effect) {
       df_fit[[group]] <- grp
     }
 
@@ -287,7 +337,7 @@ correlated_fitness_surface <- function(
     }
     k1 <- paste0("min(floor(", k_adj, "/2), nrow(df_fit) - 1)")
     separate <- paste0("s(", trait_cols[1], ", bs = '", bs, "', k = ", k1, ") + s(", trait_cols[2], ", bs = '", bs, "', k = ", k1, ")")
-    lhs <- if (!is.null(group)) paste0(".y ~ ", group, " + ") else ".y ~ "
+    lhs <- if (use_effect) paste0(".y ~ ", group, " + ") else ".y ~ "
     fml <- as.formula(paste0(lhs, joint))
     fml_alt1 <- as.formula(paste0(lhs, separate))
     fml_alt2 <- as.formula(paste0(lhs, trait_cols[1], " + ", trait_cols[2]))
@@ -330,7 +380,7 @@ correlated_fitness_surface <- function(
     newdat <- grid_scaled[, trait_cols, drop = FALSE]
     names(newdat) <- trait_cols
 
-    if (!is.null(group)) {
+    if (use_effect) {
       ref_group <- .reference_group(df_fit[[group]])
       newdat[[group]] <- ref_group
       cat("Predictions use group = '", ref_group, "' as reference\n")
@@ -367,6 +417,9 @@ correlated_fitness_surface <- function(
       mask = mask,
       too_far = too_far,
       hull = hull_df,
+      original_data = pts,
+      groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp) else NULL,
+      group_effect = if (!is.null(group)) use_effect else NULL,
       data_type = ifelse(is_binary, "binary", "continuous"),
       trait_cols = trait_cols,
       fitness_col = fitness_col,
@@ -417,6 +470,9 @@ correlated_fitness_surface <- function(
     mask = mask,
     too_far = too_far,
     hull = hull_df,
+    original_data = pts,
+    groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp) else NULL,
+    group_effect = if (!is.null(group)) FALSE else NULL,
     data_type = ifelse(is_binary, "binary", "continuous"),
     trait_cols = trait_cols,
     fitness_col = fitness_col,

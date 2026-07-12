@@ -72,6 +72,51 @@
   default_aes = ggplot2::aes(order = ggplot2::after_stat(level))
 )
 
+#' @noRd
+# internal utility: group means (open circles, labelled) and the highest
+# point of the surface within each group's hull (filled triangles), joined by
+# a dashed line. Only present when the surface was fitted with a group.
+.group_layers <- function(tps, trait1, trait2) {
+  g <- tps$groups
+  if (is.null(g) || !nrow(g)) return(NULL)
+  m1 <- paste0("mean_", trait1)
+  m2 <- paste0("mean_", trait2)
+  p1 <- paste0("peak_", trait1)
+  p2 <- paste0("peak_", trait2)
+  if (!all(c(m1, m2, p1, p2) %in% names(g))) return(NULL)
+  with_peak <- g[!is.na(g[[p1]]), , drop = FALSE]
+  list(
+    ggplot2::geom_segment(
+      data = with_peak,
+      ggplot2::aes(x = .data[[m1]], y = .data[[m2]], xend = .data[[p1]], yend = .data[[p2]]),
+      colour = "black", linewidth = 0.4, linetype = "dashed", inherit.aes = FALSE
+    ),
+    ggplot2::geom_point(
+      data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], shape = "Group mean"),
+      fill = "white", colour = "black", size = 3, inherit.aes = FALSE
+    ),
+    ggplot2::geom_point(
+      data = with_peak, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group peak"),
+      fill = "black", colour = "white", size = 2.8, inherit.aes = FALSE
+    ),
+    ggplot2::geom_text(
+      data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], label = .data$group),
+      vjust = -1, size = 3, colour = "black", inherit.aes = FALSE
+    )
+  )
+}
+
+#' @noRd
+# one key for the marks drawn on a surface: the optimum and, with a group,
+# the group means and peaks. Only the marks present appear in it.
+.mark_key <- function() {
+  ggplot2::scale_shape_manual(
+    name = NULL,
+    values = c("Optimum" = 18, "Group mean" = 21, "Group peak" = 24),
+    guide = ggplot2::guide_legend(order = 1)
+  )
+}
+
 #' Plot Correlated Fitness Surface
 #'
 #' @param tps Output list from \code{correlated_fitness_surface()}.
@@ -80,6 +125,9 @@
 #' @param point_alpha Numeric value for point transparency. Default is 0.7.
 #' @param show_points Logical indicating whether to show original data points. Default is \code{FALSE}.
 #' @param show_optimum Logical indicating whether to mark the optimum point. Default is \code{TRUE}.
+#' @param show_groups Logical; when the surface was fitted with a \code{group},
+#'   draw each group's mean (open circle, labelled) and the highest point of
+#'   the surface within that group's hull (filled triangle). Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object representing the correlated fitness surface.
@@ -91,6 +139,7 @@ plot_correlated_fitness <- function(
   point_alpha = 0.7,
   show_points = FALSE,
   show_optimum = TRUE,
+  show_groups = TRUE,
   ...
 ) {
   # Input validation
@@ -189,13 +238,18 @@ plot_correlated_fitness <- function(
       data = opt,
       ggplot2::aes(
         x = .data[[trait_cols[1]]],
-        y = .data[[trait_cols[2]]]
+        y = .data[[trait_cols[2]]],
+        shape = "Optimum"
       ),
       color = "gold",
-      size = 4,
-      shape = 18
+      size = 4
     )
   }
+
+  if (show_groups) {
+    p <- p + .group_layers(tps, trait_cols[1], trait_cols[2])
+  }
+  p <- p + .mark_key()
 
   return(p)
 }
@@ -215,6 +269,9 @@ plot_correlated_fitness <- function(
 #' @param bins Integer specifying the number of contour bins. Default is 12.
 #' @param point_alpha Numeric value for point transparency. Default is 0.7.
 #' @param show_optimum Logical indicating whether to mark the optimum point. Default is \code{TRUE}.
+#' @param show_groups Logical; when the surface was fitted with a \code{group},
+#'   draw each group's mean and the highest point of the surface within that
+#'   group's hull. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object with enhanced visualizations.
@@ -227,6 +284,7 @@ plot_correlated_fitness_enhanced <- function(
   bins = 12,
   point_alpha = 0.7,
   show_optimum = TRUE,
+  show_groups = TRUE,
   ...
 ) {
   # Input validation
@@ -352,23 +410,18 @@ plot_correlated_fitness_enhanced <- function(
         data = opt,
         ggplot2::aes(
           x = .data[[trait1]],
-          y = .data[[trait2]]
+          y = .data[[trait2]],
+          shape = "Optimum"
         ),
         color = "gold",
-        size = 4,
-        shape = 18
-      ) +
-      # Add label for optimum (optional)
-      ggplot2::annotate(
-        "text",
-        x = opt[[trait1]],
-        y = opt[[trait2]],
-        label = "Optimum",
-        vjust = -1,
-        size = 3,
-        color = "gray30"
+        size = 4
       )
   }
+
+  if (show_groups) {
+    p <- p + .group_layers(tps, trait1, trait2)
+  }
+  p <- p + .mark_key()
 
   p <- p + ggplot2::labs(
     x = trait1,
