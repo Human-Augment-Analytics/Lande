@@ -2,7 +2,8 @@
 ^validation$
 ^case_studies$
 ^inst/scripts$
-^Evolutionary-Selection-Analysis\.html$
+^Evolutionary-Selection-Analysis.*\.html$
+^analysis$
 ^docs$
 ^\.git$
 ^\.DS_Store$
