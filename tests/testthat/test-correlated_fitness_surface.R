@@ -180,3 +180,25 @@ test_that("the group can mark the surface without entering the model", {
   expect_equal(pooled$groups$group, with_effect$groups$group)
   expect_null(none$group_effect)
 })
+
+test_that("count fitness gets a Poisson surface", {
+  set.seed(9)
+  n <- 200
+  df <- data.frame(z1 = as.numeric(scale(rnorm(n))), z2 = as.numeric(scale(rnorm(n))))
+  df$w <- rpois(n, exp(0.2 + 0.4 * df$z1 - 0.3 * df$z2^2))
+
+  s <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 15))
+  expect_equal(s$data_type, "count")
+  expect_equal(s$method, "gam")
+  expect_equal(s$model$family$family, "poisson")
+  expect_true(all(s$grid$.fit[s$grid$.inside] >= 0))
+
+  # relative fitness is not a count
+  rel <- df
+  rel$w <- rel$w / mean(rel$w)
+  cont <- suppressMessages(correlated_fitness_surface(rel, "w", c("z1", "z2"), grid_n = 15, method = "gam"))
+  expect_equal(cont$data_type, "continuous")
+  expect_equal(cont$model$family$family, "gaussian")
+
+  expect_warning(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 15, method = "tps"), "count")
+})

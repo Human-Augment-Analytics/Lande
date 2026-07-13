@@ -82,7 +82,12 @@ Fits a model for individual fitness based on multiple individual phenotypes (w ~
 Traits MUST be standardized BEFORE calling this function.
 }
 \details{
-By default the GAM uses a thin-plate smooth with the smoothing
+The family follows the fitness column: 0/1 fitness gets a binomial
+  family, non-negative whole numbers with more than two values (recapture
+  years, offspring) a Poisson family with a log link, and anything else a
+  Gaussian family. With \code{method = "auto"} binary and count fitness use
+  the GAM and continuous fitness the thin-plate spline.
+  By default the GAM uses a thin-plate smooth with the smoothing
   parameter chosen by REML; \code{bs} and \code{smoothing} are there to match
   another study's smoother and do not apply to \code{method = "tps"}. With
   \code{"cr"} or \code{"ps"}, which are one-dimensional bases, the two

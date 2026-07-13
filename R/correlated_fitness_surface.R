@@ -138,7 +138,12 @@
 #' @param smoothing How the GAM's smoothing parameter is chosen: \code{"REML"}
 #'   (the default), \code{"GCV.Cp"} or \code{"ML"}.
 #'
-#' @details By default the GAM uses a thin-plate smooth with the smoothing
+#' @details The family follows the fitness column: 0/1 fitness gets a binomial
+#'   family, non-negative whole numbers with more than two values (recapture
+#'   years, offspring) a Poisson family with a log link, and anything else a
+#'   Gaussian family. With \code{method = "auto"} binary and count fitness use
+#'   the GAM and continuous fitness the thin-plate spline.
+#'   By default the GAM uses a thin-plate smooth with the smoothing
 #'   parameter chosen by REML; \code{bs} and \code{smoothing} are there to match
 #'   another study's smoother and do not apply to \code{method = "tps"}. With
 #'   \code{"cr"} or \code{"ps"}, which are one-dimensional bases, the two
@@ -245,12 +250,16 @@ correlated_fitness_surface <- function(
 
   if (length(y) < 10) stop("Too few complete cases: ", length(y), " (<10)")
 
-  # Detect binary fitness
+  # Detect binary and count fitness
   uniq_y <- unique(y)
   is_binary <- length(uniq_y) == 2 && all(sort(uniq_y) == c(0, 1))
+  # non-negative whole numbers with more than two values, such as recapture
+  # years or offspring, get a Poisson family as the spline does
+  is_count <- !is_binary && length(uniq_y) > 2 && all(y >= 0) && all(y == round(y))
+  data_type <- if (is_binary) "binary" else if (is_count) "count" else "continuous"
 
   if (method == "auto") {
-    method <- if (is_binary) "gam" else "tps"
+    method <- if (is_binary || is_count) "gam" else "tps"
   }
 
   if (!method %in% c("gam", "tps")) stop("method must be 'auto' | 'gam' | 'tps'")
@@ -270,7 +279,7 @@ correlated_fitness_surface <- function(
     k <- min(30, max(10, floor(sqrt(n1 * n2))))
   }
 
-  cat("Data type:", ifelse(is_binary, "binary", "continuous"), "\n")
+  cat("Data type:", data_type, "\n")
   cat("Selected method:", method, "\n")
   cat("Data points:", length(y), "\n")
   cat("Basis dimension k:", k, "\n")
@@ -307,7 +316,7 @@ correlated_fitness_surface <- function(
       stop("mgcv package required. Please install.packages('mgcv')")
     }
 
-    fam <- if (is_binary) stats::binomial("logit") else stats::gaussian()
+    fam <- if (is_binary) stats::binomial("logit") else if (is_count) stats::poisson("log") else stats::gaussian()
 
     # Prepare data frame
     df_fit <- data.frame(
@@ -420,7 +429,7 @@ correlated_fitness_surface <- function(
       original_data = pts,
       groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp) else NULL,
       group_effect = if (!is.null(group)) use_effect else NULL,
-      data_type = ifelse(is_binary, "binary", "continuous"),
+      data_type = data_type,
       trait_cols = trait_cols,
       fitness_col = fitness_col,
       group_used = group,
@@ -435,8 +444,8 @@ correlated_fitness_surface <- function(
     stop("For continuous fitness with tps method, install fields: install.packages('fields')")
   }
 
-  if (is_binary) {
-    warning("Binary data detected but method='tps' chosen. Using Tps on binary outcomes (not ideal).")
+  if (is_binary || is_count) {
+    warning(data_type, " fitness detected but method='tps' chosen. Using Tps on ", data_type, " outcomes (not ideal).")
   }
 
   Xs <- cbind(as.numeric(x1s), as.numeric(x2s))
@@ -473,7 +482,7 @@ correlated_fitness_surface <- function(
     original_data = pts,
     groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp) else NULL,
     group_effect = if (!is.null(group)) FALSE else NULL,
-    data_type = ifelse(is_binary, "binary", "continuous"),
+    data_type = data_type,
     trait_cols = trait_cols,
     fitness_col = fitness_col,
     group_used = group,
