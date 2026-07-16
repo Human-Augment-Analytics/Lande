@@ -24,22 +24,9 @@
   cover <- list()
   hull <- tps$hull
   if (!is.null(hull)) {
-    xr <- range(df[[trait1]])
-    yr <- range(df[[trait2]])
-    # The region outside the hull, as one ring: round the grid rectangle,
-    # along a bridge to the nearest hull vertex, once round the hull the
-    # opposite way, and back. Renders as a frame with a hull-shaped window.
-    h <- cbind(hull[[trait1]], hull[[trait2]])
-    h <- h[-nrow(h), , drop = FALSE]
-    corner <- c(xr[1], yr[1])
-    i <- which.min((h[, 1] - corner[1])^2 + (h[, 2] - corner[2])^2)
-    ring <- h[c(i:nrow(h), seq_len(i)), , drop = FALSE]
-    frame <- rbind(
-      c(xr[1], yr[1]), c(xr[2], yr[1]), c(xr[2], yr[2]), c(xr[1], yr[2]), c(xr[1], yr[1]),
-      ring, c(xr[1], yr[1])
-    )
+    frame <- .outside_frame(hull, trait1, trait2, range(df[[trait1]]), range(df[[trait2]]))
     cover <- c(cover, list(ggplot2::geom_polygon(
-      data = data.frame(x = frame[, 1], y = frame[, 2]),
+      data = frame,
       ggplot2::aes(x = .data$x, y = .data$y),
       fill = "white", colour = "white", linewidth = 0.5, inherit.aes = FALSE
     )))
@@ -62,6 +49,23 @@
     ))
   }
   list(df = df, fit_col = ".fit_all", cover = cover)
+}
+
+#' @noRd
+# internal utility: the region outside the hull as one ring: round the grid
+# rectangle, along a bridge to the nearest hull vertex, once round the hull
+# the opposite way, and back. Renders as a frame with a hull-shaped window.
+.outside_frame <- function(hull, trait1, trait2, xr, yr) {
+  h <- cbind(hull[[trait1]], hull[[trait2]])
+  h <- h[-nrow(h), , drop = FALSE]
+  corner <- c(xr[1], yr[1])
+  i <- which.min((h[, 1] - corner[1])^2 + (h[, 2] - corner[2])^2)
+  ring <- h[c(i:nrow(h), seq_len(i)), , drop = FALSE]
+  frame <- rbind(
+    c(xr[1], yr[1]), c(xr[2], yr[1]), c(xr[2], yr[2]), c(xr[1], yr[2]), c(xr[1], yr[1]),
+    ring, c(xr[1], yr[1])
+  )
+  data.frame(x = frame[, 1], y = frame[, 2])
 }
 
 #' @noRd

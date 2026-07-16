@@ -27,6 +27,14 @@ test_that("temporal_landscape fits each period and skips small ones", {
   expect_true(all(c(".mean_fit", "time") %in% names(tl$landscape_grid)))
   expect_output(print(tl), "Fitness function by year")
 
+  for (ty in c("panels", "heatmap")) {
+    p <- plot_temporal_landscape(tl, type = ty)
+    expect_s3_class(p, "ggplot")
+    expect_silent(b <- ggplot2::ggplot_build(p))
+  }
+  p <- plot_temporal_landscape(tl, show_landscape = FALSE, show_points = FALSE)
+  expect_s3_class(p, "ggplot")
+
   expect_error(temporal_landscape(d, "w", "z", "year", min_n = 1000), "No period")
   expect_error(temporal_landscape(d, "w", "z", "season"), "Missing columns")
 })
@@ -47,4 +55,10 @@ test_that("two traits give a surface per period", {
   expect_null(tl$heat)
   expect_null(tl$landscape_grid)
   expect_length(tl$hulls, 2)
+
+  p <- plot_temporal_landscape(tl)
+  expect_s3_class(p, "ggplot")
+  b <- ggplot2::ggplot_build(p)
+  expect_gt(length(b$data), 2)
+  expect_error(plot_temporal_landscape(tl, type = "heatmap"), "one trait")
 })
