@@ -49,6 +49,7 @@ digraph workflow {
     node [color = "#C0392B"]
     adapt      [label = <<B>adaptive_landscape()</B><BR/><FONT POINT-SIZE="9.5">W&#773; = g(z&#773;): simulate N(z&#773;, P), average fitness</FONT>>]
     adapt_plot [label = <<B>plot_adaptive_landscape()</B><BR/><FONT POINT-SIZE="9.5">curve, contours or 3D view</FONT>>]
+    temporal   [label = <<B>temporal_landscape()</B><BR/><FONT POINT-SIZE="9.5">one fit per year; panels or heat map</FONT>>]
   }
 
   subgraph cluster_out {
@@ -85,6 +86,8 @@ digraph workflow {
   corr -> adapt [label = "fitted surface", color = "#C0392B", penwidth = 1.8]
   uni -> adapt [label = "single trait", color = "#C0392B", style = dashed]
   adapt -> adapt_plot
+  prep -> temporal [color = "#2C7FB8", style = dashed, label = "by year"]
+  temporal -> adapt [style = dashed, label = "per year"]
   corr -> compare [style = dashed]
   adapt -> compare [style = dashed]
 
@@ -97,5 +100,6 @@ digraph workflow {
   linear -> nonlinear [style = invis]
   corr_plot -> adapt [style = invis]
   { rank = same; extract; diff; check }
+  { rank = same; adapt_plot; temporal }
   { rank = same; report; boot; compare }
 }

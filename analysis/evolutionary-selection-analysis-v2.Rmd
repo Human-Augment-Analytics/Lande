@@ -219,6 +219,12 @@ The two surfaces are compared with `compare_fitness_surfaces_data()` (section 5.
 
 ---
 
+### 2.8 Landscapes over Time
+
+Selection is rarely constant. Beausoleil et al. (2019) fitted a separate fitness function to each year of the finch data and found the shape changing from year to year, with two peaks in some years and a slope in others. The package does the same with `temporal_landscape()`: the fitness function (one trait) or surface (two traits) and, if asked, the adaptive landscape are fitted separately for each level of a time column, on traits standardised once over all periods so that the periods share one axis. The result is one row per period with the sample size, mean fitness, the degrees of freedom of the smooth, the position of the highest fitness and, for one trait, the number of interior peaks. `plot_temporal_landscape()` draws the periods side by side or, for one trait, as a heat map of fitness against trait and time.
+
+**File:** `temporal_landscape.R`
+
 ## 3. Framework Structure
 
 ### 3.1 Core Scripts and Their Roles
@@ -240,6 +246,8 @@ The two surfaces are compared with `compare_fitness_surfaces_data()` (section 5.
 | `plot_correlated_fitness.R` | Visualisation | Contour plots | 2D fitness |
 | `plot_univariate_fitness.R` | Visualisation | Line + 95% band | Wald interval or bootstrap ribbon |
 | `plot_adaptive_landscape.R` | Visualisation | Population surface | $\bar{W}(\bar{z})$ |
+| `temporal_landscape.R` | Selection over time | One fit per period, summary table | $w_t = \alpha_t + s_t(z)$ |
+| `plot_temporal_landscape.R` | Visualisation | Panels or heat map by period | $w_t(z)$ |
 | `selection_report.R` | Results table | $S$, $\beta$, $\gamma$, $\gamma_{ij}$ together | Same individuals, same scale |
 | `bootstrap_selection.R` | Uncertainty | Resampling with replacement | Bootstrap SE, percentile CI |
 | `check_selection_assumptions.R` | Assumption checks | Normality, VIF, rows per term, residuals | Mardia's tests, Shapiro-Wilk, Breusch-Pagan |
@@ -881,6 +889,56 @@ print(plots$side_by_side)
 ```
 ---
 
+### 5.16 `temporal_landscape()` and `plot_temporal_landscape()`
+
+**Purpose:** Fit the fitness function or surface, and optionally the adaptive landscape, separately for each period, to see how selection changes over time.
+
+```R
+temporal_landscape(
+  data,                  # Traits standardised once, over all periods
+  fitness_col,
+  trait_cols,            # One or two traits
+  time_col,              # The period of each row, usually year
+  fitness_type = "auto",
+  min_n = 20,            # Periods with fewer rows are skipped
+  landscape = TRUE,      # Also the adaptive landscape per period
+  bootstrap = FALSE,     # Band around each period's fitness function (one trait)
+  grid_n = 60, simulation_n = 300
+)
+
+plot_temporal_landscape(
+  tl,
+  type = "panels",       # or "heatmap" for one trait
+  show_points = TRUE, show_landscape = TRUE, show_optimum = TRUE,
+  ncol = NULL            # Panel columns
+)
+```
+
+**Returns:** a list with one fit and one landscape per period, a `summary` table (n, mean fitness, trait means, the smooth's degrees of freedom, the position and height of the highest fitness, the number of interior peaks for one trait, and the landscape optimum), the fitted values of every period stacked in `grid`, for one trait the fitness functions on a common grid in `heat` (blank where a period has no individuals), and the periods skipped for having fewer than `min_n` rows.
+
+Standardise the traits once, over all periods, before calling: the periods must share one trait axis, so nothing is restandardised per period. The number of peaks depends on the basis size `k` as any spline feature does; treat it as a description of the fitted curve, and test disruptive selection with the quadratic gradient on the birds between the peaks as Beausoleil et al. (2019) did.
+
+**Example:** medium ground finches at El Garrapatero, one row per bird per year it was seen, survival to the next year against beak size (first principal component of the three beak medians), from the public data of Beausoleil et al. (2019).
+```{r, message=FALSE, warning=FALSE, results='hide'}
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch_prep <- prepare_selection_data(finch, "survived", "beak_pc1")
+years <- temporal_landscape(finch_prep, "survived", "beak_pc1", "year", simulation_n = 200)
+```
+
+```{r}
+years$summary[, c("time", "n", "mean_fitness", "edf", "optimum_beak_pc1", "peaks")]
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=10, fig.height=5.5, fig.cap="Survival against beak size, one panel per year. Solid: fitness function. Dashed: adaptive landscape. Diamond: highest survival."}
+plot_temporal_landscape(years, ncol = 4)
+```
+
+```{r, message=FALSE, warning=FALSE, fig.width=7, fig.height=4.5, fig.cap="The same fitness functions as a heat map, blank where a year has no birds."}
+plot_temporal_landscape(years, type = "heatmap")
+```
+
+The spline finds more than one peak in 2005 and 2008 and a steep rise towards large beaks in 2009, the year with the strongest selection in Beausoleil et al. (2019). Peaks in a fitted curve are a description, not a test; their test was the quadratic gradient on the birds between the peaks, which is `analyze_disruptive_selection()` in section 5.6 run on that subset.
+
 ## 6. Interpretation Guide
 
 ### 6.1 Statistical Significance
@@ -1058,4 +1116,6 @@ if (requireNamespace("car", quietly = TRUE)) {
 12. Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. *Biometrika*, 57(3), 519-530.
 
 13. Beausoleil, M.-O., Carrión, P. L., Podos, J., Camacho, C., Rabadán-González, J., Richard, R., Lalla, K., Raeymaekers, J. A. M., Knutie, S. A., De León, L. F., Chaves, J. A., Clayton, D. H., Koop, J. A. H., Sharpe, D. M. T., Gotanda, K. M., Huber, S. K., Barrett, R. D. H., & Hendry, A. P. (2023). The fitness landscape of a community of Darwin's finches. *Evolution*, 77(12), 2533-2546.
+
+14. Beausoleil, M.-O., Camacho, C., Rabadán-González, J., Richard, R., Lalla, K., Raeymaekers, J. A. M., Knutie, S. A., De León, L. F., Chaves, J. A., Clayton, D. H., Koop, J. A. H., Sharpe, D. M. T., Gotanda, K. M., Huber, S. K., Barrett, R. D. H., & Hendry, A. P. (2019). Temporally varying disruptive selection in the medium ground finch (*Geospiza fortis*). *Proceedings of the Royal Society B*, 286(1916), 20192290.
 
