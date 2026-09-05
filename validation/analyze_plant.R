@@ -42,10 +42,10 @@ suppressPackageStartupMessages({
 cat("\n3. Data loading and exploration\n")
 
 data_files <- list(
-  data1 = here("inst", "extdata", "Aster_analyses_2011_Cohort.txt"),
-  data2 = here("inst", "extdata", "Aster_analyses_2012_Cohort_full.txt"),
-  data3 = here("inst", "extdata", "Aster_analyses_2011_Cohort_full.txt"),
-  data4 = here("inst", "extdata", "Aster_analyses_2012_Cohort.txt")
+  data1 = here("validation", "data", "Aster_analyses_2011_Cohort.txt"),
+  data2 = here("validation", "data", "Aster_analyses_2012_Cohort_full.txt"),
+  data3 = here("validation", "data", "Aster_analyses_2011_Cohort_full.txt"),
+  data4 = here("validation", "data", "Aster_analyses_2012_Cohort.txt")
 )
 
 data1 <- read.delim(data_files$data1, sep = "\t")

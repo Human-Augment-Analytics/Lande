@@ -53,7 +53,7 @@ cat("  Models: ", model_dir, "\n")
 
 cat("\nLoading Bumpus dataset...\n")
 
-data_path <- here("inst", "extdata", "Bumpus_data.csv")
+data_path <- here("validation", "data", "Bumpus_data.csv")
 
 if (!file.exists(data_path)) {
     stop("Cannot find data/Bumpus_data.csv")

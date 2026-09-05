@@ -50,7 +50,7 @@ cat("  Models: ", model_dir, "\n")
 
 cat("\nLoading bird dataset...\n")
 
-data_path <- here("inst", "extdata", "bird.data.RData")
+data_path <- here("validation", "data", "bird.data.RData")
 
 # Load the data into a temporary environment and assign the first object to bird_data
 # This prevents 'object not found' errors if the saved object is named differently

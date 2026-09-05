@@ -50,7 +50,7 @@ cat("  Models: ", model_dir, "\n")
 
 cat("\nLoading Aster dataset...\n")
 
-data_dir <- here("inst", "extdata")
+data_dir <- here("validation", "data")
 
 data1 <- read.delim(file.path(data_dir, "Aster_analyses_2011_Cohort.txt"), sep = "\t")
 data2 <- read.delim(file.path(data_dir, "Aster_analyses_2012_Cohort_full.txt"), sep = "\t")
