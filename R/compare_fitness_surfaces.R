@@ -25,9 +25,12 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' comp <- compare_fitness_surfaces_data(corr_surf, adapt_land, c("trait1", "trait2"))
-#' }
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#' land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+#'                            simulation_n = 100, grid_n = 15)
+#' comp <- compare_fitness_surfaces_data(surf, land, c("total_length", "weight"))
+#' plot_fitness_surfaces_comparison(comp)
 compare_fitness_surfaces_data <- function(
   correlated_surface,
   adaptive_landscape,

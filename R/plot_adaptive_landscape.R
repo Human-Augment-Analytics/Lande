@@ -29,6 +29,12 @@
 #' @param point_alpha Numeric value for point transparency. Default is 0.8.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #' @return A \code{ggplot} object representing the adaptive landscape.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#' land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+#'                            simulation_n = 100, grid_n = 15)
+#' plot_adaptive_landscape(land, c("total_length", "weight"))
 #' @export
 plot_adaptive_landscape <- function(
   landscape,
@@ -279,6 +285,14 @@ plot_adaptive_landscape <- function(
 #' @param ... Additional arguments passed to \code{fields::drape.plot()}.
 #'
 #' @return A 3D plot produced by \code{fields::drape.plot()}.
+#' @examples
+#' if (requireNamespace("fields", quietly = TRUE)) {
+#'   prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#'   surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#'   land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+#'                              simulation_n = 100, grid_n = 15)
+#'   plot_adaptive_landscape_3d(land, c("total_length", "weight"))
+#' }
 #' @export
 plot_adaptive_landscape_3d <- function(
   landscape,

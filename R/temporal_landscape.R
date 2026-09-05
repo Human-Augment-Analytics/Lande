@@ -59,14 +59,11 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
 #' finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
 #' prep <- prepare_selection_data(finch, "survived", "beak_pc1")
-#' tl <- temporal_landscape(prep, "survived", "beak_pc1", "year")
-#' tl$summary
-#' plot_temporal_landscape(tl)
-#' plot_temporal_landscape(tl, type = "heatmap")
-#' }
+#' years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
+#' years$summary
+#' plot_temporal_landscape(years, type = "heatmap")
 temporal_landscape <- function(
   data,
   fitness_col,

@@ -196,6 +196,10 @@
 #' @param results A model results object returned by \code{analyze_linear_selection()}.
 #'
 #' @return A data frame with linear selection coefficients and statistics.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' fit <- analyze_linear_selection(prep, "survival", c("total_length", "weight"), "binary")
+#' extract_linear_coefficients(c("total_length", "weight"), fit)
 #' @export
 extract_linear_coefficients <- function(trait_cols, results) {
   obj <- .get_summary_and_pcol(results)
@@ -279,6 +283,10 @@ extract_linear_coefficients <- function(trait_cols, results) {
 #' @param results A model results object returned by \code{analyze_nonlinear_selection()}.
 #'
 #' @return A data frame with quadratic selection coefficients (doubled estimates) and statistics.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' fit <- analyze_nonlinear_selection(prep, "survival", c("total_length", "weight"), "binary")
+#' extract_quadratic_coefficients(c("total_length", "weight"), fit)
 #' @export
 extract_quadratic_coefficients <- function(trait_cols, results) {
   obj <- .get_summary_and_pcol(results)
@@ -377,6 +385,10 @@ extract_quadratic_coefficients <- function(trait_cols, results) {
 #' @param results A model results object returned by \code{analyze_nonlinear_selection()}.
 #'
 #' @return A data frame with correlational (interaction) selection coefficients and statistics.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' fit <- analyze_nonlinear_selection(prep, "survival", c("total_length", "weight"), "binary")
+#' extract_interaction_coefficients(c("total_length", "weight"), fit)
 #' @export
 extract_interaction_coefficients <- function(trait_cols, results) {
   if (length(trait_cols) < 2) {

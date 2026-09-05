@@ -56,9 +56,11 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' coefs <- selection_coefficients(my_data, "fitness", c("trait1", "trait2"))
-#' }
+#' selection_coefficients(bumpus, "survival", c("total_length", "weight"), fitness_type = "binary")
+#'
+#' # one set of gradients per sex, each sex standardised on its own
+#' selection_coefficients(bumpus, "survival", c("total_length", "weight"),
+#'                        group = "sex", return_grouped = TRUE)
 selection_coefficients <- function(data,
                                    fitness_col,
                                    trait_cols,

@@ -135,6 +135,10 @@
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object representing the correlated fitness surface.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#' plot_correlated_fitness(surf, c("total_length", "weight"), show_points = TRUE)
 #' @export
 plot_correlated_fitness <- function(
   tps,
@@ -279,6 +283,11 @@ plot_correlated_fitness <- function(
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object with enhanced visualizations.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#' plot_correlated_fitness_enhanced(surf, c("total_length", "weight"),
+#'                                  original_data = prep, fitness_col = "survival")
 #' @export
 plot_correlated_fitness_enhanced <- function(
   tps,

@@ -78,9 +78,7 @@
 #'   Israel Journal of Ecology and Evolution 65, 130-136.
 #' @export
 #' @examples
-#' \dontrun{
-#' check_selection_assumptions(my_data, "fitness", c("trait1", "trait2"))
-#' }
+#' check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
 check_selection_assumptions <- function(data,
                                         fitness_col,
                                         trait_cols,

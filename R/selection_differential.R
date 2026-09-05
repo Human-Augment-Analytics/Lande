@@ -51,9 +51,9 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' S <- selection_differential(my_data, "fitness", "trait1")
-#' }
+#' prep <- prepare_selection_data(bumpus, "survival", "total_length")
+#' selection_differential(prep, "survival", "total_length")
+#' selection_differential(prep, "survival", "total_length", group = "sex", return_grouped = TRUE)
 selection_differential <- function(data,
                                    fitness_col,
                                    trait_col,

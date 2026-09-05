@@ -61,7 +61,10 @@ By default the fitness function is a penalised cubic regression
   seed; call \code{set.seed()} first for a reproducible ribbon.
 }
 \examples{
-\dontrun{
-result <- univariate_spline(data = my_data, fitness_col = "survival", trait_col = "size")
-}
+prep <- prepare_selection_data(bumpus, "survival", "total_length")
+uni <- univariate_spline(prep, "survival", "total_length")
+plot_univariate_fitness(uni, "total_length")
+
+# a thin-plate basis with REML, to match another study's smoother
+univariate_spline(prep, "survival", "total_length", bs = "tp", smoothing = "REML")$spline_type
 }

@@ -57,7 +57,6 @@ When \code{group} is given, individuals are resampled within each
   its warnings are reported as usual.
 }
 \examples{
-\dontrun{
-bootstrap_selection(my_data, "fitness", c("trait1", "trait2"), n_boot = 500)
-}
+set.seed(1)
+bootstrap_selection(bumpus, "survival", c("total_length", "weight"), n_boot = 50)
 }

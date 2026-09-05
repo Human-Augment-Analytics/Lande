@@ -32,3 +32,8 @@ fitness gets its p-values from a logistic GLM and count fitness from a
 Poisson GLM (negative binomial if overdispersed), since the OLS tests are not
 valid for either.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+fit <- analyze_linear_selection(prep, "survival", c("total_length", "weight"), "binary")
+extract_linear_coefficients(c("total_length", "weight"), fit)
+}

@@ -47,3 +47,10 @@ Two traits give a contour map of mean fitness against the two population
 means. One trait gives a curve of mean fitness against the population mean,
 with the individual fitness function drawn alongside it for comparison.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+                           simulation_n = 100, grid_n = 15)
+plot_adaptive_landscape(land, c("total_length", "weight"))
+}

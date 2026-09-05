@@ -57,9 +57,7 @@ Lande and Arnold (1983) showed that the regression gradients equal
   model.
 }
 \examples{
-\dontrun{
-check_selection_assumptions(my_data, "fitness", c("trait1", "trait2"))
-}
+check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
 }
 \references{
 Lande, R. and Arnold, S. J. (1983) The measurement of selection

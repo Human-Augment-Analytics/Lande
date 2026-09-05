@@ -29,3 +29,9 @@ A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs
 \description{
 Estimates quadratic and correlational selection gradients by OLS on relative fitness.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+fit <- analyze_nonlinear_selection(prep, "survival", c("total_length", "weight"), "binary")
+extract_quadratic_coefficients(c("total_length", "weight"), fit)
+extract_interaction_coefficients(c("total_length", "weight"), fit)
+}

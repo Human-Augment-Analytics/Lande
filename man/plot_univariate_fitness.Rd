@@ -41,3 +41,9 @@ A \code{ggplot} object representing the univariate fitness function.
 \description{
 Visualizes the univariate fitness function estimated via spline.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", "total_length")
+uni <- univariate_spline(prep, "survival", "total_length")
+plot_univariate_fitness(uni, "total_length")
+plot_univariate_fitness(uni, "total_length", classic_plot = TRUE)
+}

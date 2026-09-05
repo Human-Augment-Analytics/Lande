@@ -33,9 +33,8 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' bootstrap_selection(my_data, "fitness", c("trait1", "trait2"), n_boot = 500)
-#' }
+#' set.seed(1)
+#' bootstrap_selection(bumpus, "survival", c("total_length", "weight"), n_boot = 50)
 bootstrap_selection <- function(data,
                                 fitness_col,
                                 trait_cols,

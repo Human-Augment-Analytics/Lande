@@ -42,3 +42,7 @@ Detects disruptive or stabilizing selection on a single trait by estimating its
 linear (beta) and quadratic (gamma) selection gradients. A positive gamma indicates
 disruptive selection; a negative gamma indicates stabilizing selection.
 }
+\examples{
+analyze_disruptive_selection(bumpus, "survival", "total_length")
+analyze_disruptive_selection(bumpus, "survival", "total_length", group = "sex", return_grouped = TRUE)
+}

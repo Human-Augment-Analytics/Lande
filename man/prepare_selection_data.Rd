@@ -39,3 +39,11 @@ A modified data frame ready for selection analysis.
 Cleans, standardizes, and calculates relative fitness for trait and fitness data.
 Standardizations and relative fitness calculations can be performed within groups.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+head(prep[, c("survival", "relative_fitness", "total_length", "weight")])
+
+# standardised and relativised within each sex
+by_sex <- prepare_selection_data(bumpus, "survival", "total_length", group = "sex")
+tapply(by_sex$total_length, by_sex$sex, mean)
+}

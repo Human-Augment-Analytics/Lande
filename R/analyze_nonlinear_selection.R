@@ -36,6 +36,11 @@
 #' @param binary_response_col Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.
 #'
 #' @return A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' fit <- analyze_nonlinear_selection(prep, "survival", c("total_length", "weight"), "binary")
+#' extract_quadratic_coefficients(c("total_length", "weight"), fit)
+#' extract_interaction_coefficients(c("total_length", "weight"), fit)
 #' @export
 analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_type,
                                         binary_response_col = NULL) {

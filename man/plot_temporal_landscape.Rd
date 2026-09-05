@@ -43,3 +43,10 @@ A \code{ggplot} object.
 \description{
 Plot fitness functions and landscapes over time
 }
+\examples{
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+prep <- prepare_selection_data(finch, "survived", "beak_pc1")
+years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
+plot_temporal_landscape(years, ncol = 4)
+plot_temporal_landscape(years, type = "heatmap")
+}

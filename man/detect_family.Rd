@@ -17,4 +17,6 @@ Heuristically determines whether a fitness vector represents binary, count, prop
 }
 \examples{
 detect_family(c(0, 1, 0, 0, 1, 1))
+detect_family(bumpus$survival)$type
+detect_family(rpois(50, 2))$type
 }

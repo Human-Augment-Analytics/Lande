@@ -21,6 +21,12 @@
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object.
+#' @examples
+#' finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+#' prep <- prepare_selection_data(finch, "survived", "beak_pc1")
+#' years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
+#' plot_temporal_landscape(years, ncol = 4)
+#' plot_temporal_landscape(years, type = "heatmap")
 #' @export
 plot_temporal_landscape <- function(
   tl,

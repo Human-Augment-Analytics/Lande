@@ -17,3 +17,8 @@ A data frame with correlational (interaction) selection coefficients and statist
 \description{
 Extract correlational selection coefficients
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+fit <- analyze_nonlinear_selection(prep, "survival", c("total_length", "weight"), "binary")
+extract_interaction_coefficients(c("total_length", "weight"), fit)
+}

@@ -43,3 +43,9 @@ A \code{ggplot} object with enhanced visualizations.
 \description{
 Plot Enhanced Correlated Fitness Surface
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+plot_correlated_fitness_enhanced(surf, c("total_length", "weight"),
+                                 original_data = prep, fitness_col = "survival")
+}

@@ -20,6 +20,13 @@
 #' @param show_optima Logical indicating whether to show optimum points on the overlay. Default is \code{TRUE}.
 #'
 #' @return A list containing \code{side_by_side} (a \code{patchwork} object) and \code{overlay} (a \code{ggplot} object).
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#' land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+#'                            simulation_n = 100, grid_n = 15)
+#' comp <- compare_fitness_surfaces_data(surf, land, c("total_length", "weight"))
+#' plot_fitness_surfaces_comparison(comp)
 #' @export
 plot_fitness_surfaces_comparison <- function(
   comparison_data,

@@ -40,7 +40,9 @@ Main wrapper function for selection analysis following Lande & Arnold (1983).
 Extracts linear (beta), quadratic (gamma), and correlational selection gradients.
 }
 \examples{
-\dontrun{
-coefs <- selection_coefficients(my_data, "fitness", c("trait1", "trait2"))
-}
+selection_coefficients(bumpus, "survival", c("total_length", "weight"), fitness_type = "binary")
+
+# one set of gradients per sex, each sex standardised on its own
+selection_coefficients(bumpus, "survival", c("total_length", "weight"),
+                       group = "sex", return_grouped = TRUE)
 }

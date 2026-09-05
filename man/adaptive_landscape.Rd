@@ -47,3 +47,15 @@ For a single trait the grid also carries \code{.ind_fit}, the
   individual fitness function evaluated at each population mean, so the two
   curves can be drawn together (see \code{plot_adaptive_landscape()}).
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+                           simulation_n = 100, grid_n = 15)
+land$optimum
+
+# one trait, from the spline fitness function
+uni <- univariate_spline(prep, "survival", "total_length")
+land1 <- adaptive_landscape(prep, uni$model, "total_length", simulation_n = 100, grid_n = 30)
+plot_adaptive_landscape(land1, "total_length")
+}

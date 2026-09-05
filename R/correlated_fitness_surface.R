@@ -161,9 +161,21 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' surf <- correlated_fitness_surface(my_data, "fitness", c("trait1", "trait2"))
-#' }
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+#' surf$grid[which.max(surf$grid$.fit), ]
+#'
+#' # two lakes of pupfish on one surface: cells far from any fish blank, each
+#' # lake's mean and local peak marked, the lake kept out of the model
+#' pup <- rbind(
+#'   read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "RforEvolution")),
+#'   read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "RforEvolution"))
+#' )
+#' pup <- pup[pup$density == "H", ]
+#' prep2 <- prepare_selection_data(pup, "survival", c("nasal", "SL"))
+#' surf2 <- correlated_fitness_surface(prep2, "survival", c("nasal", "SL"), grid_n = 30,
+#'                                     too_far = 0.15, group = "lake", group_effect = FALSE)
+#' surf2$groups
 correlated_fitness_surface <- function(
   data,
   fitness_col,

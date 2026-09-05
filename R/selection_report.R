@@ -33,9 +33,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' selection_report(my_data, "fitness", c("trait1", "trait2"))
-#' }
+#' selection_report(bumpus, "survival", c("total_length", "weight", "humerus"))
 selection_report <- function(data,
                              fitness_col,
                              trait_cols,

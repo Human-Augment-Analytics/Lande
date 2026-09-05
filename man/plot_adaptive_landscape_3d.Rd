@@ -35,3 +35,12 @@ A 3D plot produced by \code{fields::drape.plot()}.
 \description{
 Plot Adaptive Landscape (3D Perspective)
 }
+\examples{
+if (requireNamespace("fields", quietly = TRUE)) {
+  prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+  surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+  land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+                             simulation_n = 100, grid_n = 15)
+  plot_adaptive_landscape_3d(land, c("total_length", "weight"))
+}
+}

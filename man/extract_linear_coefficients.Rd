@@ -17,3 +17,8 @@ A data frame with linear selection coefficients and statistics.
 \description{
 Extract linear selection coefficients
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+fit <- analyze_linear_selection(prep, "survival", c("total_length", "weight"), "binary")
+extract_linear_coefficients(c("total_length", "weight"), fit)
+}

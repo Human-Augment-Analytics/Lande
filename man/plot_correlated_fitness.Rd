@@ -40,3 +40,8 @@ A \code{ggplot} object representing the correlated fitness surface.
 \description{
 Plot Correlated Fitness Surface
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+plot_correlated_fitness(surf, c("total_length", "weight"), show_points = TRUE)
+}

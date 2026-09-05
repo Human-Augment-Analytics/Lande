@@ -54,6 +54,13 @@
 #' @param name_relative A string specifying the name for the relative fitness column. Default is \code{"relative_fitness"}.
 #'
 #' @return A modified data frame ready for selection analysis.
+#' @examples
+#' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+#' head(prep[, c("survival", "relative_fitness", "total_length", "weight")])
+#'
+#' # standardised and relativised within each sex
+#' by_sex <- prepare_selection_data(bumpus, "survival", "total_length", group = "sex")
+#' tapply(by_sex$total_length, by_sex$sex, mean)
 #' @export
 prepare_selection_data <- function(data,
                                    fitness_col,
