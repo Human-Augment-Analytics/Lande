@@ -189,12 +189,12 @@ temporal_landscape <- function(
       if (!one) row[[paste0("landscape_optimum_", trait_cols[2])]] <- land_opt[2]
     }
     rows[[key]] <- row
-    cat(sprintf("%s: n = %d, mean fitness %.3f, edf %.1f%s\n", key, nrow(sub), mean(sub[[fitness_col]]), edf,
-                if (one) sprintf(", %d interior peak%s", peaks, if (peaks == 1) "" else "s") else ""))
+    message(sprintf("%s: n = %d, mean fitness %.3f, edf %.1f%s", key, nrow(sub), mean(sub[[fitness_col]]), edf,
+                    if (one) sprintf(", %d interior peak%s", peaks, if (peaks == 1) "" else "s") else ""))
   }
 
   if (!length(fits)) stop("No period has at least ", min_n, " complete rows")
-  if (length(skipped)) cat("Skipped (fewer than", min_n, "rows):", paste(skipped, collapse = ", "), "\n")
+  if (length(skipped)) message("Skipped (fewer than ", min_n, " rows): ", paste(skipped, collapse = ", "))
 
   summary_df <- do.call(rbind, rows)
   rownames(summary_df) <- NULL

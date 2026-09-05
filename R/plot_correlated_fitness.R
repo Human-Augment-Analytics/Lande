@@ -298,11 +298,11 @@ plot_correlated_fitness_enhanced <- function(
   if (!is.null(trait_cols) && length(trait_cols) == 2) {
     trait1 <- trait_cols[1]
     trait2 <- trait_cols[2]
-    cat("Using provided traits:", trait1, trait2, "\n")
+    message("Using provided traits: ", trait1, ", ", trait2)
   } else if (!is.null(tps$trait_cols) && length(tps$trait_cols) == 2) {
     trait1 <- tps$trait_cols[1]
     trait2 <- tps$trait_cols[2]
-    cat("Using traits from surface object:", trait1, trait2, "\n")
+    message("Using traits from surface object: ", trait1, ", ", trait2)
   } else {
     # Infer from grid columns, excluding any grouping column carried along
     possible_traits <- setdiff(
@@ -312,7 +312,7 @@ plot_correlated_fitness_enhanced <- function(
     if (length(possible_traits) >= 2) {
       trait1 <- possible_traits[1]
       trait2 <- possible_traits[2]
-      cat("Inferred traits:", trait1, trait2, "\n")
+      message("Inferred traits: ", trait1, ", ", trait2)
     } else {
       stop("Cannot determine trait columns. Please provide trait_cols.")
     }

@@ -168,26 +168,13 @@ compare_fitness_surfaces_data <- function(
         }
     }
 
-    cat("\n", strrep("=", 60), "\n")
-    cat("FITNESS SURFACES COMPARISON\n")
-    cat(strrep("=", 60), "\n\n")
-
-    cat("=== Optimum Phenotypes ===\n")
-    cat("Individual optimum:\n")
-    print(optimum_individual[, c(trait_cols, "fitness")])
-    cat("\nPopulation optimum:\n")
-    print(optimum_population[, c(trait_cols, "fitness")])
-    cat("\nDistance between optima:", round(dist_opt, 4), "\n")
-
-    cat("\n=== Summary Statistics ===\n")
-    print(summary_stats)
-
+    .msg_table("Individual optimum:", optimum_individual[, c(trait_cols, "fitness")])
+    .msg_table("Population optimum:", optimum_population[, c(trait_cols, "fitness")])
+    message("Distance between optima: ", round(dist_opt, 4))
+    .msg_table("Summary statistics:", summary_stats)
     if (!is.null(correlation)) {
-        cat("\n=== Surface Similarity ===\n")
-        cat("Correlation between surfaces:", round(correlation, 4), "\n")
+        message("Correlation between surfaces: ", round(correlation, 4))
     }
-
-    cat("\n", strrep("=", 60), "\n")
 
 
     list(

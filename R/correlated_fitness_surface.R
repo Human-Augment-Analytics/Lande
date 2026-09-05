@@ -60,7 +60,7 @@
   }
   if (!mask && is.null(too_far)) return(grid)
   grid$.fit[!grid$.inside] <- NA_real_
-  cat("Masked", sum(!grid$.inside), "of", nrow(grid), "grid points outside the data\n")
+  message("Masked ", sum(!grid$.inside), " of ", nrow(grid), " grid points outside the data")
   grid
 }
 
@@ -279,14 +279,10 @@ correlated_fitness_surface <- function(
     k <- min(30, max(10, floor(sqrt(n1 * n2))))
   }
 
-  cat("Data type:", data_type, "\n")
-  cat("Selected method:", method, "\n")
-  cat("Data points:", length(y), "\n")
-  cat("Basis dimension k:", k, "\n")
+  message("Data type: ", data_type, "; method: ", method, "; n = ", length(y), "; k = ", k)
   if (!is.null(group)) {
-    cat("Grouping variable:", group, "\n")
-    cat("Number of groups:", length(unique(grp)), "\n")
-    cat(if (group_effect) "Group enters the model as a fixed effect\n" else "One surface for all groups; the group only marks means and peaks\n")
+    message("Grouping variable: ", group, " (", length(unique(grp)), " groups); ",
+            if (group_effect) "group enters the model as a fixed effect" else "one surface for all groups, the group only marks means and peaks")
   }
   use_effect <- !is.null(group) && isTRUE(group_effect)
 
@@ -332,7 +328,7 @@ correlated_fitness_surface <- function(
 
     df_fit <- df_fit[complete.cases(df_fit), ]
 
-    cat("GAM fitting with", nrow(df_fit), "observations\n")
+    message("GAM fitting with ", nrow(df_fit), " observations")
 
     # Build formulas
     k_adj <- min(k, nrow(df_fit) - 1)
@@ -364,18 +360,18 @@ correlated_fitness_surface <- function(
       if (is.null(fit)) {
         tryCatch(
           {
-            cat("  Trying formula:", form_name, "\n")
+            message("  Trying formula: ", form_name)
             fit <- mgcv::gam(try_formulas[[form_name]],
               data = df_fit,
               family = fam,
               method = smoothing
             )
             formula_used <- form_name
-            cat("Success with formula:", form_name, "\n")
+            message("Success with formula: ", form_name)
             break
           },
           error = function(e) {
-            cat("Failed with formula", form_name, ":", e$message, "\n")
+            message("Failed with formula ", form_name, ": ", e$message)
           }
         )
       }
@@ -392,7 +388,7 @@ correlated_fitness_surface <- function(
     if (use_effect) {
       ref_group <- .reference_group(df_fit[[group]])
       newdat[[group]] <- ref_group
-      cat("Predictions use group = '", ref_group, "' as reference\n")
+      message("Predictions use group = '", ref_group, "' as reference")
     }
 
     .fit <- tryCatch(
@@ -400,7 +396,7 @@ correlated_fitness_surface <- function(
         as.numeric(stats::predict(fit, newdata = newdat, type = "response"))
       },
       error = function(e) {
-        cat("Prediction failed, using mean:", e$message, "\n")
+        message("Prediction failed, using mean: ", e$message)
         rep(mean(y, na.rm = TRUE), nrow(newdat))
       }
     )
@@ -412,7 +408,7 @@ correlated_fitness_surface <- function(
       grid$.fit[is.na(grid$.fit)] <- mean(grid$.fit, na.rm = TRUE)
     }
 
-    cat("Success Predictions range:", round(range(grid$.fit), 4), "\n")
+    message("Predictions range: ", paste(round(range(grid$.fit), 4), collapse = " to "))
     grid <- .mask_grid(grid, hull, trait_cols, mask, x1, x2, too_far)
 
     result <- list(

@@ -87,10 +87,11 @@ adaptive_landscape <- function(
     })
     names(ranges) <- trait_cols
 
-    cat("Population mean grid ranges:\n")
-    for (t in trait_cols) {
-        cat("  ", t, ":", round(ranges[[t]], 2), "\n")
-    }
+    message("Population mean grid ranges:\n", paste0(
+        "  ", trait_cols, ": ",
+        vapply(trait_cols, function(t) paste(round(ranges[[t]], 2), collapse = " to "), character(1)),
+        collapse = "\n"
+    ))
 
     # Create grid of population mean phenotypes
     population_grid <- expand.grid(
@@ -122,17 +123,16 @@ adaptive_landscape <- function(
             group_variances <- group_variances[!sapply(group_variances, is.null)]
             if (length(group_variances) > 0) {
                 population_variance <- Reduce(`+`, group_variances) / length(group_variances)
-                cat("Using average within-group variance\n")
+                message("Using average within-group variance")
             }
         }
 
-        cat("Estimated within-population variance-covariance:\n")
-        print(round(population_variance, 4))
+        .msg_table("Estimated within-population variance-covariance:", round(population_variance, 4))
     }
 
     # Ensure variance matrix is positive definite
     if (inherits(try(chol(population_variance), silent = TRUE), "try-error")) {
-        cat("Variance matrix not positive definite. Applying correction...\n")
+        message("Variance matrix not positive definite. Applying correction...")
         if (requireNamespace("Matrix", quietly = TRUE)) {
             population_variance <- as.matrix(Matrix::nearPD(population_variance)$mat)
         } else {
@@ -156,12 +156,12 @@ adaptive_landscape <- function(
                 stop("The fitness model uses '", v, "', which is not in `data`")
             }
             extra_vars[[v]] <- .reference_group(data[[v]])
-            cat("Holding '", v, "' at reference level '", extra_vars[[v]], "'\n", sep = "")
+            message("Holding '", v, "' at reference level '", extra_vars[[v]], "'")
         }
     }
 
     # Progress indicator
-    cat("Calculating mean fitness for", nrow(population_grid), "grid points...\n")
+    message("Calculating mean fitness for ", nrow(population_grid), " grid points")
 
     for (i in seq_len(nrow(population_grid))) {
         pop_mean <- population_grid[i, ]
@@ -206,9 +206,8 @@ adaptive_landscape <- function(
 
     # Find optimum (maximum mean fitness)
     optimum <- population_grid[which.max(mean_fitness), ]
-    cat("\nOptimal population mean phenotype:\n")
-    print(optimum[, trait_cols, drop = FALSE])
-    cat("Mean fitness at optimum:", round(optimum$.mean_fit, 4), "\n")
+    .msg_table("Optimal population mean phenotype:", optimum[, trait_cols, drop = FALSE])
+    message("Mean fitness at optimum: ", round(optimum$.mean_fit, 4))
 
     # Calculate actual population means if group_col provided
     actual_means <- NULL
@@ -220,8 +219,7 @@ adaptive_landscape <- function(
             na.rm = TRUE
         )
         names(actual_means)[1] <- group_col
-        cat("\nActual population means:\n")
-        print(actual_means)
+        .msg_table("Actual population means:", actual_means)
     }
 
     result <- list(
