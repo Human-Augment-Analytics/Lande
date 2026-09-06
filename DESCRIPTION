@@ -40,7 +40,6 @@ Imports:
 Suggests:
     akima,
     car,
-    DiagrammeR,
     fields,
     ggrepel,
     patchwork,
