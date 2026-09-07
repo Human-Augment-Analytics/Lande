@@ -44,5 +44,6 @@ disruptive selection; a negative gamma indicates stabilizing selection.
 }
 \examples{
 analyze_disruptive_selection(bumpus, "survival", "total_length")
-analyze_disruptive_selection(bumpus, "survival", "total_length", group = "sex", return_grouped = TRUE)
+analyze_disruptive_selection(bumpus, "survival", "total_length",
+                             group = "sex", return_grouped = TRUE)
 }

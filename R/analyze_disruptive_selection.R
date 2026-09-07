@@ -36,7 +36,8 @@
 #'   \code{Beta_Coefficient}, \code{Standard_Error}, \code{P_Value}, \code{Variance}).
 #' @examples
 #' analyze_disruptive_selection(bumpus, "survival", "total_length")
-#' analyze_disruptive_selection(bumpus, "survival", "total_length", group = "sex", return_grouped = TRUE)
+#' analyze_disruptive_selection(bumpus, "survival", "total_length",
+#'                              group = "sex", return_grouped = TRUE)
 #' @export
 analyze_disruptive_selection <- function(
   data,
