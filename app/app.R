@@ -78,18 +78,24 @@ sq <- function(t) paste0(t, "²")
 # low and high ends of a continuous fitness scale)
 THEMES <- list(
   "Viridis, orange and blue" = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "D", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "D"),
                                     points = c("#D55E00", "#0072B2")),
   "Magma, white and black"   = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "A", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "A"),
                                     points = c("white", "black")),
   "Plasma, teal and white"   = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "C", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "C"),
                                     points = c("#004D40", "white")),
   "Cividis, red and blue"    = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "E", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "E"),
                                     points = c("#B2182B", "#4393C3")),
   "Greys, orange and blue"   = list(fill = function(...) ggplot2::scale_fill_grey(start = 0.92, end = 0.25, ...),
+                                    ramp = function(n) grDevices::grey.colors(n, start = 0.92, end = 0.25),
                                     points = c("#D55E00", "#0072B2"))
 )
+theme_of <- function(theme) if (!is.null(theme) && theme %in% names(THEMES)) THEMES[[theme]] else THEMES[[1]]
 apply_theme <- function(p, theme, binary = NULL, fill_name = NULL, point_name = "Fitness") {
-  th <- THEMES[[theme]] %||% THEMES[[1]]
+  th <- theme_of(theme)
   p <- p + th$fill(name = fill_name)
   if (isTRUE(binary)) {
     p <- p + ggplot2::scale_colour_manual(values = c("0" = th$points[1], "1" = th$points[2]),
@@ -283,8 +289,9 @@ ui <- fluidPage(
         tabPanel("Adaptive landscape",
           br(), div(class = "interp", textOutput("opt_txt")),
           fluidRow(
-            column(3, checkboxInput("show_opt", "Optimum", TRUE)),
-            column(3, checkboxInput("show_mean", "Current mean", TRUE))),
+            column(3, br(), checkboxInput("show_opt", "Optimum", TRUE)),
+            column(3, br(), checkboxInput("show_mean", "Current mean", TRUE)),
+            column(6, selectInput("land_theme", "Colours", names(THEMES)))),
           fluidRow(
             column(6, plotOutput("land_plot", height = "420px")),
             column(6, uiOutput("land3d_ui"))),
@@ -625,7 +632,7 @@ server <- function(input, output, session) {
     sf <- surfaces(); tr <- sf$traits
     p <- plot_adaptive_landscape(sf$land, tr, bins = 12,
                                  show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE)
-    p <- suppressMessages(apply_theme(p, input$theme, fill_name = "Mean fitness"))
+    p <- suppressMessages(apply_theme(p, input$land_theme, fill_name = "Mean fitness"))
     if (isTRUE(input$show_mean)) {
       # current population mean is (0, 0) in SD units
       p <- p + annotate("point", x = 0, y = 0, shape = 21, size = 3.5, fill = "#e74c3c", colour = "black") +
@@ -642,14 +649,14 @@ server <- function(input, output, session) {
   output$land3d <- renderPlot({
     sf <- surfaces()
     if (!have("fields")) { plot.new(); text(0.5, 0.5, "3D view needs the 'fields' or 'plotly' package"); return() }
-    plot_adaptive_landscape_3d(sf$land, sf$traits)
+    plot_adaptive_landscape_3d(sf$land, sf$traits, color_palette = theme_of(input$land_theme)$ramp(100))
   })
   output$land3d_plotly <- plotly::renderPlotly({
     sf <- surfaces(); g <- sf$land$grid; tr <- sf$traits; opt <- sf$land$optimum
     xu <- sort(unique(g[[tr[1]]])); yu <- sort(unique(g[[tr[2]]]))
     z <- matrix(NA_real_, nrow = length(yu), ncol = length(xu)) # plotly: rows follow y
     z[cbind(match(g[[tr[2]]], yu), match(g[[tr[1]]], xu))] <- g$.mean_fit
-    pal <- if (have("viridisLite")) viridisLite::plasma(9) else grDevices::heat.colors(9)
+    pal <- theme_of(input$land_theme)$ramp(9)
     cs <- lapply(seq_along(pal), function(i) list((i - 1) / (length(pal) - 1), pal[i]))
     # current population mean is (0, 0) in SD units
     i0 <- which.min((g[[tr[1]]])^2 + (g[[tr[2]]])^2)
