@@ -73,6 +73,33 @@ fmt_p <- function(p) ifelse(is.na(p), "", ifelse(p < 0.001, "< 0.001", paste("="
 pm <- function(est, se) paste0(fmt(est), " ± ", fmt(se))
 sq <- function(t) paste0(t, "²")
 
+# colour themes for the surface and landscape plots: a palette for the surface
+# and two point colours that stand out against it (perished/survived, or the
+# low and high ends of a continuous fitness scale)
+THEMES <- list(
+  "Viridis, orange and blue" = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "D", ...),
+                                    points = c("#D55E00", "#0072B2")),
+  "Magma, white and black"   = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "A", ...),
+                                    points = c("white", "black")),
+  "Plasma, teal and white"   = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "C", ...),
+                                    points = c("#004D40", "white")),
+  "Cividis, red and blue"    = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "E", ...),
+                                    points = c("#B2182B", "#4393C3")),
+  "Greys, orange and blue"   = list(fill = function(...) ggplot2::scale_fill_grey(start = 0.92, end = 0.25, ...),
+                                    points = c("#D55E00", "#0072B2"))
+)
+apply_theme <- function(p, theme, binary = NULL, fill_name = NULL, point_name = "Fitness") {
+  th <- THEMES[[theme]] %||% THEMES[[1]]
+  p <- p + th$fill(name = fill_name)
+  if (isTRUE(binary)) {
+    p <- p + ggplot2::scale_colour_manual(values = c("0" = th$points[1], "1" = th$points[2]),
+                                          labels = c("0" = "Perished", "1" = "Survived"), name = "Outcome")
+  } else if (isFALSE(binary)) {
+    p <- p + ggplot2::scale_colour_gradient(low = th$points[1], high = th$points[2], name = point_name)
+  }
+  p
+}
+
 # one row per trait: S, beta, gamma
 gradient_table <- function(r, traits) {
   pick <- function(type, term) {
@@ -243,6 +270,10 @@ ui <- fluidPage(
             column(3, selectInput("surf_y", "Trait on y", NULL)),
             column(3, br(), checkboxInput("show_points", "Show individuals", TRUE)),
             column(3, br(), checkboxInput("show_groups", "Group means and peaks", TRUE))),
+          fluidRow(
+            column(6, conditionalPanel("input.show_points",
+              sliderInput("point_alpha", "Opacity of the individuals", 0.05, 1, 0.5, step = 0.05))),
+            column(6, selectInput("theme", "Colours", names(THEMES)))),
           plotOutput("surf_plot", height = "500px"),
           div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range."),
           downloadButton("dl_surfplot", "Download plot (PNG)")),
@@ -550,10 +581,14 @@ server <- function(input, output, session) {
   surf_plot_obj <- reactive({
     sf <- surfaces(); s <- setup()
     groups <- isTRUE(input$show_groups)
-    if (isTRUE(input$show_points)) {
+    alpha <- if (is.numeric(input$point_alpha)) input$point_alpha else 0.5
+    fill_name <- if (s$ftype == "binary") "Survival" else "Fitness"
+    p <- if (isTRUE(input$show_points)) {
       suppressMessages(plot_correlated_fitness_enhanced(sf$surf, sf$traits, original_data = s$prep, fitness_col = s$fit, bins = 12,
-                                                        show_groups = groups, fill = if (s$ftype == "binary") "Survival" else "Fitness"))
-    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, fill = if (s$ftype == "binary") "Survival" else "Fitness")
+                                                        point_alpha = alpha, show_groups = groups, fill = fill_name))
+    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, fill = fill_name)
+    suppressMessages(apply_theme(p, input$theme, binary = if (isTRUE(input$show_points)) s$ftype == "binary" else NULL,
+                                 fill_name = fill_name, point_name = s$fit))
   })
   output$surf_plot <- renderPlot(surf_plot_obj())
   output$dl_surfplot <- downloadHandler(
@@ -578,6 +613,7 @@ server <- function(input, output, session) {
     sf <- surfaces(); tr <- sf$traits
     p <- plot_adaptive_landscape(sf$land, tr, bins = 12,
                                  show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE)
+    p <- suppressMessages(apply_theme(p, input$theme, fill_name = "Mean fitness"))
     if (isTRUE(input$show_mean)) {
       # current population mean is (0, 0) in SD units
       p <- p + annotate("point", x = 0, y = 0, shape = 21, size = 3.5, fill = "#e74c3c", colour = "black") +

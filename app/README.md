@@ -13,8 +13,10 @@ Tabs:
   intervals, CSV and PNG downloads.
 - **Fitness functions**: cubic-spline fitness function per trait with a
   bootstrap band, and optionally the adaptive landscape for that trait.
-- **Fitness surface**: two-trait surface with the individuals overlaid, drawn
-  only where there are data. With a group, each group's mean and the highest
+- **Fitness surface**: two-trait surface with the individuals overlaid at an
+  opacity you set, drawn only where there are data. Five colour themes, each
+  a surface palette with point colours that stand out against it; the theme
+  also colours the adaptive landscape. With a group, each group's mean and the highest
   point of the surface within its own range are marked. Untick "Standardise
   within group" to treat the groups as one population, for several species
   on one surface.
