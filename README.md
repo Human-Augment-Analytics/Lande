@@ -98,8 +98,9 @@ results, with the fitting options in Advanced settings. See `app/README.md`.
 ## Data
 
 `bumpus`: Bumpus's 1898 house sparrows, 136 birds, nine traits and survival.
-In `inst/extdata`: the Crescent Pond and Little Lake pupfish of Martin (2016)
-and the yearly medium ground finch data of Beausoleil et al. (2019).
+In `inst/extdata`: the Crescent Pond and Little Lake pupfish of Martin (2016),
+the yearly medium ground finch data of Beausoleil et al. (2019) and the five
+finch species of Beausoleil et al. (2023) with recapture years as fitness.
 
 ## Notes
 

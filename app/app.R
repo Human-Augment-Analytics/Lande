@@ -51,12 +51,17 @@ load_dataset <- function(name) {
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     "Little Lake pupfish" = list(
       data = utils::read.csv(extdata("little_lake_pupfish.csv")),
-      fitness = "survival", traits = c("jaw", "body"), group = NULL)
+      fitness = "survival", traits = c("jaw", "body"), group = NULL),
+    # five species on one surface: standardised together, blank far from any bird
+    "Finch community (five species)" = list(
+      data = utils::read.csv(extdata("finch_community.csv")),
+      fitness = "recaptures", traits = c("beak_length", "beak_depth"), group = "species",
+      within_group = FALSE, too_far = 0.15)
   )
 }
 
 DATASETS <- c("Bumpus sparrows", "Crescent Pond pupfish", "Little Lake pupfish",
-              "Upload CSV...")
+              "Finch community (five species)", "Upload CSV...")
 numeric_cols <- function(df) names(df)[vapply(df, is.numeric, logical(1))]
 
 # --- formatting helpers -----------------------------------------------------
@@ -297,6 +302,9 @@ server <- function(input, output, session) {
     updateSelectInput(session, "fitness", choices = nm, selected = fit_default)
     updateSelectizeInput(session, "traits", choices = t_choices, selected = t_default)
     updateSelectInput(session, "group", choices = c("(none)", nm), selected = grp_default)
+    # dataset presets for the group handling and the distance rule
+    updateCheckboxInput(session, "within_group", value = !isFALSE(d$within_group))
+    updateNumericInput(session, "surf_far", value = d$too_far %||% NA)
   })
 
   output$fitness_hint <- renderText({

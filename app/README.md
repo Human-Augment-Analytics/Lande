@@ -37,7 +37,10 @@ install.packages(".", repos = NULL, type = "source")  # or devtools::load_all()
 shiny::runApp("app")
 ```
 
-Bundled datasets: Bumpus sparrows, Crescent Pond pupfish, Little Lake pupfish
+Bundled datasets: Bumpus sparrows, Crescent Pond pupfish, Little Lake pupfish,
+and the finch community of Beausoleil et al. (2023), five species with recapture
+years as fitness, which opens with one surface for all species and the 0.15
+distance rule set
 (shipped in `inst/extdata`). Uploaded CSVs need numeric fitness and trait
 columns.
 
