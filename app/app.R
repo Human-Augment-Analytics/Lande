@@ -681,6 +681,7 @@ server <- function(input, output, session) {
   })
   output$group_table <- renderTable({
     s <- setup(); g <- s$grouped
+    req(!is.null(g))
     data.frame(Group = as.character(g$Group), Term = g$Term, Type = g$Type,
                Estimate = fmt(g$Beta_Coefficient), SE = fmt(g$Standard_Error),
                p = paste(sub("^= ", "", fmt_p(g$P_Value)), stars(g$P_Value)),
@@ -688,6 +689,7 @@ server <- function(input, output, session) {
   }, align = "lllrrr")
   output$group_plot <- renderPlot({
     s <- setup(); g <- s$grouped
+    req(!is.null(g))
     g <- g[g$Type != "Correlational" | length(s$traits) <= 3, ]
     g$Group <- factor(g$Group)
     g$Type <- factor(g$Type, levels = c("Linear", "Quadratic", "Correlational"),
