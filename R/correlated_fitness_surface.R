@@ -262,13 +262,12 @@ correlated_fitness_surface <- function(
 
   if (length(y) < 10) stop("Too few complete cases: ", length(y), " (<10)")
 
-  # Detect binary and count fitness
-  uniq_y <- unique(y)
-  is_binary <- length(uniq_y) == 2 && all(sort(uniq_y) == c(0, 1))
-  # non-negative whole numbers with more than two values, such as recapture
-  # years or offspring, get a Poisson family as the spline does
-  is_count <- !is_binary && length(uniq_y) > 2 && all(y >= 0) && all(y == round(y))
-  data_type <- if (is_binary) "binary" else if (is_count) "count" else "continuous"
+  # binary and count fitness by the same rule as the gradients and the spline;
+  # counts such as recapture years or offspring get a Poisson family
+  data_type <- suppressWarnings(detect_family(y))$type
+  if (!data_type %in% c("binary", "count")) data_type <- "continuous"
+  is_binary <- data_type == "binary"
+  is_count <- data_type == "count"
 
   if (method == "auto") {
     method <- if (is_binary || is_count) "gam" else "tps"

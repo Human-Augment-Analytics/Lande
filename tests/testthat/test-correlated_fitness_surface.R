@@ -206,3 +206,13 @@ test_that("count fitness gets a Poisson surface", {
 
   expect_warning(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 15, method = "tps"), "count")
 })
+
+test_that("a count fitness with two values is still fitted as a count", {
+  set.seed(25)
+  n <- 150
+  df <- data.frame(z1 = rnorm(n), z2 = rnorm(n))
+  df$kids <- ifelse(df$z1 + rnorm(n) > 0, 5L, 2L)
+  s <- suppressWarnings(suppressMessages(correlated_fitness_surface(df, "kids", c("z1", "z2"), grid_n = 15)))
+  expect_equal(s$data_type, "count")
+  expect_equal(detect_family(df$kids)$type, "count")
+})
