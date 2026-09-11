@@ -103,7 +103,7 @@ test_that("selection_differential equals the covariance of trait and fitness", {
   expect_equal(S, mean((z - mean(z)) * (w - mean(w))), tolerance = 1e-9)
 })
 
-test_that("prepare_selection_data standardizes traits and centres relative fitness at 1", {
+test_that("prepare_selection_data standardises traits and centres relative fitness at 1", {
   d <- make_data(n = 100)
   df <- data.frame(w = runif(100, 1, 10), z1 = d$z1[1:100], z2 = d$z2[1:100])
 
@@ -116,7 +116,7 @@ test_that("prepare_selection_data standardizes traits and centres relative fitne
   expect_equal(mean(out$w_relative), 1, tolerance = 1e-8)
 })
 
-test_that("traits are standardized on the analyzed sample when fitness is missing", {
+test_that("traits are standardised on the analysed sample when fitness is missing", {
   d <- make_data(n = 300)
   w <- 1 + 0.3 * d$z1 - 0.2 * d$z2 + rnorm(300, 0, 0.2)
   df <- data.frame(w = w, z1 = d$z1, z2 = d$z2)
@@ -177,7 +177,7 @@ test_that("a zero-variance trait warns and does not drop every row", {
     "zero-variance", ignore.case = TRUE
   )
   expect_equal(nrow(out), 100) # rows preserved, not silently dropped
-  expect_equal(sd(out$z1), 1, tolerance = 1e-8) # the good trait is still standardized
+  expect_equal(sd(out$z1), 1, tolerance = 1e-8) # the good trait is still standardised
   expect_true(all(out$flat == 5)) # the constant trait is left as-is
 })
 
@@ -197,7 +197,7 @@ test_that("a trait constant within a group is caught by the grouped zero-varianc
     "zero-variance", ignore.case = TRUE
   )
   expect_equal(nrow(out), 60) # no group silently dropped
-  expect_false(any(is.nan(out$flat))) # flat left unstandardized, not NaN
+  expect_false(any(is.nan(out$flat))) # flat left unstandardised, not NaN
   expect_true(all(is.finite(out$z))) # the good trait is still usable
 })
 

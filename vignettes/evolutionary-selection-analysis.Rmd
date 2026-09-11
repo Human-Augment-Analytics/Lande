@@ -859,7 +859,7 @@ selection_report(prepared, "survival", c("size", "colour"), fitness_type = "bina
 ```
 
 
-### 5.15 `compare_fitness_surfaces()`
+### 5.15 `compare_fitness_surfaces_data()`
 
 **Purpose:** Compares the individual-level fitness surface with the population-level adaptive landscape: their optima, the distance between them, summary statistics and the correlation between the two surfaces.
 

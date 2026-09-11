@@ -4,13 +4,14 @@
 # ============================================================================
 
 #' @noRd
-# internal utility: variance inflation factors, with the collinearity warning
 # internal utility: a small table as a message, so it can be silenced with
 # suppressMessages() like every other note the functions print
 .msg_table <- function(title, x) {
   message(title, "\n", paste(utils::capture.output(print(x)), collapse = "\n"))
 }
 
+#' @noRd
+# internal utility: variance inflation factors, with the collinearity warning
 .compute_vif <- function(fit) {
   if (!requireNamespace("car", quietly = TRUE)) {
     return(NULL)

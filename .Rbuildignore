@@ -13,3 +13,5 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+^paper$
+^cran-comments\.md$

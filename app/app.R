@@ -226,8 +226,8 @@ ui <- fluidPage(
         numericInput("surf_far", "Blank surface cells farther than this share of the axis range from any individual (blank: off)", NA, 0.02, 1, 0.01),
         checkboxInput("group_lines", "Join each group mean to its peak on the surface", TRUE),
         numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
-        selectInput("surf_bs", "Surface basis", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
-        selectInput("surf_sm", "Surface smoothing", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
+        selectInput("surf_bs", "Surface basis (GAM)", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
+        selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
         selectInput("spline_bs", "Fitness function basis", c("cubic regression" = "cr", "thin plate" = "tp", "P-spline" = "ps")),
         selectInput("spline_sm", "Fitness function smoothing", c("GCV" = "GCV.Cp", "REML" = "REML", "ML" = "ML"))
       )
@@ -643,7 +643,6 @@ server <- function(input, output, session) {
     p
   })
   output$land_plot <- renderPlot(land_plot_obj())
-  # plotly when available, otherwise the static perspective plot
   output$land3d_ui <- renderUI({
     if (have("plotly")) plotly::plotlyOutput("land3d_plotly", height = "420px")
     else plotOutput("land3d", height = "420px")

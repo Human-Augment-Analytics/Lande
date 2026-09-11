@@ -65,6 +65,7 @@ test_that("rows with a missing group label are kept and standardised", {
 })
 
 test_that("a group with zero mean fitness is named and gets NA relative fitness", {
+  set.seed(3)
   df <- data.frame(
     surv = c(rbinom(30, 1, 0.6), rep(0, 20)),
     z = rnorm(50),
