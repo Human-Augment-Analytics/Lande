@@ -224,6 +224,7 @@ ui <- fluidPage(
         numericInput("seed", "Random seed", 1, 1, 1e6, 1),
         checkboxInput("surf_full", "Draw the surface beyond the data", FALSE),
         numericInput("surf_far", "Blank surface cells farther than this share of the axis range from any individual (blank: off)", NA, 0.02, 1, 0.01),
+        checkboxInput("group_lines", "Join each group mean to its peak on the surface", TRUE),
         numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
         selectInput("surf_bs", "Surface basis", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
         selectInput("surf_sm", "Surface smoothing", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
@@ -600,12 +601,13 @@ server <- function(input, output, session) {
   surf_plot_obj <- reactive({
     sf <- surfaces(); s <- setup()
     groups <- isTRUE(input$show_groups)
+    lines <- !isFALSE(input$group_lines)
     alpha <- if (is.numeric(input$point_alpha)) input$point_alpha else 0.5
     fill_name <- if (s$ftype == "binary") "Survival" else "Fitness"
     p <- if (isTRUE(input$show_points)) {
       suppressMessages(plot_correlated_fitness_enhanced(sf$surf, sf$traits, original_data = s$prep, fitness_col = s$fit, bins = 12,
-                                                        point_alpha = alpha, show_groups = groups, fill = fill_name))
-    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, fill = fill_name)
+                                                        point_alpha = alpha, show_groups = groups, group_lines = lines, fill = fill_name))
+    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, group_lines = lines, fill = fill_name)
     suppressMessages(apply_theme(p, input$theme, binary = if (isTRUE(input$show_points)) s$ftype == "binary" else NULL,
                                  fill_name = fill_name, point_name = s$fit))
   })

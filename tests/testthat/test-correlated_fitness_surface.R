@@ -155,6 +155,10 @@ test_that("a grouped surface reports each group's mean and local peak", {
   p0 <- plot_correlated_fitness(s, c("z1", "z2"), show_groups = FALSE)
   b0 <- ggplot2::ggplot_build(p0)
   expect_lt(length(b0$data), length(b$data))
+  # the dashed line from mean to peak can be dropped on its own
+  seg <- function(p) sum(vapply(p$layers, function(l) inherits(l$geom, "GeomSegment"), logical(1)))
+  expect_equal(seg(p), 1)
+  expect_equal(seg(plot_correlated_fitness(s, c("z1", "z2"), group_lines = FALSE)), 0)
 })
 
 test_that("the group can mark the surface without entering the model", {

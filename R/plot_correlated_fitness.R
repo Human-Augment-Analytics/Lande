@@ -80,7 +80,7 @@
 # internal utility: group means (open circles, labelled) and the highest
 # point of the surface within each group's hull (filled triangles), joined by
 # a dashed line. Only present when the surface was fitted with a group.
-.group_layers <- function(tps, trait1, trait2) {
+.group_layers <- function(tps, trait1, trait2, lines = TRUE) {
   g <- tps$groups
   if (is.null(g) || !nrow(g)) return(NULL)
   m1 <- paste0("mean_", trait1)
@@ -90,7 +90,7 @@
   if (!all(c(m1, m2, p1, p2) %in% names(g))) return(NULL)
   with_peak <- g[!is.na(g[[p1]]), , drop = FALSE]
   list(
-    ggplot2::geom_segment(
+    if (lines) ggplot2::geom_segment(
       data = with_peak,
       ggplot2::aes(x = .data[[m1]], y = .data[[m2]], xend = .data[[p1]], yend = .data[[p2]]),
       colour = "black", linewidth = 0.4, linetype = "dashed", inherit.aes = FALSE
@@ -132,6 +132,8 @@
 #' @param show_groups Logical; when the surface was fitted with a \code{group},
 #'   draw each group's mean (open circle, labelled) and the highest point of
 #'   the surface within that group's hull (filled triangle). Default is \code{TRUE}.
+#' @param group_lines Logical; join each group's mean to its peak with a dashed
+#'   line. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object representing the correlated fitness surface.
@@ -148,6 +150,7 @@ plot_correlated_fitness <- function(
   show_points = FALSE,
   show_optimum = TRUE,
   show_groups = TRUE,
+  group_lines = TRUE,
   ...
 ) {
   # Input validation
@@ -255,7 +258,7 @@ plot_correlated_fitness <- function(
   }
 
   if (show_groups) {
-    p <- p + .group_layers(tps, trait_cols[1], trait_cols[2])
+    p <- p + .group_layers(tps, trait_cols[1], trait_cols[2], lines = group_lines)
   }
   p <- p + .mark_key()
 
@@ -280,6 +283,8 @@ plot_correlated_fitness <- function(
 #' @param show_groups Logical; when the surface was fitted with a \code{group},
 #'   draw each group's mean and the highest point of the surface within that
 #'   group's hull. Default is \code{TRUE}.
+#' @param group_lines Logical; join each group's mean to its peak with a dashed
+#'   line. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object with enhanced visualizations.
@@ -298,6 +303,7 @@ plot_correlated_fitness_enhanced <- function(
   point_alpha = 0.7,
   show_optimum = TRUE,
   show_groups = TRUE,
+  group_lines = TRUE,
   ...
 ) {
   # Input validation
@@ -432,7 +438,7 @@ plot_correlated_fitness_enhanced <- function(
   }
 
   if (show_groups) {
-    p <- p + .group_layers(tps, trait1, trait2)
+    p <- p + .group_layers(tps, trait1, trait2, lines = group_lines)
   }
   p <- p + .mark_key()
 

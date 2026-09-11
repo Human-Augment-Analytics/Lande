@@ -13,6 +13,7 @@ plot_correlated_fitness_enhanced(
   point_alpha = 0.7,
   show_optimum = TRUE,
   show_groups = TRUE,
+  group_lines = TRUE,
   ...
 )
 }
@@ -34,6 +35,9 @@ plot_correlated_fitness_enhanced(
 \item{show_groups}{Logical; when the surface was fitted with a \code{group},
 draw each group's mean and the highest point of the surface within that
 group's hull. Default is \code{TRUE}.}
+
+\item{group_lines}{Logical; join each group's mean to its peak with a dashed
+line. Default is \code{TRUE}.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }

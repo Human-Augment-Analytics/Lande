@@ -18,8 +18,9 @@ Tabs:
   opacity you set, drawn only where there are data. Five colour themes, each
   a surface palette with point colours that stand out against it. With a
   group, each group's mean and the highest point of the surface within its
-  own range are marked. Untick "Standardise within group" to treat the groups
-  as one population, for several species on one surface.
+  own range are marked, joined by a dashed line (switch in Advanced
+  settings). Untick "Standardise within group" to treat the groups as one
+  population, for several species on one surface.
 - **Adaptive landscape**: 2D contour and rotatable 3D view, with the optimum
   and the current population mean, and its own colour theme for both views.
 - **Groups**: gradients per group, table and plot.
@@ -29,8 +30,8 @@ Advanced settings, so repeated runs match. Advanced settings also hold the
 fitness type, the spline and surface basis (cubic regression, thin plate or
 P-spline) and smoothing criterion (GCV, REML or ML), the surface basis size
 k, a switch to draw the surface over the whole grid rather than only where
-there are data, and a distance rule that blanks cells far from any
-individual.
+there are data, a distance rule that blanks cells far from any individual,
+and the switch for the line from each group mean to its peak.
 
 ## Run locally
 
