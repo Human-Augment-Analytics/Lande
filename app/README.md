@@ -10,7 +10,8 @@ Tabs:
   histograms, and the settings used (including the file name).
 - **Selection gradients**: S, β ± SE and γ ± SE with p-values, correlational
   terms, a one-line summary per trait, a gradient plot, optional bootstrap
-  intervals, CSV and PNG downloads.
+  intervals, CSV and PNG downloads, and the assumption checks (normality of
+  the traits, VIF, rows per term, residuals or dispersion of the model).
 - **Fitness functions**: cubic-spline fitness function per trait with a
   bootstrap band, and optionally the adaptive landscape for that trait.
 - **Fitness surface**: two-trait surface with the individuals overlaid at an

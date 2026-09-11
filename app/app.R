@@ -248,7 +248,10 @@ ui <- fluidPage(
                    div(class = "help-note", textOutput("boot_note"))),
             column(6, downloadButton("dl_report", "Download table (CSV)"),
                    downloadButton("dl_gradplot", "Download plot (PNG)"))
-          )),
+          ),
+          h4(class = "sec", "Assumption checks"),
+          tableOutput("assump_table"),
+          div(class = "help-note", "Normality of the traits (Mardia, Shapiro-Wilk), the largest VIF, individuals per quadratic term, and the residuals or dispersion of the gradient model. Reported, not enforced. With the performance package installed its tests are added.")),
         tabPanel("Fitness functions",
           br(),
           fluidRow(
@@ -462,6 +465,15 @@ server <- function(input, output, session) {
 
   # ---- Selection gradients tab ----
   output$grad_table <- renderTable({ s <- setup(); gradient_table(s$report, s$traits) }, align = "lrrrrr")
+  output$assump_table <- renderTable({
+    s <- setup()
+    chk <- suppressWarnings(check_selection_assumptions(s$d, s$fit, s$traits, fitness_type = s$ftype, group = s$group_model))
+    data.frame(
+      Check = chk$check,
+      Statistic = ifelse(is.na(chk$statistic), "", formatC(chk$statistic, digits = 3, format = "g")),
+      p = ifelse(is.na(chk$p_value), "", ifelse(chk$p_value < 0.001, "< 0.001", formatC(chk$p_value, digits = 3, format = "f"))),
+      Note = chk$note, check.names = FALSE, stringsAsFactors = FALSE)
+  }, align = "lrrl")
   output$corr_table_ui <- renderUI({
     s <- setup(); if (is.null(correlational_table(s$report))) return(NULL)
     tagList(h4(class = "sec", "Correlational selection"), tableOutput("corr_table"))
