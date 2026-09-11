@@ -72,3 +72,14 @@ test_that("skewed traits fail Mardia and one trait skips the multivariate checks
   expect_false(any(grepl("Mardia|VIF", one$check)))
   expect_error(check_selection_assumptions(d, "w", "z9"), "Missing columns")
 })
+
+test_that("rows from a group with zero mean fitness are not counted", {
+  set.seed(24)
+  n <- 120
+  d <- data.frame(g = rep(c("a", "b"), each = n / 2), z1 = rnorm(n), z2 = rnorm(n))
+  d$w <- ifelse(d$g == "a", 1 + 0.3 * d$z1 + rnorm(n, 0, 0.2), 0)
+  chk <- check_selection_assumptions(d, "w", c("z1", "z2"), group = "g")
+  expect_equal(attr(chk, "n"), n / 2)
+  per_term <- chk$statistic[chk$check == "Rows per quadratic term"]
+  expect_equal(per_term, (n / 2) / 5)
+})

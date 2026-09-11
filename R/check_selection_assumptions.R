@@ -96,6 +96,9 @@ check_selection_assumptions <- function(data,
   )))
   if (fitness_type == "auto") fitness_type <- detect_family(prep[[fitness_col]])$type
   if (!fitness_type %in% c("binary", "count")) fitness_type <- "continuous"
+  # a group with zero mean fitness gets NA relative fitness; those rows are
+  # outside the gradient models, so they are outside the counts here too
+  prep <- prep[is.finite(prep$.w), , drop = FALSE]
   n <- nrow(prep)
   p <- length(trait_cols)
   rows <- list()
