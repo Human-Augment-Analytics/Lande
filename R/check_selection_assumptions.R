@@ -1,7 +1,8 @@
 # ======================================================
 # check_selection_assumptions.R
 # The checks a selection analysis rests on: multivariate normality of the
-# traits (Lande & Arnold's gradients equal the covariance only then),
+# traits (the condition for reading the gradients as the slope and curvature
+# of the fitness surface),
 # collinearity, rows per term, and the residuals or dispersion of the
 # gradient models. Reported, not enforced.
 # ======================================================
@@ -50,10 +51,14 @@
 #' enforced; the table is there to report alongside the gradients, as the
 #' protocol of Palacio et al. (2019) asks.
 #'
-#' @details Lande and Arnold (1983) showed that the regression gradients equal
-#'   the selection differentials adjusted for the phenotypic covariance only
-#'   when the traits are multivariate normal, which is why the normality of the
-#'   traits, not of fitness, is the assumption that matters. Mardia's (1970)
+#' @details The regression gradients equal the covariance-adjusted
+#'   differentials, \eqn{P^{-1} S}, by least squares whatever the trait
+#'   distribution. Normality of the traits is what lets them be read as the
+#'   average slope and curvature of the fitness surface (Lande and Arnold
+#'   1983; Morrissey and Sakrejda 2013), and what ties gamma to the change in
+#'   the phenotypic covariance. So it matters for reading the gradients, not
+#'   for computing them, and it is the traits that need to be normal, not
+#'   fitness. Mardia's (1970)
 #'   skewness and kurtosis tests are used for that; each trait is also tested
 #'   on its own with Shapiro and Wilk's test when there are 5000 rows or fewer.
 #'   Collinearity is the largest variance inflation factor from the linear
@@ -72,7 +77,9 @@
 #' @references Lande, R. and Arnold, S. J. (1983) The measurement of selection
 #'   on correlated characters. Evolution 37, 1210-1226. Mardia, K. V. (1970)
 #'   Measures of multivariate skewness and kurtosis with applications.
-#'   Biometrika 57, 519-530. Palacio, F. X., Ordano, M. and Benitez-Vieyra, S.
+#'   Biometrika 57, 519-530. Morrissey, M. B. and Sakrejda, K. (2013)
+#'   Unification of regression-based methods for the analysis of natural
+#'   selection. Evolution 67, 2094-2100. Palacio, F. X., Ordano, M. and Benitez-Vieyra, S.
 #'   (2019) Measuring natural selection on multivariate phenotypic traits: a
 #'   protocol for verifiable and reproducible analyses of natural selection.
 #'   Israel Journal of Ecology and Evolution 65, 130-136.

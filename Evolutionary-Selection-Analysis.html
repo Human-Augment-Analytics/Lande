@@ -3306,15 +3306,17 @@ Scenario 3: γ_size x beak = 0.32, p = 0.004
 <h3>7.0 Check the Assumptions First</h3>
 <p><code>check_selection_assumptions()</code> puts the checks a Lande
 and Arnold analysis rests on in one table: Mardia’s tests of
-multivariate normality of the traits, which is the assumption behind
-reading the gradients as adjusted differentials, Shapiro-Wilk for each
-trait, the largest VIF, the individuals (for survival, the rarer
-outcome) per quadratic term, and for the gradient models residual
-normality and heteroscedasticity, separation, or the dispersion ratio.
-With the <code>performance</code> package installed it adds that
-package’s heteroscedasticity and overdispersion tests and an R squared.
-Palacio et al. (2019) set out what to report; this table is meant to sit
-beside the gradients.</p>
+multivariate normality of the traits, which is what lets the gradients
+be read as the slope and curvature of the fitness surface (they equal
+<span class="math inline">\(\mathbf{P}^{-1}\mathbf{S}\)</span> by least
+squares whatever the distribution), Shapiro-Wilk for each trait, the
+largest VIF, the individuals (for survival, the rarer outcome) per
+quadratic term, and for the gradient models residual normality and
+heteroscedasticity, separation, or the dispersion ratio. With the
+<code>performance</code> package installed it adds that package’s
+heteroscedasticity and overdispersion tests and an R squared. Palacio et
+al. (2019) set out what to report; this table is meant to sit beside the
+gradients.</p>
 <pre class="r"><code>check_selection_assumptions(bumpus, &quot;survival&quot;, c(&quot;total_length&quot;, &quot;weight&quot;, &quot;humerus&quot;))</code></pre>
 <div class="kable-table">
 <table>
