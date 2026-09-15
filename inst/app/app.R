@@ -194,6 +194,25 @@ ui <- fluidPage(
      details summary{cursor:pointer;font-weight:600;margin:10px 0}
      h4.sec{margin-top:18px}"
   ))),
+  # drop the connection after ten minutes without a click or keypress, so a tab
+  # left open does not keep the server instance awake
+  tags$head(tags$script(HTML("
+    (function () {
+      var idleMinutes = 10;
+      var timer;
+      function reset() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$socket) Shiny.shinyapp.$socket.close();
+          document.body.innerHTML = '<p style=\"font-family: sans-serif; margin: 40px\">Disconnected after ' + idleMinutes + ' minutes without activity. Reload the page to start again.</p>';
+        }, idleMinutes * 60 * 1000);
+      }
+      ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(function (e) {
+        document.addEventListener(e, reset, true);
+      });
+      reset();
+    })();
+  "))),
   titlePanel("RforEvolution"),
   sidebarLayout(
     sidebarPanel(
