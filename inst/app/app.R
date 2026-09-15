@@ -152,14 +152,16 @@ interpret <- function(r, traits, ftype, n, group) {
     L <- get("Linear", t); Q <- get("Quadratic", sq(t))
     if (is.null(L)) return(sprintf("%s: not estimated.", t))
     if (!sig(L) && !sig(Q)) {
-      return(sprintf("%s: no significant selection (%s%s).", t, est(L, "β"),
+      return(sprintf("%s: no detectable selection (%s%s).", t, est(L, "β"),
                      if (is.null(Q)) "" else paste0("; ", est(Q, "γ"))))
     }
     d <- if (sig(L)) sprintf("selection for %s values (%s)", if (L$Estimate > 0) "larger" else "smaller", est(L, "β"))
-         else sprintf("no directional selection (%s)", est(L, "β"))
+         else sprintf("no clear evidence of directional selection (%s)", est(L, "β"))
     q <- if (is.null(Q)) NULL
-         else if (sig(Q)) sprintf("%s selection (%s)", if (Q$Estimate < 0) "stabilising" else "disruptive", est(Q, "γ"))
-         else sprintf("no curvature (%s)", est(Q, "γ"))
+         else if (sig(Q)) sprintf("%s curvature, consistent with %s selection (%s)",
+                                  if (Q$Estimate < 0) "negative" else "positive",
+                                  if (Q$Estimate < 0) "stabilising" else "disruptive", est(Q, "γ"))
+         else sprintf("no clear evidence of curvature (%s)", est(Q, "γ"))
     sprintf("%s: %s.", t, paste(c(d, q), collapse = "; "))
   }, character(1))
   cc <- r[r$Type == "Correlational", , drop = FALSE]
@@ -169,7 +171,7 @@ interpret <- function(r, traits, ftype, n, group) {
       if (!is.na(x$P_Value) && x$P_Value < 0.05) {
         sprintf("%s: correlational selection for %s combinations (%s).", x$Term,
                 if (x$Estimate > 0) "matching" else "opposing", est(x, "γij"))
-      } else sprintf("%s: no correlational selection (%s).", x$Term, est(x, "γij"))
+      } else sprintf("%s: no clear evidence of correlational selection (%s).", x$Term, est(x, "γij"))
     }, character(1))
     lines <- c(lines, cl)
   }
@@ -179,7 +181,7 @@ interpret <- function(r, traits, ftype, n, group) {
     count = " Count fitness: p-values from a Poisson or negative binomial model.",
     ""
   )
-  c(lines, "", sprintf("n = %d. Traits in SD units, fitness relative to the mean%s.%s", n, within, basis))
+  c(lines, "", sprintf("n = %d. Traits in SD units, fitness relative to the mean%s.%s γ is curvature, not a peak; see the fitness function.", n, within, basis))
 }
 
 # --- UI ---------------------------------------------------------------------
