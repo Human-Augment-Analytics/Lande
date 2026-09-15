@@ -41,10 +41,10 @@ shiny::runApp("inst/app")         # from a checkout, after devtools::load_all()
 ```
 
 Bundled datasets: Bumpus sparrows, Crescent Pond pupfish, Little Lake pupfish,
-and the finch community of Beausoleil et al. (2023), five species with recapture
-years as fitness, which opens with one surface for all species and the 0.15
-distance rule set
-(shipped in `inst/extdata`). Uploaded CSVs need numeric fitness and trait
+and the finch community of Beausoleil et al. (2023), five groups with recapture
+years as fitness, which opens with one surface for all groups and the 0.15
+distance rule set (shipped in `inst/extdata`). Uploaded CSVs need numeric
+fitness and trait
 columns.
 
 ## Optional packages

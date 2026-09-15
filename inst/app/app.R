@@ -52,8 +52,8 @@ load_dataset <- function(name) {
     "Little Lake pupfish" = list(
       data = utils::read.csv(extdata("little_lake_pupfish.csv")),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
-    # five species on one surface: standardised together, blank far from any bird
-    "Finch community (five species)" = list(
+    # five groups on one surface: standardised together, blank far from any bird
+    "Finch community (five groups)" = list(
       data = utils::read.csv(extdata("finch_community.csv")),
       fitness = "recaptures", traits = c("beak_length", "beak_depth"), group = "species",
       within_group = FALSE, too_far = 0.15)
@@ -61,7 +61,7 @@ load_dataset <- function(name) {
 }
 
 DATASETS <- c("Bumpus sparrows", "Crescent Pond pupfish", "Little Lake pupfish",
-              "Finch community (five species)", "Upload CSV...")
+              "Finch community (five groups)", "Upload CSV...")
 numeric_cols <- function(df) names(df)[vapply(df, is.numeric, logical(1))]
 
 # --- formatting helpers -----------------------------------------------------

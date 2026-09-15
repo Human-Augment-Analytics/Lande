@@ -100,8 +100,9 @@ rotatable 3D landscape. The app lives in `inst/app`; see its README there.
 
 `bumpus`: Bumpus's 1898 house sparrows, 136 birds, nine traits and survival.
 In `inst/extdata`: the Crescent Pond and Little Lake pupfish of Martin (2016),
-the yearly medium ground finch data of Beausoleil et al. (2019) and the five
-finch species of Beausoleil et al. (2023) with recapture years as fitness.
+the yearly medium ground finch data of Beausoleil et al. (2019), and the
+five-group finch community of Beausoleil et al. (2023) with recapture years as
+fitness.
 Sources and the dataset DOI are listed under `?RforEvolution`.
 
 ## Notes
