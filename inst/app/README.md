@@ -36,8 +36,8 @@ and the switch for the line from each group mean to its peak.
 ## Run locally
 
 ```r
-install.packages(".", repos = NULL, type = "source")  # or devtools::load_all()
-shiny::runApp("app")
+RforEvolution::run_app()          # from the installed package
+shiny::runApp("inst/app")         # from a checkout, after devtools::load_all()
 ```
 
 Bundled datasets: Bumpus sparrows, Crescent Pond pupfish, Little Lake pupfish,

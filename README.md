@@ -91,9 +91,10 @@ plot_temporal_landscape(years, type = "heatmap")
 
 ## App
 
-`shiny::runApp("app")` runs the whole workflow from a browser: bundled or
-uploaded data, gradients, fitness functions, surface, landscape and per-group
-results, with the fitting options in Advanced settings. See `app/README.md`.
+`run_app()` opens the whole workflow in a browser: bundled or uploaded data,
+gradients, fitness functions, surface, landscape and per-group results, with
+the fitting options in Advanced settings. Needs `shiny`; `plotly` adds the
+rotatable 3D landscape. The app lives in `inst/app`; see its README there.
 
 ## Data
 

@@ -53,6 +53,8 @@ Suggests:
     ggrepel,
     patchwork,
     performance,
+    plotly,
+    shiny,
     viridis,
     knitr,
     rmarkdown,

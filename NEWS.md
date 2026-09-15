@@ -14,4 +14,4 @@ First release.
 * Assumption checks in one table: multivariate normality of the traits, VIF,
   rows per term, residuals or dispersion of the gradient model.
 * Bumpus's sparrows bundled as data; pupfish and finch data in `extdata`.
-* A Shiny app for the whole workflow in `app/`.
+* A Shiny app for the whole workflow, opened with `run_app()`.
