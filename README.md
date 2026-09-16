@@ -19,10 +19,8 @@ the counts are overdispersed.
 
 ```r
 # install.packages("remotes")
-remotes::install_github("Human-Augment-Analytics/R-for-Evolution@sean")
+remotes::install_github("Human-Augment-Analytics/R-for-Evolution")
 ```
-
-Drop the `@sean` if and when it is merged into main.
 
 ## Gradients
 
