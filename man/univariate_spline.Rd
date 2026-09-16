@@ -8,9 +8,14 @@ univariate_spline(
   data,
   fitness_col,
   trait_col,
-  fitness_type = c("binary", "continuous"),
+  fitness_type = c("auto", "binary", "count", "continuous"),
   group = NULL,
-  k = 10
+  relative_col = NULL,
+  k = 10,
+  bs = c("cr", "tp", "ps"),
+  smoothing = c("GCV.Cp", "REML", "ML"),
+  bootstrap = FALSE,
+  n_boot = 1000
 )
 }
 \arguments{
@@ -20,11 +25,23 @@ univariate_spline(
 
 \item{trait_col}{A string specifying the name of the trait column (must be numeric and standardized).}
 
-\item{fitness_type}{A string indicating the fitness type: either \code{"binary"} or \code{"continuous"}.}
+\item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.}
 
 \item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included.}
 
-\item{k}{Integer specifying the basis dimension for the GAM smooth term. Default is 10.}
+\item{relative_col}{Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).}
+
+\item{k}{Integer specifying the basis dimension for the smooth term. Default is 10.}
+
+\item{bs}{Spline basis: \code{"cr"} (cubic regression spline, the default),
+\code{"tp"} (thin plate) or \code{"ps"} (P-spline).}
+
+\item{smoothing}{How the smoothing parameter is chosen: \code{"GCV.Cp"}
+(generalised cross-validation, the default), \code{"REML"} or \code{"ML"}.}
+
+\item{bootstrap}{Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.}
+
+\item{n_boot}{Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.}
 }
 \value{
 A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
@@ -33,8 +50,21 @@ A list of class \code{"univariate_fitness"} containing the fitted GAM model, a p
 This function calculates a univariate correlated fitness function using a GAM smooth term.
 The formula is \code{w ~ f(z)}. Traits should be standardized BEFORE calling this function.
 }
-\examples{
-\dontrun{
-result <- univariate_spline(data = my_data, fitness_col = "survival", trait_col = "size")
+\details{
+By default the fitness function is a penalised cubic regression
+  spline with the smoothing parameter chosen by generalised
+  cross-validation, following Schluter (1988). \code{bs} and \code{smoothing}
+  are there to match the smoother of another study; they do not change
+  how much the curve is smoothed, which is always chosen from the data.
+  If mgcv's check suggests the basis dimension was too small a warning
+  says so. With \code{bootstrap = TRUE} the result depends on the random
+  seed; call \code{set.seed()} first for a reproducible ribbon.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", "total_length")
+uni <- univariate_spline(prep, "survival", "total_length")
+plot_univariate_fitness(uni, "total_length")
+
+# a thin-plate basis with REML, to match another study's smoother
+univariate_spline(prep, "survival", "total_length", bs = "tp", smoothing = "REML")$spline_type
 }

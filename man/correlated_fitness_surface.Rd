@@ -12,7 +12,12 @@ correlated_fitness_surface(
   method = "auto",
   scale_traits = FALSE,
   group = NULL,
-  k = 30
+  group_effect = TRUE,
+  k = NULL,
+  mask = TRUE,
+  too_far = NULL,
+  bs = c("tp", "cr", "ps"),
+  smoothing = c("REML", "GCV.Cp", "ML")
 )
 }
 \arguments{
@@ -28,19 +33,85 @@ correlated_fitness_surface(
 
 \item{scale_traits}{Deprecated. Logical. Set to \code{FALSE} to avoid double standardization.}
 
-\item{group}{Optional string specifying a grouping variable.}
+\item{group}{Optional string naming a grouping column, such as species or
+year. The result's \code{groups} table then gives each group's mean
+trait values and the highest point of the surface within that group's
+own convex hull, and the plot functions draw both.}
 
-\item{k}{Integer specifying the basis dimension for the GAM smooth term.}
+\item{group_effect}{Logical; with \code{TRUE} (the default) the GAM includes
+\code{group} as a fixed effect and predicts the surface at the reference
+level, as the gradient models do for year or site. With \code{FALSE} one
+surface is fitted to everyone and the group is only used for the
+\code{groups} table and the overlay, which is what a community surface
+of several species needs (Beausoleil et al. 2023).}
+
+\item{k}{Basis dimension for the GAM smooth. The default \code{NULL} sets it
+from the data as \code{min(30, max(10, floor(sqrt(n1 * n2))))}, where
+\code{n1} and \code{n2} are the numbers of distinct values of each trait;
+it is always capped at one less than the number of observations. Pass an
+integer to override.}
+
+\item{mask}{Logical; if \code{TRUE} (the default) grid points outside the
+convex hull of the observed trait pairs get \code{NA} fitness, so the
+surface is only drawn where there are data. The grid column
+\code{.inside} records which points were kept, \code{.fit_all} holds the
+unmasked predictions, and the result's \code{hull} is the polygon the
+plot functions use to cover the outside.}
+
+\item{too_far}{Optional distance rule for blanking the grid, on top of
+\code{mask}. Grid points farther than this from the nearest individual
+get \code{NA} fitness, with distances measured after scaling the grid to
+the unit square, as in \code{mgcv::vis.gam}. Beausoleil et al. (2023) used
+0.15. The default \code{NULL} applies no distance rule. The distance to
+the nearest individual is kept in the grid column \code{.dist}.}
+
+\item{bs}{Basis for the GAM smooth: \code{"tp"} (thin plate, the default),
+\code{"cr"} or \code{"ps"}.}
+
+\item{smoothing}{How the GAM's smoothing parameter is chosen: \code{"REML"}
+(the default), \code{"GCV.Cp"} or \code{"ML"}.}
 }
 \value{
-A list containing the fitted model, grid predictions, and metadata.
+A list containing the fitted model, grid predictions, and metadata:
+  \code{original_data} holds the rows that were analysed, and with a
+  \code{group} the \code{groups} data frame has one row per group with its
+  size, mean traits and local peak.
 }
 \description{
 Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).
 Traits MUST be standardized BEFORE calling this function.
 }
-\examples{
-\dontrun{
-surf <- correlated_fitness_surface(my_data, "fitness", c("trait1", "trait2"))
+\details{
+The family follows the fitness column: 0/1 fitness gets a binomial
+  family, non-negative whole numbers with more than two values (recapture
+  years, offspring) a Poisson family with a log link, and anything else a
+  Gaussian family. With \code{method = "auto"} binary and count fitness use
+  the GAM and continuous fitness the thin-plate spline.
+  By default the GAM uses a thin-plate smooth with the smoothing
+  parameter chosen by REML; \code{bs} and \code{smoothing} are there to match
+  another study's smoother and do not apply to \code{method = "tps"}. With
+  \code{"cr"} or \code{"ps"}, which are one-dimensional bases, the two
+  traits enter as a tensor product smooth.
+  Predicting a fitted surface over the full rectangle of the grid
+  extrapolates into corners that no individual occupies; \code{mask = TRUE}
+  leaves those blank rather than showing a fitted value there. The hull
+  still fills gaps between separate clusters of individuals, such as
+  several species on one surface; \code{too_far} blanks those too.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+surf$grid[which.max(surf$grid$.fit), ]
+
+# two lakes of pupfish on one surface: cells far from any fish blank, each
+# lake's mean and local peak marked, the lake kept out of the model
+pup <- rbind(
+  read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "RforEvolution")),
+  read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "RforEvolution"))
+)
+pup <- pup[pup$density == "H", ]
+prep2 <- prepare_selection_data(pup, "survival", c("nasal", "SL"))
+surf2 <- correlated_fitness_surface(prep2, "survival", c("nasal", "SL"), grid_n = 30,
+                                    too_far = 0.15, group = "lake", group_effect = FALSE)
+surf2$groups
 }

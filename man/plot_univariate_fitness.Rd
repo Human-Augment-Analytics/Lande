@@ -12,6 +12,7 @@ plot_univariate_fitness(
   point_alpha = 0.25,
   ribbon_fill = NA,
   ribbon_linetype = "dashed",
+  classic_plot = FALSE,
   ...
 )
 }
@@ -30,6 +31,8 @@ plot_univariate_fitness(
 
 \item{ribbon_linetype}{Linetype for the confidence interval bounds. Default is \code{"dashed"}.}
 
+\item{classic_plot}{Logical; if \code{TRUE}, draw the plain published style (a single dashed confidence outline, solid fit line, raw points, and a minimal theme). Default is \code{FALSE}.}
+
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }
 \value{
@@ -37,4 +40,10 @@ A \code{ggplot} object representing the univariate fitness function.
 }
 \description{
 Visualizes the univariate fitness function estimated via spline.
+}
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", "total_length")
+uni <- univariate_spline(prep, "survival", "total_length")
+plot_univariate_fitness(uni, "total_length")
+plot_univariate_fitness(uni, "total_length", classic_plot = TRUE)
 }

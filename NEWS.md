@@ -1,0 +1,17 @@
+# RforEvolution 0.1.0
+
+First release.
+
+* Selection differentials and linear, quadratic and correlational gradients on
+  relative fitness, with p-values from the logistic model for survival and from
+  a Poisson or negative binomial model for counts.
+* Cubic spline fitness functions with a bootstrap band, two-trait fitness
+  surfaces drawn only where there are data, and adaptive landscapes of mean
+  fitness for one or two traits.
+* Several groups on one surface, with each group's mean and local peak marked.
+* Fitness functions and landscapes fitted period by period.
+* Bootstrap standard errors and percentile intervals for the gradients.
+* Assumption checks in one table: multivariate normality of the traits, VIF,
+  rows per term, residuals or dispersion of the gradient model.
+* Bumpus's sparrows bundled as data; pupfish and finch data in `extdata`.
+* A Shiny app for the whole workflow, opened with `run_app()`.

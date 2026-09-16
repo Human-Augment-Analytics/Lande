@@ -36,7 +36,7 @@ A single numeric value representing overall S, or a data frame with S per group 
 Computes the selection differential S = Cov(z, w) for a single trait.
 }
 \examples{
-\dontrun{
-S <- selection_differential(my_data, "fitness", "trait1")
-}
+prep <- prepare_selection_data(bumpus, "survival", "total_length")
+selection_differential(prep, "survival", "total_length")
+selection_differential(prep, "survival", "total_length", group = "sex", return_grouped = TRUE)
 }

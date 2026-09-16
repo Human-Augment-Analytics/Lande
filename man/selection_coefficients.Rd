@@ -8,7 +8,7 @@ selection_coefficients(
   data,
   fitness_col,
   trait_cols,
-  fitness_type = c("auto", "binary", "continuous"),
+  fitness_type = c("auto", "binary", "count", "continuous"),
   standardize = TRUE,
   group = NULL,
   use_relative_for_fit = TRUE,
@@ -22,13 +22,13 @@ selection_coefficients(
 
 \item{trait_cols}{A character vector of trait column names.}
 
-\item{fitness_type}{A string indicating the fitness type: \code{"auto"}, \code{"binary"}, or \code{"continuous"}.}
+\item{fitness_type}{A string indicating the fitness type: \code{"auto"}, \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness take their p-values from a GLM (logistic, or Poisson and negative binomial) on the raw values; the gradients always come from OLS on relative fitness.}
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 
 \item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
 
-\item{use_relative_for_fit}{Logical indicating whether to use relative fitness for continuous data. Default is \code{TRUE}.}
+\item{use_relative_for_fit}{Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.}
 
 \item{return_grouped}{Logical indicating whether to return results grouped if a \code{group} is specified.}
 }
@@ -40,7 +40,9 @@ Main wrapper function for selection analysis following Lande & Arnold (1983).
 Extracts linear (beta), quadratic (gamma), and correlational selection gradients.
 }
 \examples{
-\dontrun{
-coefs <- selection_coefficients(my_data, "fitness", c("trait1", "trait2"))
-}
+selection_coefficients(bumpus, "survival", c("total_length", "weight"), fitness_type = "binary")
+
+# one set of gradients per sex, each sex standardised on its own
+selection_coefficients(bumpus, "survival", c("total_length", "weight"),
+                       group = "sex", return_grouped = TRUE)
 }

@@ -11,6 +11,8 @@ plot_correlated_fitness(
   point_alpha = 0.7,
   show_points = FALSE,
   show_optimum = TRUE,
+  show_groups = TRUE,
+  group_lines = TRUE,
   ...
 )
 }
@@ -27,6 +29,13 @@ plot_correlated_fitness(
 
 \item{show_optimum}{Logical indicating whether to mark the optimum point. Default is \code{TRUE}.}
 
+\item{show_groups}{Logical; when the surface was fitted with a \code{group},
+draw each group's mean (open circle, labelled) and the highest point of
+the surface within that group's hull (filled triangle). Default is \code{TRUE}.}
+
+\item{group_lines}{Logical; join each group's mean to its peak with a dashed
+line. Default is \code{TRUE}.}
+
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }
 \value{
@@ -34,4 +43,9 @@ A \code{ggplot} object representing the correlated fitness surface.
 }
 \description{
 Plot Correlated Fitness Surface
+}
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+plot_correlated_fitness(surf, c("total_length", "weight"), show_points = TRUE)
 }

@@ -50,3 +50,12 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Large analysis outputs (kept out of the source package; see .Rbuildignore)
+results/
+
+# Rendered analysis reports (regenerated from the .Rmd)
+analysis/*.html
+
+# CRAN submission notes, kept local
+cran-comments.md

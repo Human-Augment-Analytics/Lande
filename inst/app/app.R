@@ -1,0 +1,780 @@
+# ---------------------------------------------------------------------------
+# RforEvolution: interactive selection analysis
+#
+# Run locally:   shiny::runApp("app")
+# Static export (GitHub Pages): shinylive::export("app", "docs"); serve docs/
+#
+# The core analysis needs only mgcv and MASS. The thin-plate spline surface,
+# the 3D landscape (fields) and Type III ANOVA (car) degrade to a message
+# when those packages are missing.
+# ---------------------------------------------------------------------------
+
+library(shiny)
+library(RforEvolution)
+library(ggplot2)
+
+`%||%` <- function(a, b) if (is.null(a)) b else a
+# spelled out so rsconnect picks them up
+has_fields <- requireNamespace("fields", quietly = TRUE)
+has_plotly <- requireNamespace("plotly", quietly = TRUE)
+has_car <- requireNamespace("car", quietly = TRUE)
+has_performance <- requireNamespace("performance", quietly = TRUE)
+
+# fixed seed for the random steps; restores the RNG afterwards
+with_seed <- function(seed, expr) {
+  had <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+  old <- if (had) get(".Random.seed", envir = globalenv()) else NULL
+  on.exit(if (had) assign(".Random.seed", old, envir = globalenv())
+          else suppressWarnings(rm(".Random.seed", envir = globalenv())), add = TRUE)
+  set.seed(seed)
+  expr
+}
+
+# data files ship with the package; fall back to the source tree when run from a checkout
+extdata <- function(f) {
+  candidates <- c(
+    system.file("extdata", f, package = "RforEvolution"),
+    file.path("..", "extdata", f),
+    file.path("inst", "extdata", f)
+  )
+  hit <- candidates[nzchar(candidates) & file.exists(candidates)]
+  validate(need(length(hit) > 0,
+    paste0("Dataset file '", f, "' not found; run the app from the package source tree.")))
+  hit[1]
+}
+
+load_dataset <- function(name) {
+  switch(name,
+    "Bumpus sparrows" = {
+      utils::data("bumpus", package = "RforEvolution")
+      list(data = get("bumpus"), fitness = "survival",
+           traits = c("weight", "total_length"), group = "sex")
+    },
+    "Crescent Pond pupfish" = list(
+      data = utils::read.csv(extdata("crescent_pond_pupfish.csv")),
+      fitness = "survival", traits = c("jaw", "body"), group = NULL),
+    "Little Lake pupfish" = list(
+      data = utils::read.csv(extdata("little_lake_pupfish.csv")),
+      fitness = "survival", traits = c("jaw", "body"), group = NULL),
+    # five groups on one surface: standardised together, blank far from any bird
+    "Finch community (five groups)" = list(
+      data = utils::read.csv(extdata("finch_community.csv")),
+      fitness = "recaptures", traits = c("beak_length", "beak_depth"), group = "species",
+      within_group = FALSE, too_far = 0.15)
+  )
+}
+
+DATASETS <- c("Bumpus sparrows", "Crescent Pond pupfish", "Little Lake pupfish",
+              "Finch community (five groups)", "Upload CSV...")
+numeric_cols <- function(df) names(df)[vapply(df, is.numeric, logical(1))]
+
+# --- formatting helpers -----------------------------------------------------
+stars <- function(p) {
+  ifelse(is.na(p), "", ifelse(p < 0.001, "***", ifelse(p < 0.01, "**", ifelse(p < 0.05, "*", ""))))
+}
+fmt <- function(x, d = 3) ifelse(is.na(x), "", formatC(x, digits = d, format = "f"))
+fmt_p <- function(p) ifelse(is.na(p), "", ifelse(p < 0.001, "< 0.001", paste("=", formatC(p, digits = 3, format = "f"))))
+pm <- function(est, se) paste0(fmt(est), " ± ", fmt(se))
+sq <- function(t) paste0(t, "²")
+
+# colour themes for the surface and landscape plots: a palette for the surface
+# and two point colours that stand out against it (perished/survived, or the
+# low and high ends of a continuous fitness scale)
+THEMES <- list(
+  "Viridis, orange and blue" = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "D", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "D"),
+                                    points = c("#D55E00", "#0072B2")),
+  "Magma, white and black"   = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "A", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "A"),
+                                    points = c("white", "black")),
+  "Plasma, teal and white"   = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "C", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "C"),
+                                    points = c("#004D40", "white")),
+  "Cividis, red and blue"    = list(fill = function(...) ggplot2::scale_fill_viridis_d(option = "E", ...),
+                                    ramp = function(n) viridisLite::viridis(n, option = "E"),
+                                    points = c("#B2182B", "#4393C3")),
+  "Greys, orange and blue"   = list(fill = function(...) ggplot2::scale_fill_grey(start = 0.92, end = 0.25, ...),
+                                    ramp = function(n) grDevices::grey.colors(n, start = 0.92, end = 0.25),
+                                    points = c("#D55E00", "#0072B2"))
+)
+theme_of <- function(theme) if (!is.null(theme) && theme %in% names(THEMES)) THEMES[[theme]] else THEMES[[1]]
+apply_theme <- function(p, theme, binary = NULL, fill_name = NULL, point_name = "Fitness") {
+  th <- theme_of(theme)
+  p <- p + th$fill(name = fill_name)
+  if (isTRUE(binary)) {
+    p <- p + ggplot2::scale_colour_manual(values = c("0" = th$points[1], "1" = th$points[2]),
+                                          labels = c("0" = "Perished", "1" = "Survived"), name = "Outcome")
+  } else if (isFALSE(binary)) {
+    p <- p + ggplot2::scale_colour_gradient(low = th$points[1], high = th$points[2], name = point_name)
+  }
+  p
+}
+
+# one row per trait: S, beta, gamma
+gradient_table <- function(r, traits) {
+  pick <- function(type, term) {
+    i <- which(r$Type == type & r$Term == term)
+    if (length(i)) r[i[1], ] else data.frame(Estimate = NA, Std_Error = NA, P_Value = NA)
+  }
+  rows <- lapply(traits, function(t) {
+    S <- pick("Differential", t); L <- pick("Linear", t); Q <- pick("Quadratic", sq(t))
+    data.frame(
+      Trait = t,
+      S = fmt(S$Estimate),
+      beta = pm(L$Estimate, L$Std_Error),
+      p_beta = paste(sub("^= ", "", fmt_p(L$P_Value)), stars(L$P_Value)),
+      gamma = pm(Q$Estimate, Q$Std_Error),
+      p_gamma = paste(sub("^= ", "", fmt_p(Q$P_Value)), stars(Q$P_Value)),
+      check.names = FALSE, stringsAsFactors = FALSE
+    )
+  })
+  out <- do.call(rbind, rows)
+  names(out) <- c("Trait", "S", "β ± SE", "p (β)", "γ ± SE", "p (γ)")
+  out
+}
+
+correlational_table <- function(r) {
+  cc <- r[r$Type == "Correlational", , drop = FALSE]
+  if (!nrow(cc)) return(NULL)
+  data.frame(
+    Traits = cc$Term,
+    `γij ± SE` = pm(cc$Estimate, cc$Std_Error),
+    p = paste(sub("^= ", "", fmt_p(cc$P_Value)), stars(cc$P_Value)),
+    check.names = FALSE, stringsAsFactors = FALSE
+  )
+}
+
+# short reading of the gradient table
+interpret <- function(r, traits, ftype, n, group) {
+  get <- function(type, term) {
+    i <- which(r$Type == type & r$Term == term)
+    if (length(i)) r[i[1], ] else NULL
+  }
+  sig <- function(x) !is.null(x) && !is.na(x$P_Value) && x$P_Value < 0.05
+  est <- function(x, sym) sprintf("%s = %s, p %s", sym, pm(x$Estimate, x$Std_Error), fmt_p(x$P_Value))
+  lines <- vapply(traits, function(t) {
+    L <- get("Linear", t); Q <- get("Quadratic", sq(t))
+    if (is.null(L)) return(sprintf("%s: not estimated.", t))
+    if (!sig(L) && !sig(Q)) {
+      return(sprintf("%s: no detectable selection (%s%s).", t, est(L, "β"),
+                     if (is.null(Q)) "" else paste0("; ", est(Q, "γ"))))
+    }
+    d <- if (sig(L)) sprintf("selection for %s values (%s)", if (L$Estimate > 0) "larger" else "smaller", est(L, "β"))
+         else sprintf("no clear evidence of directional selection (%s)", est(L, "β"))
+    q <- if (is.null(Q)) NULL
+         else if (sig(Q)) sprintf("%s curvature, consistent with %s selection (%s)",
+                                  if (Q$Estimate < 0) "negative" else "positive",
+                                  if (Q$Estimate < 0) "stabilising" else "disruptive", est(Q, "γ"))
+         else sprintf("no clear evidence of curvature (%s)", est(Q, "γ"))
+    sprintf("%s: %s.", t, paste(c(d, q), collapse = "; "))
+  }, character(1))
+  cc <- r[r$Type == "Correlational", , drop = FALSE]
+  if (nrow(cc)) {
+    cl <- vapply(seq_len(nrow(cc)), function(i) {
+      x <- cc[i, ]
+      if (!is.na(x$P_Value) && x$P_Value < 0.05) {
+        sprintf("%s: correlational selection for %s combinations (%s).", x$Term,
+                if (x$Estimate > 0) "matching" else "opposing", est(x, "γij"))
+      } else sprintf("%s: no clear evidence of correlational selection (%s).", x$Term, est(x, "γij"))
+    }, character(1))
+    lines <- c(lines, cl)
+  }
+  within <- if (is.null(group)) "" else sprintf(" within %s", group)
+  basis <- switch(ftype,
+    binary = " Binary fitness: p-values from logistic regression.",
+    count = " Count fitness: p-values from a Poisson or negative binomial model.",
+    ""
+  )
+  c(lines, "", sprintf("n = %d. Traits in SD units, fitness relative to the mean%s.%s γ is curvature, not a peak; see the fitness function.", n, within, basis))
+}
+
+# --- UI ---------------------------------------------------------------------
+ui <- fluidPage(
+  tags$head(tags$style(HTML(
+    ".help-note{color:#555;font-size:13px;margin-top:6px}
+     .interp{background:#f6f8fa;border-left:3px solid #2c7fb8;padding:10px 14px;margin:10px 0;font-size:14px}
+     .interp .shiny-text-output{white-space:pre-wrap;padding:0;margin:0}
+     .interp ul{margin:0;padding-left:20px}
+     .interp li{margin:5px 0}
+     .interp p.foot{margin:10px 0 0;color:#555;font-size:13px}
+     details summary{cursor:pointer;font-weight:600;margin:10px 0}
+     h4.sec{margin-top:18px}"
+  ))),
+  # drop the connection after ten minutes without a click or keypress, so a tab
+  # left open does not keep the server instance awake
+  tags$head(tags$script(HTML("
+    (function () {
+      var idleMinutes = 10;
+      var timer;
+      function reset() {
+        clearTimeout(timer);
+        timer = setTimeout(function () {
+          if (window.Shiny && Shiny.shinyapp && Shiny.shinyapp.$socket) Shiny.shinyapp.$socket.close();
+          document.body.innerHTML = '<p style=\"font-family: sans-serif; margin: 40px\">Disconnected after ' + idleMinutes + ' minutes without activity. Reload the page to start again.</p>';
+        }, idleMinutes * 60 * 1000);
+      }
+      ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'].forEach(function (e) {
+        document.addEventListener(e, reset, true);
+      });
+      reset();
+    })();
+  "))),
+  titlePanel("RforEvolution"),
+  sidebarLayout(
+    sidebarPanel(
+      width = 3,
+      h4("Data"),
+      selectInput("dataset", "Dataset", DATASETS),
+      conditionalPanel("input.dataset == 'Upload CSV...'",
+        fileInput("file", "CSV file", accept = ".csv")),
+      h4("Design"),
+      selectInput("fitness", "Fitness", NULL),
+      div(class = "help-note", textOutput("fitness_hint")),
+      selectizeInput("traits", "Traits", NULL, multiple = TRUE),
+      selectInput("group", "Group (optional)", "(none)"),
+      checkboxInput("within_group", "Standardise within group, group as a fixed effect", TRUE),
+      div(class = "help-note",
+          "Untick to treat all groups as one population; the group then only marks means and peaks on the surface, as for several species on one surface."),
+      checkboxInput("per_group", "Estimate per group as well", FALSE),
+      actionButton("run", "Run analysis", class = "btn-primary", width = "100%"),
+      tags$details(
+        tags$summary("Advanced settings"),
+        selectInput("ftype", "Fitness type", c("detect automatically" = "auto", "binary (0/1)" = "binary", "count" = "count", "continuous" = "continuous")),
+        radioButtons("surf_method", "Fitness-surface method",
+                     c("GAM (mgcv)" = "gam", "Thin-plate spline (fields)" = "tps"), inline = TRUE),
+        sliderInput("surf_grid", "Surface grid", 20, 80, 50, step = 10),
+        sliderInput("grid_n", "Landscape grid", 15, 60, 40, step = 5),
+        sliderInput("sim_n", "Simulated individuals per grid point", 100, 1000, 300, step = 100),
+        numericInput("n_boot", "Bootstrap resamples", 500, 100, 5000, 100),
+        numericInput("seed", "Random seed", 1, 1, 1e6, 1),
+        checkboxInput("surf_full", "Draw the surface beyond the data", FALSE),
+        numericInput("surf_far", "Blank surface cells farther than this share of the axis range from any individual (blank: off)", NA, 0.02, 1, 0.01),
+        checkboxInput("group_lines", "Join each group mean to its peak on the surface", TRUE),
+        numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
+        selectInput("surf_bs", "Surface basis (GAM)", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
+        selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
+        selectInput("spline_bs", "Fitness function basis", c("cubic regression" = "cr", "thin plate" = "tp", "P-spline" = "ps")),
+        selectInput("spline_sm", "Fitness function smoothing", c("GCV" = "GCV.Cp", "REML" = "REML", "ML" = "ML"))
+      )
+    ),
+    mainPanel(
+      width = 9,
+      tabsetPanel(id = "tabs",
+        tabPanel("Data",
+          br(), verbatimTextOutput("data_summary"),
+          h4(class = "sec", "Traits and fitness"), tableOutput("trait_summary"),
+          plotOutput("hist_plot", height = "300px"),
+          h4(class = "sec", "Settings"), verbatimTextOutput("settings")),
+        tabPanel("Selection gradients",
+          br(),
+          h4(class = "sec", "Selection differentials and gradients"),
+          tableOutput("grad_table"),
+          uiOutput("corr_table_ui"),
+          div(class = "help-note", "S total selection; β directional; γ quadratic (negative stabilising, positive disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
+          h4(class = "sec", "Summary"),
+          uiOutput("interpretation"),
+          h4(class = "sec", "Gradient plot"),
+          plotOutput("grad_plot", height = "360px"),
+          fluidRow(
+            column(6, actionButton("run_boot", "Add bootstrap confidence intervals"),
+                   div(class = "help-note", textOutput("boot_note"))),
+            column(6, downloadButton("dl_report", "Download table (CSV)"),
+                   downloadButton("dl_gradplot", "Download plot (PNG)"))
+          ),
+          h4(class = "sec", "Assumption checks"),
+          tableOutput("assump_table"),
+          div(class = "help-note", "Normality of the traits (Mardia, Shapiro-Wilk), the largest VIF, individuals per quadratic term, and the residuals or dispersion of the gradient model. Reported, not enforced. With the performance package installed its tests are added.")),
+        tabPanel("Fitness functions",
+          br(),
+          fluidRow(
+            column(4, selectInput("uni_trait", "Trait", NULL)),
+            column(4, sliderInput("spline_k", "Spline flexibility (k)", 3, 12, 5, step = 1)),
+            column(4, br(), checkboxInput("classic", "Classic style", FALSE))),
+          plotOutput("uni_plot", height = "440px"),
+          div(class = "help-note", "Cubic spline (Schluter 1988) with bootstrap 95% band."),
+          downloadButton("dl_uniplot", "Download plot (PNG)"),
+          br(), br(),
+          checkboxInput("uni_land", "Adaptive landscape for this trait", FALSE),
+          conditionalPanel("input.uni_land",
+            plotOutput("uni_land_plot", height = "400px"),
+            div(class = "help-note", "Mean fitness of a population against its mean for this trait, with the fitness function dashed."))),
+        tabPanel("Fitness surface",
+          br(),
+          fluidRow(
+            column(3, selectInput("surf_x", "Trait on x", NULL)),
+            column(3, selectInput("surf_y", "Trait on y", NULL)),
+            column(3, br(), checkboxInput("show_points", "Show individuals", TRUE)),
+            column(3, br(), checkboxInput("show_groups", "Group means and peaks", TRUE))),
+          fluidRow(
+            column(6, conditionalPanel("input.show_points",
+              sliderInput("point_alpha", "Opacity of the individuals", 0.05, 1, 0.5, step = 0.05))),
+            column(6, selectInput("theme", "Colours", names(THEMES)))),
+          plotOutput("surf_plot", height = "500px"),
+          div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range."),
+          downloadButton("dl_surfplot", "Download plot (PNG)")),
+        tabPanel("Adaptive landscape",
+          br(), div(class = "interp", textOutput("opt_txt")),
+          fluidRow(
+            column(3, br(), checkboxInput("show_opt", "Optimum", TRUE)),
+            column(3, br(), checkboxInput("show_mean", "Current mean", TRUE)),
+            column(6, selectInput("land_theme", "Colours", names(THEMES)))),
+          fluidRow(
+            column(6, plotOutput("land_plot", height = "420px")),
+            column(6, uiOutput("land3d_ui"))),
+          div(class = "help-note", "Mean fitness for each possible population mean. Drag to rotate. Diamond: optimum; circle: current mean."),
+          downloadButton("dl_landplot", "Download 2D plot (PNG)")),
+        tabPanel("Groups",
+          br(), uiOutput("groups_ui"))
+      )
+    )
+  )
+)
+
+# --- server -----------------------------------------------------------------
+server <- function(input, output, session) {
+
+  current <- reactive({
+    if (input$dataset == "Upload CSV...") {
+      req(input$file)
+      c(list(data = utils::read.csv(input$file$datapath), fitness = NULL, traits = NULL, group = NULL),
+        source = input$file$name)
+    } else c(load_dataset(input$dataset), source = paste(input$dataset, "(bundled)"))
+  })
+
+  # Defaults for an uploaded file: a survival-like or 0/1 column as fitness, a
+  # year or site column as group, and measured traits (not ids or years) as traits
+  observeEvent(current(), {
+    d <- current(); nm <- names(d$data); nums <- numeric_cols(d$data)
+    looks <- function(cols, pattern) cols[grepl(pattern, cols, ignore.case = TRUE)]
+    n_unique <- function(v) length(unique(d$data[[v]][!is.na(d$data[[v]])]))
+    is_01 <- function(v) all(d$data[[v]][!is.na(d$data[[v]])] %in% c(0, 1))
+    id_like <- looks(nm, "^id$|band|ring|tag|^year$|site|sex|pop|species|lake|group|cohort|season|plot")
+    fit_default <- d$fitness %||% c(
+      looks(nums, "surv|fitness|fecund|offspring|seed|growth|^w$"),
+      nums[vapply(nums, is_01, logical(1))],
+      setdiff(nums, id_like), nums
+    )[1]
+    grp_default <- d$group %||% {
+      g <- looks(nm, "^year$|site|sex|pop|species|lake|group|cohort|season")
+      g <- g[vapply(g, function(v) n_unique(v) %in% 2:30, logical(1))]
+      if (length(g)) g[1] else "(none)"
+    }
+    t_choices <- setdiff(nums, fit_default)
+    t_default <- d$traits %||% {
+      t <- setdiff(t_choices, c(id_like, grp_default))
+      t <- t[vapply(t, function(v) n_unique(v) > 5, logical(1))]
+      if (!length(t)) t <- t_choices
+      t[seq_len(min(2, length(t)))]
+    }
+    updateSelectInput(session, "fitness", choices = nm, selected = fit_default)
+    updateSelectizeInput(session, "traits", choices = t_choices, selected = t_default)
+    updateSelectInput(session, "group", choices = c("(none)", nm), selected = grp_default)
+    # dataset presets for the group handling and the distance rule
+    updateCheckboxInput(session, "within_group", value = !isFALSE(d$within_group))
+    updateNumericInput(session, "surf_far", value = d$too_far %||% NA)
+  })
+
+  output$fitness_hint <- renderText({
+    d <- current()$data; f <- input$fitness
+    if (is.null(f) || !f %in% names(d) || !is.numeric(d[[f]])) return("")
+    fam <- detect_family(d[[f]])
+    if (fam$type == "binary") sprintf("Survival (0/1): %.0f%% of %d survived.", 100 * mean(d[[f]], na.rm = TRUE), sum(!is.na(d[[f]])))
+    else sprintf("%s: mean %.2f, SD %.2f.", tools::toTitleCase(fam$type), mean(d[[f]], na.rm = TRUE), stats::sd(d[[f]], na.rm = TRUE))
+  })
+
+  # everything shared across tabs, computed once at Run
+  setup <- eventReactive(input$run, {
+    d <- current()$data; fit <- input$fitness; traits <- input$traits
+    grp <- if (input$group == "(none)") NULL else input$group
+    validate(
+      need(length(traits) >= 1, "Pick at least one trait."),
+      need(!fit %in% traits, "Fitness column can't also be a trait."),
+      need(all(c(fit, traits) %in% names(d)), "Columns not found."),
+      need(is.numeric(d[[fit]]) || is.logical(d[[fit]]), "Fitness column must be numeric (0/1 survival or a numeric measure)."),
+      need(all(vapply(d[traits], is.numeric, logical(1))), "Trait columns must be numeric."),
+      need(all(vapply(d[traits], function(x) length(unique(x[!is.na(x)])) > 2, logical(1))),
+           "Each trait needs more than two distinct values; a 0/1 column cannot be a trait.")
+    )
+    keep <- c(fit, traits, grp)
+    d <- d[stats::complete.cases(d[, keep]), ]
+    validate(need(nrow(d) >= 20, "Need at least 20 individuals with complete data."))
+    resolved <- if (input$ftype == "auto") detect_family(d[[fit]])$type else input$ftype
+    if (!resolved %in% c("binary", "count")) resolved <- "continuous"
+    # with the switch off the groups are one population: pooled standardisation,
+    # no group term, the group only marks means and peaks on the surface
+    within <- !is.null(grp) && !isFALSE(input$within_group)
+    grp_model <- if (within) grp else NULL
+    prep <- suppressWarnings(suppressMessages(
+      prepare_selection_data(d, fit, traits, standardize = TRUE, group = grp_model, add_relative = TRUE, na_action = "drop")))
+    report <- suppressWarnings(suppressMessages(
+      selection_report(d, fit, traits, fitness_type = resolved, standardize = TRUE, group = grp_model)))
+    grouped <- NULL
+    if (!is.null(grp) && isTRUE(input$per_group)) {
+      grouped <- tryCatch(suppressWarnings(suppressMessages(
+        selection_coefficients(d, fit, traits, fitness_type = resolved, standardize = TRUE,
+                               group = grp, return_grouped = TRUE))), error = function(e) NULL)
+    }
+    keep_or <- function(x, default) if (isTRUE(x %in% traits)) x else default
+    updateSelectInput(session, "uni_trait", choices = traits, selected = keep_or(input$uni_trait, traits[1]))
+    updateSelectInput(session, "surf_x", choices = traits, selected = keep_or(input$surf_x, traits[1]))
+    updateSelectInput(session, "surf_y", choices = traits, selected = keep_or(input$surf_y, traits[min(2, length(traits))]))
+    list(d = d, prep = prep, fit = fit, traits = traits, group = grp, ftype = resolved,
+         report = report, grouped = grouped, source = current()$source,
+         ftype_how = if (input$ftype == "auto") "detected" else "set by hand",
+         per_group = isTRUE(input$per_group),
+         seed = if (is.numeric(input$seed) && !is.na(input$seed)) round(input$seed) else 1,
+         surf_method = input$surf_method, surf_grid = input$surf_grid, surf_full = isTRUE(input$surf_full),
+         surf_k = if (is.numeric(input$surf_k) && !is.na(input$surf_k)) round(input$surf_k) else NULL,
+         surf_far = if (is.numeric(input$surf_far) && !is.na(input$surf_far) && input$surf_far > 0) input$surf_far else NULL,
+         within_group = within, group_model = grp_model,
+         surf_bs = input$surf_bs %||% "tp", surf_sm = input$surf_sm %||% "REML",
+         spline_bs = input$spline_bs %||% "cr", spline_sm = input$spline_sm %||% "GCV.Cp",
+         grid_n = input$grid_n, sim_n = input$sim_n)
+  })
+
+  boot_val <- reactiveVal(NULL)
+  # Do the heavy work once at Run, so the tabs only draw afterwards
+  observeEvent(input$run, {
+    withProgress(message = "Running the analysis", value = 0, {
+      incProgress(0.05, detail = "gradients")
+      s <- try(setup(), silent = TRUE)
+      req(!inherits(s, "try-error"))
+      uni_choice(if (isTRUE(input$uni_trait %in% s$traits)) input$uni_trait else s$traits[1])
+      surf_choice(pick_surface(s, input$surf_x, input$surf_y))
+      incProgress(0.35, detail = "fitness function")
+      try(uni_fit(), silent = TRUE)
+      if (isTRUE(input$uni_land)) try(uni_land(), silent = TRUE)
+      incProgress(0.35, detail = "fitness surface and landscape")
+      if (length(s$traits) >= 2) try(surfaces(), silent = TRUE)
+      incProgress(0.25, detail = "done")
+    })
+  }, priority = 100)
+  observeEvent(input$run, boot_val(NULL))
+  observeEvent(input$run_boot, {
+    s <- setup()
+    validate(need(is.numeric(input$n_boot) && !is.na(input$n_boot) && input$n_boot >= 2,
+                  "Resamples must be a whole number of at least 2."))
+    withProgress(message = "Bootstrapping...", {
+      b <- with_seed(s$seed, suppressWarnings(suppressMessages(
+        bootstrap_selection(s$d, s$fit, s$traits, fitness_type = s$ftype, standardize = TRUE,
+                            group = s$group_model, n_boot = round(input$n_boot)))))
+    })
+    boot_val(b)
+  })
+
+  # ---- Data tab ----
+  output$data_summary <- renderText({
+    s <- setup(); f <- detect_family(s$d[[s$fit]])
+    fit_line <- if (s$ftype == "binary") {
+      sprintf("Fitness: %s, binary. %d of %d survived (%.0f%%).", s$fit, sum(s$d[[s$fit]] == 1), nrow(s$d), 100 * mean(s$d[[s$fit]]))
+    } else {
+      sprintf("Fitness: %s, %s. Mean %.3f, SD %.3f.", s$fit, f$type, mean(s$d[[s$fit]]), stats::sd(s$d[[s$fit]]))
+    }
+    grp_line <- if (is.null(s$group)) "No grouping: one population." else {
+      tab <- table(s$d[[s$group]])
+      sprintf("Grouped by %s: %s.", s$group, paste(sprintf("%s (n = %d)", names(tab), as.integer(tab)), collapse = ", "))
+    }
+    paste(sprintf("%d individuals with complete data.", nrow(s$d)), fit_line, grp_line,
+          sprintf("Traits: %s.", paste(s$traits, collapse = ", ")), sep = "\n")
+  })
+  output$trait_summary <- renderTable({
+    s <- setup()
+    vars <- c(s$fit, s$traits)
+    data.frame(
+      Variable = vars,
+      Mean = vapply(vars, function(v) mean(s$d[[v]]), 1),
+      SD = vapply(vars, function(v) stats::sd(s$d[[v]]), 1),
+      Min = vapply(vars, function(v) min(s$d[[v]]), 1),
+      Max = vapply(vars, function(v) max(s$d[[v]]), 1),
+      check.names = FALSE)
+  }, digits = 3)
+  output$hist_plot <- renderPlot({
+    s <- setup()
+    long <- do.call(rbind, lapply(c(s$fit, s$traits), function(v) data.frame(variable = v, value = s$d[[v]])))
+    long$variable <- factor(long$variable, levels = c(s$fit, s$traits))
+    ggplot(long, aes(value)) + geom_histogram(bins = 25, fill = "#2c7fb8", colour = "white") +
+      facet_wrap(~variable, scales = "free", nrow = 1) + theme_bw() + labs(x = NULL, y = "Individuals")
+  })
+
+  # ---- Selection gradients tab ----
+  output$grad_table <- renderTable({ s <- setup(); gradient_table(s$report, s$traits) }, align = "lrrrrr")
+  output$assump_table <- renderTable({
+    s <- setup()
+    chk <- suppressWarnings(check_selection_assumptions(s$d, s$fit, s$traits, fitness_type = s$ftype, group = s$group_model))
+    data.frame(
+      Check = chk$check,
+      Statistic = ifelse(is.na(chk$statistic), "", formatC(chk$statistic, digits = 3, format = "g")),
+      p = ifelse(is.na(chk$p_value), "", ifelse(chk$p_value < 0.001, "< 0.001", formatC(chk$p_value, digits = 3, format = "f"))),
+      Note = chk$note, check.names = FALSE, stringsAsFactors = FALSE)
+  }, align = "lrrl")
+  output$corr_table_ui <- renderUI({
+    s <- setup(); if (is.null(correlational_table(s$report))) return(NULL)
+    tagList(h4(class = "sec", "Correlational selection"), tableOutput("corr_table"))
+  })
+  output$corr_table <- renderTable({ s <- setup(); correlational_table(s$report) }, align = "lrr")
+  output$interpretation <- renderUI({
+    s <- setup(); lines <- interpret(s$report, s$traits, s$ftype, nrow(s$d), s$group)
+    sep <- which(lines == "")[1]
+    bullets <- lines[seq_len(sep - 1)]; foot <- lines[(sep + 1):length(lines)]
+    items <- lapply(bullets, function(l) {
+      t <- s$traits[startsWith(l, paste0(s$traits, ": "))]
+      if (length(t) == 1) tags$li(HTML(paste0("<b>", htmltools::htmlEscape(t), "</b>", htmltools::htmlEscape(substring(l, nchar(t) + 1))))) else tags$li(l)
+    })
+    div(class = "interp", tags$ul(items), tags$p(class = "foot", paste(foot, collapse = " ")))
+  })
+  grad_plot_obj <- reactive({
+    s <- setup(); r <- s$report[s$report$Type != "Differential", ]
+    b <- boot_val()
+    if (!is.null(b)) {
+      key <- paste(b$Term, b$Type); m <- match(paste(r$Term, r$Type), key)
+      r$lo <- b$CI_lower[m]; r$hi <- b$CI_upper[m]; ci_lab <- "bootstrap 95% CI"
+    } else {
+      r$lo <- r$Estimate - 1.96 * r$Std_Error; r$hi <- r$Estimate + 1.96 * r$Std_Error; ci_lab <- "± 1.96 SE"
+    }
+    r$Type <- factor(r$Type, levels = c("Linear", "Quadratic", "Correlational"),
+                     labels = c("Directional (β)", "Quadratic (γ)", "Correlational (γij)"))
+    r$Term <- factor(r$Term, levels = rev(unique(r$Term)))
+    ggplot(r, aes(x = Estimate, y = Term)) +
+      geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+      geom_errorbar(aes(xmin = lo, xmax = hi), width = 0.2, orientation = "y") +
+      geom_point(size = 3, colour = "#2c7fb8") +
+      facet_grid(Type ~ ., scales = "free_y", space = "free_y") +
+      labs(x = paste0("Selection gradient (", ci_lab, ")"), y = NULL) + theme_bw() +
+      theme(strip.text.y = element_text(angle = 0))
+  })
+  output$grad_plot <- renderPlot(grad_plot_obj())
+  output$boot_note <- renderText({
+    b <- boot_val()
+    if (is.null(b)) "Error bars: ± 1.96 SE."
+    else sprintf("Bootstrap: %d resamples, seed %d.", attr(b, "n_boot"), setup()$seed)
+  })
+  output$dl_report <- downloadHandler(
+    filename = function() "selection_gradients.csv",
+    content = function(f) {
+      s <- setup(); r <- s$report; b <- boot_val()
+      if (!is.null(b)) { m <- match(paste(r$Term, r$Type), paste(b$Term, b$Type)); r$Boot_SE <- b$Boot_SE[m]; r$CI_lower <- b$CI_lower[m]; r$CI_upper <- b$CI_upper[m] }
+      utils::write.csv(as.data.frame(r), f, row.names = FALSE)
+    })
+  output$dl_gradplot <- downloadHandler(
+    filename = function() "selection_gradients.png",
+    content = function(f) ggsave(f, grad_plot_obj(), width = 7, height = 4.5, dpi = 200))
+
+  # ---- Fitness functions tab ----
+  # The trait in use is held in a reactiveVal: Run fits the default trait at
+  # once, and the select's round trip with the same value does not refit it.
+  uni_choice <- reactiveVal(NULL)
+  observeEvent(input$uni_trait, {
+    s <- setup()
+    if (isTRUE(input$uni_trait %in% s$traits)) uni_choice(input$uni_trait)
+  })
+  uni_fit <- reactive({
+    s <- setup(); tr <- uni_choice(); req(tr)
+    with_seed(s$seed, suppressWarnings(suppressMessages(
+      univariate_spline(s$prep, s$fit, tr, fitness_type = s$ftype, group = s$group_model,
+                        k = input$spline_k, bs = s$spline_bs, smoothing = s$spline_sm,
+                        bootstrap = TRUE, n_boot = 200))))
+  })
+  uni_plot_obj <- reactive(plot_univariate_fitness(uni_fit(), uni_choice(), classic_plot = input$classic))
+  output$uni_plot <- renderPlot(uni_plot_obj())
+  output$dl_uniplot <- downloadHandler(
+    filename = function() paste0("fitness_function_", uni_choice(), ".png"),
+    content = function(f) ggsave(f, uni_plot_obj(), width = 7, height = 5, dpi = 200))
+  uni_land <- reactive({
+    s <- setup(); u <- uni_fit()
+    with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
+      out <- adaptive_landscape(s$prep, u$model, uni_choice(), group_col = s$group_model,
+                                grid_n = s$grid_n, simulation_n = s$sim_n)))))
+    out
+  })
+  output$uni_land_plot <- renderPlot({
+    req(isTRUE(input$uni_land))
+    # traits are standardised (within group), so the current mean is 0
+    plot_adaptive_landscape(uni_land(), uni_choice(), show_actual_means = FALSE) +
+      geom_vline(xintercept = 0, colour = "#e74c3c", alpha = 0.6) +
+      annotate("text", x = 0, y = Inf, label = "current mean", vjust = 1.5, hjust = -0.1,
+               size = 3.2, colour = "#e74c3c")
+  })
+
+  # ---- Fitness surface and landscape ----
+  # Same idea as uni_choice: the pair in use lives in a reactiveVal
+  surf_choice <- reactiveVal(NULL)
+  pick_surface <- function(s, x, y) {
+    if (is.null(x) || !x %in% s$traits) x <- s$traits[1]
+    if (is.null(y) || !y %in% s$traits || y == x) y <- setdiff(s$traits, x)[1]
+    c(x, y)
+  }
+  observeEvent(c(input$surf_x, input$surf_y), {
+    s <- setup(); surf_choice(pick_surface(s, input$surf_x, input$surf_y))
+  })
+  surf_traits <- reactive({
+    tr <- surf_choice(); req(tr)
+    validate(need(!is.na(tr[2]), "Pick two different traits for a surface."))
+    tr
+  })
+  surfaces <- reactive({
+    s <- setup(); tr <- surf_traits()
+    if (s$surf_method == "tps" && !has_fields) validate("Thin-plate spline needs the 'fields' package; switch to GAM in Advanced settings.")
+    surf <- suppressWarnings(suppressMessages(
+      correlated_fitness_surface(s$prep, s$fit, tr, method = s$surf_method, grid_n = s$surf_grid, mask = !s$surf_full,
+                                 too_far = s$surf_far, group = s$group, group_effect = s$within_group,
+                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm)))
+    land <- with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
+      out <- adaptive_landscape(s$prep, surf$model, tr, group_col = s$group_model,
+                                grid_n = s$grid_n, simulation_n = s$sim_n)))))
+    list(surf = surf, land = out, traits = tr)
+  })
+  surf_plot_obj <- reactive({
+    sf <- surfaces(); s <- setup()
+    groups <- isTRUE(input$show_groups)
+    lines <- !isFALSE(input$group_lines)
+    alpha <- if (is.numeric(input$point_alpha)) input$point_alpha else 0.5
+    fill_name <- if (s$ftype == "binary") "Survival" else "Fitness"
+    p <- if (isTRUE(input$show_points)) {
+      suppressMessages(plot_correlated_fitness_enhanced(sf$surf, sf$traits, original_data = s$prep, fitness_col = s$fit, bins = 12,
+                                                        point_alpha = alpha, show_groups = groups, group_lines = lines, fill = fill_name))
+    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, group_lines = lines, fill = fill_name)
+    suppressMessages(apply_theme(p, input$theme, binary = if (isTRUE(input$show_points)) s$ftype == "binary" else NULL,
+                                 fill_name = fill_name, point_name = s$fit))
+  })
+  output$surf_plot <- renderPlot(surf_plot_obj())
+  output$dl_surfplot <- downloadHandler(
+    filename = function() "fitness_surface.png",
+    content = function(f) ggsave(f, surf_plot_obj(), width = 7.5, height = 6, dpi = 200))
+
+  output$opt_txt <- renderText({
+    sf <- surfaces(); opt <- sf$land$optimum; tr <- sf$traits; g <- sf$land$grid
+    dx <- opt[[tr[1]]]; dy <- opt[[tr[2]]]
+    on_edge <- vapply(tr, function(t) {
+      v <- g[[t]]; opt[[t]] <= min(v) + 1e-9 || opt[[t]] >= max(v) - 1e-9
+    }, logical(1))
+    where <- sprintf("%s = %+.2f SD and %s = %+.2f SD from the current population mean", tr[1], dx, tr[2], dy)
+    if (any(on_edge)) {
+      dir <- paste(sprintf("%s %s", tr[on_edge], ifelse(opt[tr[on_edge]] > 0, "up", "down")), collapse = " and ")
+      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.", where, opt$.mean_fit, dir)
+    } else {
+      sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).", where, sqrt(dx^2 + dy^2), opt$.mean_fit)
+    }
+  })
+  land_plot_obj <- reactive({
+    sf <- surfaces(); tr <- sf$traits
+    p <- plot_adaptive_landscape(sf$land, tr, bins = 12,
+                                 show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE)
+    p <- suppressMessages(apply_theme(p, input$land_theme, fill_name = "Mean fitness"))
+    if (isTRUE(input$show_mean)) {
+      # current population mean is (0, 0) in SD units
+      p <- p + annotate("point", x = 0, y = 0, shape = 21, size = 3.5, fill = "#e74c3c", colour = "black") +
+        annotate("text", x = 0, y = 0, label = "Current mean", vjust = -1.1, size = 3)
+    }
+    p
+  })
+  output$land_plot <- renderPlot(land_plot_obj())
+  output$land3d_ui <- renderUI({
+    if (has_plotly) plotly::plotlyOutput("land3d_plotly", height = "420px")
+    else plotOutput("land3d", height = "420px")
+  })
+  output$land3d <- renderPlot({
+    sf <- surfaces()
+    if (!has_fields) { plot.new(); text(0.5, 0.5, "3D view needs the 'fields' or 'plotly' package"); return() }
+    plot_adaptive_landscape_3d(sf$land, sf$traits, color_palette = theme_of(input$land_theme)$ramp(100))
+  })
+  output$land3d_plotly <- plotly::renderPlotly({
+    sf <- surfaces(); g <- sf$land$grid; tr <- sf$traits; opt <- sf$land$optimum
+    xu <- sort(unique(g[[tr[1]]])); yu <- sort(unique(g[[tr[2]]]))
+    z <- matrix(NA_real_, nrow = length(yu), ncol = length(xu)) # plotly: rows follow y
+    z[cbind(match(g[[tr[2]]], yu), match(g[[tr[1]]], xu))] <- g$.mean_fit
+    pal <- theme_of(input$land_theme)$ramp(9)
+    cs <- lapply(seq_along(pal), function(i) list((i - 1) / (length(pal) - 1), pal[i]))
+    # current population mean is (0, 0) in SD units
+    i0 <- which.min((g[[tr[1]]])^2 + (g[[tr[2]]])^2)
+    p <- plotly::plot_ly()
+    p <- plotly::add_surface(p, x = xu, y = yu, z = z, colorscale = cs, opacity = 0.95,
+                             colorbar = list(title = "Mean fitness"),
+                             hovertemplate = paste0(tr[1], ": %{x:.2f}<br>", tr[2], ": %{y:.2f}<br>mean fitness: %{z:.3f}<extra></extra>"))
+    if (isTRUE(input$show_opt)) {
+      p <- plotly::add_markers(p, x = opt[[tr[1]]], y = opt[[tr[2]]], z = opt$.mean_fit,
+                               marker = list(size = 6, color = "#f1c40f", symbol = "diamond", line = list(color = "black", width = 1)),
+                               name = "Optimum", hoverinfo = "name")
+    }
+    if (isTRUE(input$show_mean)) {
+      p <- plotly::add_markers(p, x = g[[tr[1]]][i0], y = g[[tr[2]]][i0], z = g$.mean_fit[i0],
+                               marker = list(size = 5, color = "#e74c3c", symbol = "circle", line = list(color = "black", width = 1)),
+                               name = "Current population mean", hoverinfo = "name")
+    }
+    plotly::layout(p,
+      title = list(text = "Adaptive landscape (drag to rotate)", font = list(size = 14)),
+      showlegend = FALSE, margin = list(l = 0, r = 0, b = 0, t = 40),
+      scene = list(
+        xaxis = list(title = paste(tr[1], "(SD)")), yaxis = list(title = paste(tr[2], "(SD)")),
+        zaxis = list(title = "Mean fitness"),
+        camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))))
+  })
+  output$dl_landplot <- downloadHandler(
+    filename = function() "adaptive_landscape.png",
+    content = function(f) ggsave(f, land_plot_obj(), width = 7.5, height = 6, dpi = 200))
+
+  # ---- Groups tab ----
+  output$groups_ui <- renderUI({
+    s <- setup()
+    if (is.null(s$group)) return(div(class = "help-note", "Pick a group and tick 'Estimate per group as well'."))
+    if (is.null(s$grouped)) return(div(class = "help-note", "Tick 'Estimate per group as well' and run again."))
+    tagList(
+      h4(class = "sec", sprintf("Selection gradients by %s", s$group)),
+      tableOutput("group_table"),
+      plotOutput("group_plot", height = "380px"),
+      div(class = "help-note", "Each group standardised on its own.")
+    )
+  })
+  output$group_table <- renderTable({
+    s <- setup(); g <- s$grouped
+    req(!is.null(g))
+    data.frame(Group = as.character(g$Group), Term = g$Term, Type = g$Type,
+               Estimate = fmt(g$Beta_Coefficient), SE = fmt(g$Standard_Error),
+               p = paste(sub("^= ", "", fmt_p(g$P_Value)), stars(g$P_Value)),
+               check.names = FALSE, stringsAsFactors = FALSE)
+  }, align = "lllrrr")
+  output$group_plot <- renderPlot({
+    s <- setup(); g <- s$grouped
+    req(!is.null(g))
+    g <- g[g$Type != "Correlational" | length(s$traits) <= 3, ]
+    g$Group <- factor(g$Group)
+    g$Type <- factor(g$Type, levels = c("Linear", "Quadratic", "Correlational"),
+                     labels = c("Directional (β)", "Quadratic (γ)", "Correlational (γij)"))
+    ggplot(g, aes(x = Beta_Coefficient, y = Term, colour = Group)) +
+      geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+      geom_errorbar(aes(xmin = Beta_Coefficient - 1.96 * Standard_Error, xmax = Beta_Coefficient + 1.96 * Standard_Error),
+                    width = 0.25, orientation = "y", position = position_dodge(width = 0.5)) +
+      geom_point(size = 3, position = position_dodge(width = 0.5)) +
+      facet_grid(Type ~ ., scales = "free_y", space = "free_y") +
+      labs(x = "Selection gradient (± 1.96 SE)", y = NULL) + theme_bw() +
+      theme(strip.text.y = element_text(angle = 0))
+  })
+
+  # ---- Settings used (Data tab) ----
+  output$settings <- renderText({
+    s <- setup(); b <- boot_val()
+    paste(
+      sprintf("File: %s", s$source),
+      sprintf("Fitness: %s (%s, %s)", s$fit, s$ftype, s$ftype_how),
+      sprintf("Traits: %s", paste(s$traits, collapse = ", ")),
+      if (is.null(s$group)) "Group: none" else
+        sprintf("Group: %s (%s%s)", s$group,
+                if (s$within_group) "standardised and relativised within group, group as a fixed effect" else
+                  "one population, standardised together; group marks means and peaks on the surface",
+                if (s$per_group) "; selection also estimated per group" else ""),
+      sprintf("Individuals with complete data: %d", nrow(s$d)),
+      sprintf("Fitness function: %s basis, %s smoothing, k = %d", s$spline_bs, sub("\\.Cp$", "", s$spline_sm), input$spline_k),
+      sprintf("Fitness surface: %s, %d x %d grid, %s", if (s$surf_method == "tps") "thin-plate spline" else
+                sprintf("GAM with %s basis, %s smoothing, k %s", s$surf_bs, sub("\\.Cp$", "", s$surf_sm),
+                        if (is.null(s$surf_k)) "from the data" else paste("=", s$surf_k)),
+              s$surf_grid, s$surf_grid, paste0(if (s$surf_full) "drawn over the full grid" else "blank outside the data",
+                if (!is.null(s$surf_far)) sprintf(", cells farther than %s of the range from any individual blank", s$surf_far) else "",
+                if (!is.null(s$group)) paste0(", group means and peaks marked", if (s$within_group) ", group as a fixed effect" else ", one surface for all groups") else "")),
+      sprintf("Adaptive landscape: %d x %d grid, %d simulated individuals per point", s$grid_n, s$grid_n, s$sim_n),
+      if (is.null(b)) "Bootstrap: not run" else sprintf("Bootstrap: %d resamples", attr(b, "n_boot")),
+      sprintf("Random seed: %d", s$seed),
+      sprintf("RforEvolution %s, R %s.%s", as.character(utils::packageVersion("RforEvolution")), R.version$major, R.version$minor),
+      sep = "\n")
+  })
+}
+
+shinyApp(ui, server)

@@ -17,3 +17,8 @@ A data frame with quadratic selection coefficients (doubled estimates) and stati
 \description{
 Extract quadratic selection coefficients
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+fit <- analyze_nonlinear_selection(prep, "survival", c("total_length", "weight"), "binary")
+extract_quadratic_coefficients(c("total_length", "weight"), fit)
+}

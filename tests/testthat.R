@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(R-for-Evolution)
+library(RforEvolution)
 
-test_check("R-for-Evolution")
+test_check("RforEvolution")

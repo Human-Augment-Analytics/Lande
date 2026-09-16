@@ -1,0 +1,111 @@
+digraph workflow {
+
+  graph [layout = dot, rankdir = TB, newrank = true, compound = true,
+         nodesep = 0.45, ranksep = 0.6, pad = 0.25,
+         fontname = "Helvetica", fontsize = 12]
+  node  [shape = box, style = "rounded,filled", fillcolor = white, color = "#7A8590",
+         fontname = "Helvetica", fontsize = 11, margin = "0.18,0.10", penwidth = 1.1]
+  edge  [fontname = "Helvetica", fontsize = 9, fontcolor = "#5B6470",
+         color = "#8A949E", arrowsize = 0.7, penwidth = 1.1]
+
+  subgraph cluster_data {
+    label = "1   PREPARE"
+    style = "rounded,filled"; fillcolor = "#EAF3FB"; color = "#2C7FB8"; fontcolor = "#1F5F8B"
+    labeljust = "l"; margin = 14
+    node [color = "#2C7FB8"]
+    prep   [label = <<B>prepare_selection_data()</B><BR/><FONT POINT-SIZE="9.5">z = (x &#8722; &#956;) / &#963;,&nbsp;&nbsp;w = W / W&#773;,&nbsp;&nbsp;NA handling</FONT>>]
+    detect [label = <<B>detect_family()</B><BR/><FONT POINT-SIZE="9.5">binary, count or continuous fitness</FONT>>]
+  }
+
+  subgraph cluster_grad {
+    label = "2   SELECTION GRADIENTS"
+    style = "rounded,filled"; fillcolor = "#FEF5E7"; color = "#E67E22"; fontcolor = "#9A4E0E"
+    labeljust = "l"; margin = 14
+    node [color = "#E67E22"]
+    disrupt   [label = <<B>analyze_disruptive_selection()</B><BR/><FONT POINT-SIZE="9.5">one trait, same engine</FONT>>]
+    coeff     [label = <<B>selection_coefficients()</B><BR/><FONT POINT-SIZE="9.5">runs the whole gradient analysis</FONT>>]
+    linear    [label = <<B>analyze_linear_selection()</B><BR/><FONT POINT-SIZE="9.5">w ~ z&nbsp;&nbsp;&#8594;&nbsp;&nbsp;&#946;,&nbsp;Type III ANOVA</FONT>>]
+    nonlinear [label = <<B>analyze_nonlinear_selection()</B><BR/><FONT POINT-SIZE="9.5">w ~ z + z&#178; + z&#8321;z&#8322;&nbsp;&nbsp;&#8594;&nbsp;&nbsp;&#947;,&nbsp;VIF</FONT>>]
+    extract   [label = <<B>extract_*_coefficients()</B><BR/><FONT POINT-SIZE="9.5">&#946;;&nbsp;&#947;&#7522;&#7522; = 2b (SE doubled);&nbsp;&#947;&#7522;&#11388; = b</FONT>>]
+    diff      [label = <<B>selection_differential()</B><BR/><FONT POINT-SIZE="9.5">S = Cov(z, w)</FONT>>]
+    check     [label = <<B>check_selection_assumptions()</B><BR/><FONT POINT-SIZE="9.5">normality, VIF, rows per term, residuals</FONT>>]
+  }
+
+  subgraph cluster_surface {
+    label = "3   FITNESS SURFACES"
+    style = "rounded,filled"; fillcolor = "#E8F8F5"; color = "#1ABC9C"; fontcolor = "#117A65"
+    labeljust = "l"; margin = 14
+    node [color = "#1ABC9C"]
+    uni       [label = <<B>univariate_spline()</B><BR/><FONT POINT-SIZE="9.5">cubic regression spline, GCV; bs and smoothing options</FONT>>]
+    corr      [label = <<B>correlated_fitness_surface()</B><BR/><FONT POINT-SIZE="9.5">GAM (binomial, Poisson or Gaussian) or thin-plate spline; blank outside the data</FONT>>]
+    uni_plot  [label = <<B>plot_univariate_fitness()</B><BR/><FONT POINT-SIZE="9.5">fit with 95% band</FONT>>]
+    corr_plot [label = <<B>plot_correlated_fitness()</B><BR/><FONT POINT-SIZE="9.5">contours, optimum, group means and peaks</FONT>>]
+  }
+
+  subgraph cluster_land {
+    label = "4   ADAPTIVE LANDSCAPE"
+    style = "rounded,filled"; fillcolor = "#FDEDEC"; color = "#C0392B"; fontcolor = "#922B21"
+    labeljust = "l"; margin = 14
+    node [color = "#C0392B"]
+    adapt      [label = <<B>adaptive_landscape()</B><BR/><FONT POINT-SIZE="9.5">W&#773; = g(z&#773;): simulate N(z&#773;, P), average fitness</FONT>>]
+    adapt_plot [label = <<B>plot_adaptive_landscape()</B><BR/><FONT POINT-SIZE="9.5">curve, contours or 3D view</FONT>>]
+    temporal   [label = <<B>temporal_landscape()</B><BR/><FONT POINT-SIZE="9.5">one fit per period, summary table</FONT>>]
+    temporal_plot [label = <<B>plot_temporal_landscape()</B><BR/><FONT POINT-SIZE="9.5">panels or heat map</FONT>>]
+  }
+
+  subgraph cluster_out {
+    label = "5   REPORT AND COMPARE"
+    style = "rounded,filled"; fillcolor = "#EEF1F5"; color = "#5D6D7E"; fontcolor = "#34495E"
+    labeljust = "l"; margin = 14
+    node [color = "#5D6D7E"]
+    report  [label = <<B>selection_report()</B><BR/><FONT POINT-SIZE="9.5">S, &#946;, &#947; and &#947;&#7522;&#11388; in one table</FONT>>]
+    boot    [label = <<B>bootstrap_selection()</B><BR/><FONT POINT-SIZE="9.5">bootstrap SE and percentile CI</FONT>>]
+    compare [label = <<B>compare_fitness_surfaces_data()</B><BR/><FONT POINT-SIZE="9.5">both optima and the correlation between surfaces</FONT>>]
+    compare_plot [label = <<B>plot_fitness_surfaces_comparison()</B><BR/><FONT POINT-SIZE="9.5">both optima on one plot</FONT>>]
+  }
+
+  # main path
+  prep -> detect
+  detect -> coeff [label = "fitness type"]
+  disrupt -> coeff [label = "single trait"]
+  coeff -> linear
+  coeff -> nonlinear
+  linear -> extract
+  nonlinear -> extract
+  extract -> report [label = "gradients"]
+  diff -> report [label = "differentials"]
+  coeff -> boot [label = "refit on each resample", style = dashed]
+
+  # prepared data feeds the differential and the surfaces
+  prep -> diff [color = "#2C7FB8", style = dashed, label = "prepared data"]
+  prep -> check [color = "#2C7FB8", style = dashed]
+  prep -> uni  [color = "#2C7FB8", style = dashed]
+  prep -> corr [color = "#2C7FB8", style = dashed]
+
+  # surfaces and landscape
+  uni -> uni_plot
+  corr -> corr_plot
+  corr -> adapt [label = "fitted surface", color = "#C0392B", penwidth = 1.8]
+  uni -> adapt [label = "single trait", color = "#C0392B", style = dashed]
+  adapt -> adapt_plot
+  prep -> temporal [color = "#2C7FB8", style = dashed, label = "by period"]
+  temporal -> adapt [style = dashed, label = "per period"]
+  temporal -> uni [lhead = cluster_surface, style = dashed, label = "fits per period"]
+  temporal -> temporal_plot
+  corr -> compare [style = dashed]
+  adapt -> compare [style = dashed]
+
+  # layout hints: prepare on top, gradients under it, surfaces to the right,
+  # landscape under the surfaces, outputs on one row
+  { rank = same; detect; uni; corr }
+  detect -> uni -> corr [style = invis]
+  { rank = same; disrupt; coeff }
+  { rank = same; linear; nonlinear }
+  linear -> nonlinear [style = invis]
+  corr_plot -> adapt [style = invis]
+  { rank = same; extract; diff; check }
+  { rank = same; adapt_plot; temporal }
+  { rank = same; temporal_plot }
+  { rank = same; report; boot; compare; compare_plot }
+  compare -> compare_plot [constraint = false]
+}

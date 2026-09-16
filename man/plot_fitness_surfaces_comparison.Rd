@@ -33,3 +33,11 @@ A list containing \code{side_by_side} (a \code{patchwork} object) and \code{over
 Visualizes the comparison between individual-level correlated fitness 
 and population-level adaptive landscape.
 }
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+land <- adaptive_landscape(prep, surf$model, c("total_length", "weight"),
+                           simulation_n = 100, grid_n = 15)
+comp <- compare_fitness_surfaces_data(surf, land, c("total_length", "weight"))
+plot_fitness_surfaces_comparison(comp)
+}

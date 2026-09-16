@@ -20,25 +20,45 @@ Authors@R:
             role = c("aut"),
             comment = c(affiliation = "Georgia Institute of Technology"))
     )
-Description: Provides a comprehensive suite of functions for estimating linear, 
-    quadratic, and correlational selection gradients. Includes tools for 
-    visualizing correlated fitness surfaces and population-level adaptive landscapes.
+Description: Estimates selection differentials and linear, quadratic and
+    correlational selection gradients on relative fitness following Lande and
+    Arnold (1983) <doi:10.1111/j.1558-5646.1983.tb00236.x>, with p-values from
+    the logistic model for survival and from a Poisson or negative binomial
+    model for counts. Fits cubic spline fitness functions as in Schluter (1988)
+    <doi:10.1111/j.1558-5646.1988.tb02507.x> and two-trait fitness surfaces
+    drawn only where there are data, and computes adaptive landscapes of mean
+    fitness against the population mean for one or two traits, by period and
+    for several groups on one surface. Includes bootstrap intervals, a
+    combined results table and a Shiny app.
 License: MIT + file LICENSE
+URL: https://github.com/Human-Augment-Analytics/R-for-Evolution
+BugReports: https://github.com/Human-Augment-Analytics/R-for-Evolution/issues
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.3
 Depends:
     R (>= 4.0.0)
 Imports:
     mgcv,
-    fields,
     MASS,
     Matrix,
-    ggplot2,
+    ggplot2 (>= 3.4.0),
     dplyr,
-    tidyr,
-    ggrepel,
-    viridis,
-    patchwork,
+    grDevices,
+    stats,
+    utils
+Suggests:
     akima,
-    car
+    car,
+    fields,
+    ggrepel,
+    patchwork,
+    performance,
+    plotly,
+    shiny,
+    viridis,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

@@ -12,6 +12,8 @@ plot_correlated_fitness_enhanced(
   bins = 12,
   point_alpha = 0.7,
   show_optimum = TRUE,
+  show_groups = TRUE,
+  group_lines = TRUE,
   ...
 )
 }
@@ -30,6 +32,13 @@ plot_correlated_fitness_enhanced(
 
 \item{show_optimum}{Logical indicating whether to mark the optimum point. Default is \code{TRUE}.}
 
+\item{show_groups}{Logical; when the surface was fitted with a \code{group},
+draw each group's mean and the highest point of the surface within that
+group's hull. Default is \code{TRUE}.}
+
+\item{group_lines}{Logical; join each group's mean to its peak with a dashed
+line. Default is \code{TRUE}.}
+
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }
 \value{
@@ -37,4 +46,10 @@ A \code{ggplot} object with enhanced visualizations.
 }
 \description{
 Plot Enhanced Correlated Fitness Surface
+}
+\examples{
+prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
+surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
+plot_correlated_fitness_enhanced(surf, c("total_length", "weight"),
+                                 original_data = prep, fitness_col = "survival")
 }
