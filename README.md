@@ -101,6 +101,8 @@ In `inst/extdata`: the Crescent Pond and Little Lake pupfish of Martin (2016),
 the yearly medium ground finch data of Beausoleil et al. (2019), and the
 five-group finch community of Beausoleil et al. (2023) with recapture years as
 fitness.
+The pupfish files hold every enclosure treatment; Martin's analyses use the
+high-density fish, `density == "H"`, and so do the examples and the app.
 Sources and the dataset DOI are listed under `?RforEvolution`.
 
 ## Notes

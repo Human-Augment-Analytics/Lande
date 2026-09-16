@@ -43,6 +43,9 @@ extdata <- function(f) {
   hit[1]
 }
 
+# Martin analysed the high-density enclosures only
+high_density <- function(d) d[d$density == "H", ]
+
 load_dataset <- function(name) {
   switch(name,
     "Bumpus sparrows" = {
@@ -51,10 +54,10 @@ load_dataset <- function(name) {
            traits = c("weight", "total_length"), group = "sex")
     },
     "Crescent Pond pupfish" = list(
-      data = utils::read.csv(extdata("crescent_pond_pupfish.csv")),
+      data = high_density(utils::read.csv(extdata("crescent_pond_pupfish.csv"))),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     "Little Lake pupfish" = list(
-      data = utils::read.csv(extdata("little_lake_pupfish.csv")),
+      data = high_density(utils::read.csv(extdata("little_lake_pupfish.csv"))),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     # five groups on one surface: standardised together, blank far from any bird
     "Finch community (five groups)" = list(
@@ -144,6 +147,7 @@ correlational_table <- function(r) {
   )
 }
 
+# short reading of the gradient table
 # short reading of the gradient table
 interpret <- function(r, traits, ftype, n, group) {
   get <- function(type, term) {

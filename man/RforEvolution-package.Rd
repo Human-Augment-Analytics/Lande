@@ -16,7 +16,9 @@ from the data archived with three papers:
   \item \code{crescent_pond_pupfish.csv} and \code{little_lake_pupfish.csv}:
     Martin, C. H. (2016) Context dependence in complex adaptive landscapes:
     frequency and trait-dependent selection surfaces within an adaptive
-    radiation of Caribbean pupfishes. Evolution 70, 1265-1282.
+    radiation of Caribbean pupfishes. Evolution 70, 1265-1282. Every
+    enclosure treatment is there; his analyses use the high-density fish,
+    \code{density == "H"}, as do the examples and the app.
   \item \code{finch_yearly.csv}: Beausoleil, M.-O. et al. (2019) Temporally
     varying disruptive selection in the medium ground finch (Geospiza
     fortis). Proceedings of the Royal Society B 286, 20192290. Built by
