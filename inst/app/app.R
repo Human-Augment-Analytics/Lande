@@ -34,7 +34,7 @@ with_seed <- function(seed, expr) {
 extdata <- function(f) {
   candidates <- c(
     system.file("extdata", f, package = "RforEvolution"),
-    file.path("..", "inst", "extdata", f),
+    file.path("..", "extdata", f),
     file.path("inst", "extdata", f)
   )
   hit <- candidates[nzchar(candidates) & file.exists(candidates)]
