@@ -254,6 +254,7 @@ ui <- fluidPage(
         checkboxInput("surf_full", "Draw the surface beyond the data", FALSE),
         numericInput("surf_far", "Blank surface cells farther than this share of the axis range from any individual (blank: off)", NA, 0.02, 1, 0.01),
         checkboxInput("group_lines", "Join each group mean to its peak on the surface", TRUE),
+        checkboxInput("clamp", "Keep thin-plate fitness within the range of the fitness type", TRUE),
         numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
         selectInput("surf_bs", "Surface basis (GAM)", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
         selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
@@ -430,6 +431,7 @@ server <- function(input, output, session) {
          surf_method = input$surf_method, surf_grid = input$surf_grid, surf_full = isTRUE(input$surf_full),
          surf_k = if (is.numeric(input$surf_k) && !is.na(input$surf_k)) round(input$surf_k) else NULL,
          surf_far = if (is.numeric(input$surf_far) && !is.na(input$surf_far) && input$surf_far > 0) input$surf_far else NULL,
+         clamp = !isFALSE(input$clamp),
          within_group = within, group_model = grp_model,
          surf_bs = input$surf_bs %||% "tp", surf_sm = input$surf_sm %||% "REML",
          spline_bs = input$spline_bs %||% "cr", spline_sm = input$spline_sm %||% "GCV.Cp",
@@ -587,7 +589,7 @@ server <- function(input, output, session) {
     s <- setup(); u <- uni_fit()
     with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
       out <- adaptive_landscape(s$prep, u$model, uni_choice(), group_col = s$group_model,
-                                grid_n = s$grid_n, simulation_n = s$sim_n)))))
+                                grid_n = s$grid_n, simulation_n = s$sim_n, clamp = s$clamp)))))
     out
   })
   output$uni_land_plot <- renderPlot({
@@ -621,10 +623,10 @@ server <- function(input, output, session) {
     surf <- suppressWarnings(suppressMessages(
       correlated_fitness_surface(s$prep, s$fit, tr, method = s$surf_method, grid_n = s$surf_grid, mask = !s$surf_full,
                                  too_far = s$surf_far, group = s$group, group_effect = s$within_group,
-                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm)))
+                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm, clamp = s$clamp)))
     land <- with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
       out <- adaptive_landscape(s$prep, surf$model, tr, group_col = s$group_model,
-                                grid_n = s$grid_n, simulation_n = s$sim_n)))))
+                                grid_n = s$grid_n, simulation_n = s$sim_n, clamp = s$clamp)))))
     list(surf = surf, land = out, traits = tr)
   })
   surf_plot_obj <- reactive({
@@ -767,7 +769,8 @@ server <- function(input, output, session) {
                 if (s$per_group) "; selection also estimated per group" else ""),
       sprintf("Individuals with complete data: %d", nrow(s$d)),
       sprintf("Fitness function: %s basis, %s smoothing, k = %d", s$spline_bs, sub("\\.Cp$", "", s$spline_sm), input$spline_k),
-      sprintf("Fitness surface: %s, %d x %d grid, %s", if (s$surf_method == "tps") "thin-plate spline" else
+      sprintf("Fitness surface: %s, %d x %d grid, %s",
+              if (s$surf_method == "tps") paste0("thin-plate spline", if (s$clamp) ", held within the fitness range" else "") else
                 sprintf("GAM with %s basis, %s smoothing, k %s", s$surf_bs, sub("\\.Cp$", "", s$surf_sm),
                         if (is.null(s$surf_k)) "from the data" else paste("=", s$surf_k)),
               s$surf_grid, s$surf_grid, paste0(if (s$surf_full) "drawn over the full grid" else "blank outside the data",

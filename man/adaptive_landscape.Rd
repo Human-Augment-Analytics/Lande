@@ -12,7 +12,8 @@ adaptive_landscape(
   population_variance = NULL,
   simulation_n = 1000,
   grid_n = 50,
-  custom_range = NULL
+  custom_range = NULL,
+  clamp = TRUE
 )
 }
 \arguments{
@@ -34,6 +35,12 @@ is a curve; with two it is the \code{$model} of
 \item{grid_n}{Integer specifying the resolution of the population mean grid. Default is 50.}
 
 \item{custom_range}{Optional list specifying custom ranges for the traits.}
+
+\item{clamp}{Logical; if \code{TRUE} (the default) simulated fitness from a
+thin-plate model is held inside the range of the fitness type before
+averaging: 0 to 1 for survival, at least 0 for counts. Continuous fitness
+is left alone, and a GAM is unaffected because its link already respects
+the range. The run message says how many values were held.}
 }
 \value{
 An object of class \code{"adaptive_landscape"}.

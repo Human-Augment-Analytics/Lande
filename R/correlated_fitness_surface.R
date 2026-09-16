@@ -137,6 +137,10 @@
 #'   \code{"cr"} or \code{"ps"}.
 #' @param smoothing How the GAM's smoothing parameter is chosen: \code{"REML"}
 #'   (the default), \code{"GCV.Cp"} or \code{"ML"}.
+#' @param clamp Logical; with \code{method = "tps"} and \code{TRUE} (the
+#'   default), predictions are held inside the range of the fitness type, 0 to
+#'   1 for survival and at least 0 for counts, as \code{adaptive_landscape()}
+#'   does. The GAM respects the range through its link and is unaffected.
 #'
 #' @details The family follows the fitness column: 0/1 fitness gets a binomial
 #'   family, non-negative whole numbers with more than two values (recapture
@@ -189,7 +193,8 @@ correlated_fitness_surface <- function(
   mask = TRUE,
   too_far = NULL,
   bs = c("tp", "cr", "ps"),
-  smoothing = c("REML", "GCV.Cp", "ML")
+  smoothing = c("REML", "GCV.Cp", "ML"),
+  clamp = TRUE
 ) {
   stopifnot(length(trait_cols) == 2L)
   bs <- match.arg(bs)
@@ -471,6 +476,12 @@ correlated_fitness_surface <- function(
   )
 
   .fit <- as.numeric(stats::predict(tps_model, grid_scaled_mat))
+  if (isTRUE(clamp)) {
+    held <- .clamp_fitness(.fit, data_type)
+    n_held <- sum(held != .fit, na.rm = TRUE)
+    if (n_held > 0) message("Held ", n_held, " of ", length(.fit), " surface predictions inside the range of ", data_type, " fitness")
+    .fit <- held
+  }
   grid$.fit <- .fit
 
   if (anyNA(grid$.fit)) {
@@ -483,6 +494,7 @@ correlated_fitness_surface <- function(
     model = tps_model,
     grid = grid,
     method = "tps",
+    clamp = isTRUE(clamp),
     mask = mask,
     too_far = too_far,
     hull = hull_df,

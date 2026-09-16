@@ -36,6 +36,11 @@
 #' @param simulation_n Integer specifying the number of individuals to simulate per grid point. Default is 1000.
 #' @param grid_n Integer specifying the resolution of the population mean grid. Default is 50.
 #' @param custom_range Optional list specifying custom ranges for the traits.
+#' @param clamp Logical; if \code{TRUE} (the default) simulated fitness from a
+#'   thin-plate model is held inside the range of the fitness type before
+#'   averaging: 0 to 1 for survival, at least 0 for counts. Continuous fitness
+#'   is left alone, and a GAM is unaffected because its link already respects
+#'   the range. The run message says how many values were held.
 #' @details For a single trait the grid also carries \code{.ind_fit}, the
 #'   individual fitness function evaluated at each population mean, so the two
 #'   curves can be drawn together (see \code{plot_adaptive_landscape()}).
@@ -60,7 +65,8 @@ adaptive_landscape <- function(
   population_variance = NULL,
   simulation_n = 1000,
   grid_n = 50,
-  custom_range = NULL
+  custom_range = NULL,
+  clamp = TRUE
 ) {
     # Input validation
     stopifnot(length(trait_cols) %in% c(1L, 2L))
@@ -154,6 +160,11 @@ adaptive_landscape <- function(
 
     mean_fitness <- numeric(nrow(population_grid))
 
+    # only the thin-plate model can predict outside the fitness range
+    do_clamp <- isTRUE(clamp) && inherits(fitness_model, "Tps")
+    ftype <- if (do_clamp) suppressWarnings(detect_family(as.numeric(fitness_model$y)))$type else NULL
+    clipped <- 0L
+
     # A GAM fitted with a group term (correlated_fitness_surface(..., group =))
     # needs that variable to predict from. Hold every non-trait predictor at a
     # reference level taken from `data`, as the surface functions do.
@@ -194,11 +205,21 @@ adaptive_landscape <- function(
         } else if (inherits(fitness_model, "Tps")) {
             ind_fitness <- predict(fitness_model, as.matrix(sim_df))
         }
+        if (do_clamp) {
+            held <- .clamp_fitness(ind_fitness, ftype)
+            clipped <- clipped + sum(held != ind_fitness, na.rm = TRUE)
+            ind_fitness <- held
+        }
 
         # Mean population fitness
         mean_fitness[i] <- mean(ind_fitness, na.rm = TRUE)
     }
 
+
+    if (do_clamp && clipped > 0) {
+        message("Held ", clipped, " of ", simulation_n * nrow(population_grid),
+                " simulated fitness values inside the range of ", ftype, " fitness")
+    }
 
     # Add mean fitness to grid
     population_grid$.mean_fit <- mean_fitness
@@ -213,6 +234,7 @@ adaptive_landscape <- function(
         } else {
             as.numeric(predict(fitness_model, as.matrix(ind_df)))
         }
+        if (do_clamp) population_grid$.ind_fit <- .clamp_fitness(population_grid$.ind_fit, ftype)
     }
 
     # Find optimum (maximum mean fitness)
@@ -238,6 +260,8 @@ adaptive_landscape <- function(
         trait_cols = trait_cols,
         population_variance = population_variance,
         simulation_n = simulation_n,
+        clamp = do_clamp,
+        clipped = clipped,
         optimum = optimum,
         actual_population_means = actual_means,
         fitness_model_class = class(fitness_model)[1],
@@ -297,4 +321,12 @@ print.adaptive_landscape <- function(x, ...) {
     }
     cat("\n", x$note, "\n")
     invisible(x)
+}
+
+# hold predictions inside the range of the fitness type: 0 to 1 for survival,
+# at least 0 for counts; continuous fitness is left alone
+.clamp_fitness <- function(x, type) {
+    if (identical(type, "binary")) pmin(pmax(x, 0), 1)
+    else if (identical(type, "count")) pmax(x, 0)
+    else x
 }

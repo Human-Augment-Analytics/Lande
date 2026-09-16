@@ -17,7 +17,8 @@ correlated_fitness_surface(
   mask = TRUE,
   too_far = NULL,
   bs = c("tp", "cr", "ps"),
-  smoothing = c("REML", "GCV.Cp", "ML")
+  smoothing = c("REML", "GCV.Cp", "ML"),
+  clamp = TRUE
 )
 }
 \arguments{
@@ -70,6 +71,11 @@ the nearest individual is kept in the grid column \code{.dist}.}
 
 \item{smoothing}{How the GAM's smoothing parameter is chosen: \code{"REML"}
 (the default), \code{"GCV.Cp"} or \code{"ML"}.}
+
+\item{clamp}{Logical; with \code{method = "tps"} and \code{TRUE} (the
+default), predictions are held inside the range of the fitness type, 0 to
+1 for survival and at least 0 for counts, as \code{adaptive_landscape()}
+does. The GAM respects the range through its link and is unaffected.}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata:
