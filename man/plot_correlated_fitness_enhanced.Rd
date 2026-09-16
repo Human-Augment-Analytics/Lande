@@ -30,11 +30,13 @@ plot_correlated_fitness_enhanced(
 
 \item{point_alpha}{Numeric value for point transparency. Default is 0.7.}
 
-\item{show_optimum}{Logical indicating whether to mark the optimum point. Default is \code{TRUE}.}
+\item{show_optimum}{Logical; mark the highest kept cell, a gold diamond, or
+an open one when it is on the edge of the data. Default is \code{TRUE}.}
 
 \item{show_groups}{Logical; when the surface was fitted with a \code{group},
 draw each group's mean and the highest point of the surface within that
-group's hull. Default is \code{TRUE}.}
+group's hull, filled when it is a peak of the surface and open when it
+is not. Default is \code{TRUE}.}
 
 \item{group_lines}{Logical; join each group's mean to its peak with a dashed
 line. Default is \code{TRUE}.}

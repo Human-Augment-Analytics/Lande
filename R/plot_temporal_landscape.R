@@ -4,6 +4,23 @@
 # for one trait, as a heat map of fitness against trait and time.
 # ======================================================
 
+#' @noRd
+# the highest fitness of each period: a gold diamond when it lies inside the
+# data, an open one when it sits at the edge of the range.
+# Carries the shape key for the period marks.
+.period_optima <- function(s, xcol, ycol) {
+  edge <- if ("optimum_edge" %in% names(s)) s$optimum_edge %in% TRUE else rep(FALSE, nrow(s))
+  list(
+    if (any(!edge)) ggplot2::geom_point(data = s[!edge, , drop = FALSE],
+                                        ggplot2::aes(x = .data[[xcol]], y = .data[[ycol]], shape = "Optimum"),
+                                        colour = "gold", size = 3.5, inherit.aes = FALSE),
+    if (any(edge)) ggplot2::geom_point(data = s[edge, , drop = FALSE],
+                                       ggplot2::aes(x = .data[[xcol]], y = .data[[ycol]], shape = "Edge maximum"),
+                                       colour = "black", size = 3, stroke = 0.9, inherit.aes = FALSE),
+    ggplot2::scale_shape_manual(name = NULL, values = c("Optimum" = 18, "Edge maximum" = 5, "Period mean" = 21))
+  )
+}
+
 #' Plot fitness functions and landscapes over time
 #'
 #' @param tl Output of \code{temporal_landscape()}.
@@ -15,7 +32,12 @@
 #' @param show_points Logical; draw the individuals in each panel.
 #' @param show_landscape Logical; for one trait, also draw each period's
 #'   adaptive landscape as a dashed curve.
-#' @param show_optimum Logical; mark the highest fitted fitness in each period.
+#' @param show_optimum Logical; mark the highest fitted fitness in each period,
+#'   as a gold diamond when it lies inside the data and an open one when it
+#'   sits at the edge of the range.
+#' @param connect Logical; in the heat map, join the highest fitness of
+#'   successive periods with a line. Default is \code{FALSE}, since a maximum at
+#'   the edge of the range is not a peak.
 #' @param bins Contour bins for two-trait panels.
 #' @param ncol Number of panel columns.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
@@ -34,6 +56,7 @@ plot_temporal_landscape <- function(
   show_points = TRUE,
   show_landscape = TRUE,
   show_optimum = TRUE,
+  connect = FALSE,
   bins = 10,
   ncol = NULL,
   ...
@@ -70,11 +93,11 @@ plot_temporal_landscape <- function(
                     subtitle = "Blank where a period has no individuals", ...) +
       theme_plain
     if (show_optimum) {
-      p <- p +
-        ggplot2::geom_path(data = s, ggplot2::aes(x = .data[[paste0("optimum_", tr)]], y = .data$time, group = 1),
-                           colour = "white", linewidth = 0.5, inherit.aes = FALSE) +
-        ggplot2::geom_point(data = s, ggplot2::aes(x = .data[[paste0("optimum_", tr)]], y = .data$time),
-                            colour = "gold", shape = 18, size = 3.5, inherit.aes = FALSE)
+      if (connect) {
+        p <- p + ggplot2::geom_path(data = s, ggplot2::aes(x = .data[[paste0("optimum_", tr)]], y = .data$time, group = 1),
+                                    colour = "white", linewidth = 0.5, inherit.aes = FALSE)
+      }
+      p <- p + .period_optima(s, paste0("optimum_", tr), "time")
     }
     return(p)
   }
@@ -100,8 +123,7 @@ plot_temporal_landscape <- function(
                                   linetype = "dashed", linewidth = 0.7, inherit.aes = FALSE)
     }
     if (show_optimum) {
-      p <- p + ggplot2::geom_point(data = s, ggplot2::aes(x = .data[[paste0("optimum_", tr)]], y = .data$optimum_fit),
-                                   colour = "gold", shape = 18, size = 3.5, inherit.aes = FALSE)
+      p <- p + .period_optima(s, paste0("optimum_", tr), "optimum_fit")
     }
     p <- p +
       ggplot2::facet_wrap(~ time, ncol = ncol) +
@@ -142,12 +164,12 @@ plot_temporal_landscape <- function(
   }
   p <- p + ggplot2::geom_point(data = s, ggplot2::aes(x = .data[[paste0("mean_", tr[1])]], y = .data[[paste0("mean_", tr[2])]], shape = "Period mean"),
                                fill = "white", colour = "black", size = 2.6, inherit.aes = FALSE)
-  if (show_optimum) {
-    p <- p + ggplot2::geom_point(data = s, ggplot2::aes(x = .data[[paste0("optimum_", tr[1])]], y = .data[[paste0("optimum_", tr[2])]], shape = "Optimum"),
-                                 colour = "gold", size = 3.5, inherit.aes = FALSE)
+  p <- p + if (show_optimum) {
+    .period_optima(s, paste0("optimum_", tr[1]), paste0("optimum_", tr[2]))
+  } else {
+    ggplot2::scale_shape_manual(name = NULL, values = c("Period mean" = 21))
   }
   p +
-    ggplot2::scale_shape_manual(name = NULL, values = c("Optimum" = 18, "Period mean" = 21)) +
     ggplot2::facet_wrap(~ time, ncol = ncol) +
     ggplot2::labs(x = tr[1], y = tr[2], fill = "Fitness", title = "Fitness surface by period", ...) +
     theme_plain

@@ -10,6 +10,7 @@ plot_temporal_landscape(
   show_points = TRUE,
   show_landscape = TRUE,
   show_optimum = TRUE,
+  connect = FALSE,
   bins = 10,
   ncol = NULL,
   ...
@@ -29,7 +30,13 @@ fitness in each period marked.}
 \item{show_landscape}{Logical; for one trait, also draw each period's
 adaptive landscape as a dashed curve.}
 
-\item{show_optimum}{Logical; mark the highest fitted fitness in each period.}
+\item{show_optimum}{Logical; mark the highest fitted fitness in each period,
+as a gold diamond when it lies inside the data and an open one when it
+sits at the edge of the range.}
+
+\item{connect}{Logical; in the heat map, join the highest fitness of
+successive periods with a line. Default is \code{FALSE}, since a maximum at
+the edge of the range is not a peak.}
 
 \item{bins}{Contour bins for two-trait panels.}
 

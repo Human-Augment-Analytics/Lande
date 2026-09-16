@@ -8,7 +8,8 @@ First release.
 * Cubic spline fitness functions with a bootstrap band, two-trait fitness
   surfaces drawn only where there are data, and adaptive landscapes of mean
   fitness for one or two traits.
-* Several groups on one surface, with each group's mean and local peak marked.
+* Several groups on one surface, with each group's mean and highest point
+  marked, and interior peaks told from maxima at the edge of the data.
 * Fitness functions and landscapes fitted period by period.
 * Bootstrap standard errors and percentile intervals for the gradients.
 * Assumption checks in one table: multivariate normality of the traits, VIF,

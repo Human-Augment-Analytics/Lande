@@ -62,7 +62,8 @@ traits.}
 An object of class \code{"temporal_landscape"}: \code{fits} and
   \code{landscapes}, one per period; \code{summary}, one row per period
   with n, mean fitness, trait means, the smooth's degrees of freedom, the
-  position and height of the highest fitted fitness, the number of interior
+  position and height of the highest fitted fitness and whether it sits at
+  the edge of the data (\code{optimum_edge}), the number of interior
   peaks (one trait) and the landscape optimum; \code{grid}, the fitted
   values of every period stacked with a \code{time} column; for one trait
   \code{heat}, each period's fitness function on one common trait grid,

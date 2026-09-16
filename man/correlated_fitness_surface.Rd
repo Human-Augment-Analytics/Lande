@@ -78,10 +78,17 @@ default), predictions are held inside the range of the fitness type, 0 to
 does. The GAM respects the range through its link and is unaffected.}
 }
 \value{
-A list containing the fitted model, grid predictions, and metadata:
-  \code{original_data} holds the rows that were analysed, and with a
-  \code{group} the \code{groups} data frame has one row per group with its
-  size, mean traits and local peak.
+A list containing the fitted model, grid predictions, and metadata.
+  \code{peaks} lists the local maxima of the kept surface, highest first,
+  with \code{interior} \code{TRUE} when every neighbouring cell is kept and
+  lower, and \code{FALSE} when the maximum sits against the edge of the
+  data, which may only be where the data end. \code{original_data}
+  holds the rows that were analysed. With a \code{group} the \code{groups}
+  data frame has one row per group with its size, mean traits and the
+  highest point of the surface within its own range, flagged
+  \code{peak_interior} when that point is an interior maximum of the
+  surface and \code{peak_edge} when it lies at the edge of the data; with
+  both \code{FALSE} the surface keeps rising past the group's range.
 }
 \description{
 Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).

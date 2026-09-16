@@ -130,7 +130,8 @@ test_that("a grouped surface reports each group's mean and local peak", {
 
   s <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 25, method = "gam", group = "sp"))
   g <- s$groups
-  expect_equal(names(g), c("group", "n", "mean_z1", "mean_z2", "peak_z1", "peak_z2", "peak_fit"))
+  expect_equal(names(g), c("group", "n", "mean_z1", "mean_z2", "peak_z1", "peak_z2", "peak_fit",
+                           "peak_interior", "peak_edge"))
   expect_equal(g$group, c("a", "b"))
   expect_equal(g$n, c(n / 2, n / 2))
   expect_equal(g$mean_z1, as.numeric(tapply(df$z1, df$sp, mean)))

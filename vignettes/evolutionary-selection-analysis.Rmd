@@ -628,7 +628,7 @@ correlated_fitness_surface(
 
 **Masking:** the fitted surface is evaluated on a rectangular grid, and the corners of that rectangle are usually places no individual occupies. With `mask = TRUE` grid points outside the convex hull of the observed trait pairs get `NA` fitness, so the optimum is found within the data, and the plots draw the surface up to the hull and leave the outside blank. The grid keeps the unmasked predictions in `.fit_all`, records which points were kept in `.inside`, and the result carries the hull polygon in `$hull`. The hull still bridges gaps between separate clusters of individuals, such as two species on one surface. `too_far` adds the distance rule from `mgcv::vis.gam`: after scaling the grid to the unit square, cells farther than `too_far` from the nearest individual are blanked as well, and the distance is kept in `.dist`. Beausoleil et al. (2023) used 0.15. The default applies no distance rule.
 
-**Groups:** with `group` the GAM includes the column as a fixed effect and predicts the surface at the reference level, as the gradient models do for year or site. `group_effect = FALSE` fits one surface to everyone and uses the group only for the overlay, which is what a community surface of several species needs. The result's `$groups` table gives, for each group, its size, its mean of both traits and the highest point of the surface within that group's own convex hull. The plots mark the means as labelled open circles and the local peaks as filled triangles, which is how Beausoleil et al. (2023) placed several species on one surface.
+**Groups:** with `group` the GAM includes the column as a fixed effect and predicts the surface at the reference level, as the gradient models do for year or site. `group_effect = FALSE` fits one surface to everyone and uses the group only for the overlay, which is what a community surface of several species needs. The result's `$groups` table gives, for each group, its size, its mean of both traits and the highest point of the surface within that group's own convex hull, with `peak_interior` saying whether that point is a peak of the surface and `peak_edge` whether it sits at the edge of the data; when both are `FALSE` the surface keeps rising past the group's range. The plots mark the means as labelled open circles and the peaks as triangles, filled for a peak and open otherwise, which is how Beausoleil et al. (2023) placed several species on one surface. `$peaks` lists every local maximum of the kept surface the same way, and the gold optimum becomes an open diamond when the highest cell sits at the edge of the data.
 
 **Returns:** List containing:
 
@@ -636,7 +636,8 @@ correlated_fitness_surface(
 - `$grid`: Data frame with trait values, predicted fitness (`.fit`, masked), `.fit_all` and `.inside`
 - `$hull`: The convex hull of the data, used by the plots
 - `$original_data`: The rows that were analysed
-- `$groups`: With `group`, one row per group with its mean traits and local peak
+- `$peaks`: The local maxima of the kept surface, highest first, `interior` `TRUE` for a peak inside the data, `FALSE` for a maximum at its edge
+- `$groups`: With `group`, one row per group with its mean traits and highest point, flagged `peak_interior` and `peak_edge`
 - `$method`: Method used
 - `$k`: Basis dimension used (GAM method)
 - `$data_type`: "binary", "count" or "continuous"
@@ -663,8 +664,8 @@ plot_correlated_fitness(
   tps,                  # Output from correlated_fitness_surface()
   trait_cols,           # The two trait names
   bins = 12,            # Number of contour bins
-  show_optimum = TRUE,  # Mark the highest predicted fitness
-  show_groups = TRUE,   # Mark group means and local peaks when the surface has a group
+  show_optimum = TRUE,  # Mark the highest fitness: gold diamond inside the data, open at its edge
+  show_groups = TRUE,   # Mark group means and highest points when the surface has a group
   group_lines = TRUE,   # Dashed line from each group's mean to its peak
   ...                   # Passed to ggplot2::labs(), e.g. title or fill
 )
@@ -917,7 +918,7 @@ plot_temporal_landscape(
 )
 ```
 
-**Returns:** a list with one fit and one landscape per period, a `summary` table (n, mean fitness, trait means, the smooth's degrees of freedom, the position and height of the highest fitness, the number of interior peaks for one trait, and the landscape optimum), the fitted values of every period stacked in `grid`, for one trait the fitness functions on a common grid in `heat` (blank where a period has no individuals), and the periods skipped for having fewer than `min_n` rows.
+**Returns:** a list with one fit and one landscape per period, a `summary` table (n, mean fitness, trait means, the smooth's degrees of freedom, the position and height of the highest fitness and whether it sits at the edge of the data, the number of interior peaks for one trait, and the landscape optimum), the fitted values of every period stacked in `grid`, for one trait the fitness functions on a common grid in `heat` (blank where a period has no individuals), and the periods skipped for having fewer than `min_n` rows.
 
 Standardise the traits once, over all periods, before calling: the periods must share one trait axis, so nothing is restandardised per period. The number of peaks depends on the basis size `k` as any spline feature does; treat it as a description of the fitted curve, and test disruptive selection with the quadratic gradient on the birds between the peaks as Beausoleil et al. (2019) did.
 

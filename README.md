@@ -63,7 +63,8 @@ plot_correlated_fitness(surf, c("weight", "total_length"), show_points = TRUE)
 `too_far` also blanks cells farther than a share of the axis range from any
 individual, as in Beausoleil et al. (2023). With `group` set and
 `group_effect = FALSE` one surface is fitted to everyone and each group's mean
-and local peak are marked, which puts several species on one surface.
+and highest point are marked, which puts several species on one surface. The
+highest point is filled for a peak and open otherwise.
 
 ## Adaptive landscapes
 

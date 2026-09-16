@@ -77,9 +77,32 @@
 )
 
 #' @noRd
+# internal utility: gold diamond for the optimum, open if it is on the edge
+.optimum_layer <- function(tps, df, trait1, trait2, fit_col) {
+  col <- if (".fit" %in% names(df)) ".fit" else fit_col
+  d <- df[!is.na(df[[col]]), , drop = FALSE]
+  if (!nrow(d)) return(NULL)
+  opt <- d[which.max(d[[col]]), , drop = FALSE]
+  pk <- tps$peaks
+  interior <- if (is.null(pk) || !nrow(pk)) TRUE else {
+    same <- abs(pk[[trait1]] - opt[[trait1]]) < 1e-8 & abs(pk[[trait2]] - opt[[trait2]]) < 1e-8
+    any(same & pk$interior)
+  }
+  if (interior) {
+    ggplot2::geom_point(data = opt, ggplot2::aes(x = .data[[trait1]], y = .data[[trait2]], shape = "Optimum"),
+                        colour = "gold", size = 4, inherit.aes = FALSE)
+  } else {
+    ggplot2::geom_point(data = opt, ggplot2::aes(x = .data[[trait1]], y = .data[[trait2]], shape = "Edge maximum"),
+                        colour = "black", size = 3.5, stroke = 0.9, inherit.aes = FALSE)
+  }
+}
+
+#' @noRd
 # internal utility: group means (open circles, labelled) and the highest
-# point of the surface within each group's hull (filled triangles), joined by
-# a dashed line. Only present when the surface was fitted with a group.
+# point of the surface within each group's hull, a filled triangle when that
+# point is a peak of the surface and an open one when the surface keeps
+# rising past the group's range or the edge of the data, joined to the mean
+# by a dashed line. Only present when the surface was fitted with a group.
 .group_layers <- function(tps, trait1, trait2, lines = TRUE) {
   g <- tps$groups
   if (is.null(g) || !nrow(g)) return(NULL)
@@ -89,6 +112,10 @@
   p2 <- paste0("peak_", trait2)
   if (!all(c(m1, m2, p1, p2) %in% names(g))) return(NULL)
   with_peak <- g[!is.na(g[[p1]]), , drop = FALSE]
+  # surfaces fitted before the flag existed have no peak_interior column
+  is_peak <- if ("peak_interior" %in% names(with_peak)) with_peak$peak_interior %in% TRUE else rep(TRUE, nrow(with_peak))
+  peaks <- with_peak[is_peak, , drop = FALSE]
+  edges <- with_peak[!is_peak, , drop = FALSE]
   list(
     if (lines) ggplot2::geom_segment(
       data = with_peak,
@@ -99,9 +126,13 @@
       data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], shape = "Group mean"),
       fill = "white", colour = "black", size = 3, inherit.aes = FALSE
     ),
-    ggplot2::geom_point(
-      data = with_peak, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group peak"),
+    if (nrow(peaks)) ggplot2::geom_point(
+      data = peaks, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group peak"),
       fill = "black", colour = "white", size = 2.8, inherit.aes = FALSE
+    ),
+    if (nrow(edges)) ggplot2::geom_point(
+      data = edges, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group edge maximum"),
+      colour = "black", size = 2.6, stroke = 0.9, inherit.aes = FALSE
     ),
     ggplot2::geom_text(
       data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], label = .data$group),
@@ -111,12 +142,13 @@
 }
 
 #' @noRd
-# one key for the marks drawn on a surface: the optimum and, with a group,
-# the group means and peaks. Only the marks present appear in it.
+# one key for the marks drawn on a surface: the optimum, or the highest cell
+# when it sits at the edge, and, with a group, the group means and peaks.
+# Only the marks present appear in it.
 .mark_key <- function() {
   ggplot2::scale_shape_manual(
     name = NULL,
-    values = c("Optimum" = 18, "Group mean" = 21, "Group peak" = 24),
+    values = c("Optimum" = 18, "Edge maximum" = 5, "Group mean" = 21, "Group peak" = 24, "Group edge maximum" = 2),
     guide = ggplot2::guide_legend(order = 1)
   )
 }
@@ -128,10 +160,13 @@
 #' @param bins Integer specifying the number of contour bins. Default is 12.
 #' @param point_alpha Numeric value for point transparency. Default is 0.7.
 #' @param show_points Logical indicating whether to show original data points. Default is \code{FALSE}.
-#' @param show_optimum Logical indicating whether to mark the optimum point. Default is \code{TRUE}.
+#' @param show_optimum Logical; mark the highest kept cell, a gold diamond, or
+#'   an open one when it is on the edge of the data. Default is \code{TRUE}.
 #' @param show_groups Logical; when the surface was fitted with a \code{group},
 #'   draw each group's mean (open circle, labelled) and the highest point of
-#'   the surface within that group's hull (filled triangle). Default is \code{TRUE}.
+#'   the surface within that group's hull: a filled triangle when it is a
+#'   peak of the surface, an open one when the surface keeps rising past the
+#'   group's range or the edge of the data. Default is \code{TRUE}.
 #' @param group_lines Logical; join each group's mean to its peak with a dashed
 #'   line. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
@@ -244,17 +279,7 @@ plot_correlated_fitness <- function(
   }
 
   if (show_optimum) {
-    opt <- df[which.max(df[[fitness_col]]), ]
-    p <- p + ggplot2::geom_point(
-      data = opt,
-      ggplot2::aes(
-        x = .data[[trait_cols[1]]],
-        y = .data[[trait_cols[2]]],
-        shape = "Optimum"
-      ),
-      color = "gold",
-      size = 4
-    )
+    p <- p + .optimum_layer(tps, df, trait_cols[1], trait_cols[2], fitness_col)
   }
 
   if (show_groups) {
@@ -279,10 +304,10 @@ plot_correlated_fitness <- function(
 #' @param fitness_col Optional character string specifying the fitness column for coloring points.
 #' @param bins Integer specifying the number of contour bins. Default is 12.
 #' @param point_alpha Numeric value for point transparency. Default is 0.7.
-#' @param show_optimum Logical indicating whether to mark the optimum point. Default is \code{TRUE}.
 #' @param show_groups Logical; when the surface was fitted with a \code{group},
 #'   draw each group's mean and the highest point of the surface within that
-#'   group's hull. Default is \code{TRUE}.
+#'   group's hull, filled when it is a peak of the surface and open when it
+#'   is not. Default is \code{TRUE}.
 #' @param group_lines Logical; join each group's mean to its peak with a dashed
 #'   line. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
@@ -423,18 +448,7 @@ plot_correlated_fitness_enhanced <- function(
   }
 
   if (show_optimum) {
-    opt <- df[which.max(df[[fit_col]]), ]
-    p <- p +
-      ggplot2::geom_point(
-        data = opt,
-        ggplot2::aes(
-          x = .data[[trait1]],
-          y = .data[[trait2]],
-          shape = "Optimum"
-        ),
-        color = "gold",
-        size = 4
-      )
+    p <- p + .optimum_layer(tps, df, trait1, trait2, fit_col)
   }
 
   if (show_groups) {

@@ -27,11 +27,14 @@ plot_correlated_fitness(
 
 \item{show_points}{Logical indicating whether to show original data points. Default is \code{FALSE}.}
 
-\item{show_optimum}{Logical indicating whether to mark the optimum point. Default is \code{TRUE}.}
+\item{show_optimum}{Logical; mark the highest kept cell, a gold diamond, or
+an open one when it is on the edge of the data. Default is \code{TRUE}.}
 
 \item{show_groups}{Logical; when the surface was fitted with a \code{group},
 draw each group's mean (open circle, labelled) and the highest point of
-the surface within that group's hull (filled triangle). Default is \code{TRUE}.}
+the surface within that group's hull: a filled triangle when it is a
+peak of the surface, an open one when the surface keeps rising past the
+group's range or the edge of the data. Default is \code{TRUE}.}
 
 \item{group_lines}{Logical; join each group's mean to its peak with a dashed
 line. Default is \code{TRUE}.}

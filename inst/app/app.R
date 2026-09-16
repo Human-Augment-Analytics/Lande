@@ -315,7 +315,7 @@ ui <- fluidPage(
               sliderInput("point_alpha", "Opacity of the individuals", 0.05, 1, 0.5, step = 0.05))),
             column(6, selectInput("theme", "Colours", names(THEMES)))),
           plotOutput("surf_plot", height = "500px"),
-          div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range."),
+          div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range: filled when it is a peak of the surface, open when the surface keeps rising past the group's range or the edge of the data."),
           downloadButton("dl_surfplot", "Download plot (PNG)")),
         tabPanel("Adaptive landscape",
           br(), div(class = "interp", textOutput("opt_txt")),

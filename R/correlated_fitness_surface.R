@@ -65,10 +65,49 @@
 }
 
 #' @noRd
+# internal utility: the local maxima of the kept surface. A kept cell is a
+# local maximum when it is higher than every kept neighbour in its 3 x 3
+# block, and an edge cell when any neighbour is masked or off the grid, so a
+# maximum there may only be the edge of the data. Returns the maxima as a
+# table, highest first, and the two flags for every grid row.
+.cell_states <- function(grid, trait_cols) {
+  gx <- grid[[trait_cols[1]]]
+  gy <- grid[[trait_cols[2]]]
+  ux <- sort(unique(gx))
+  uy <- sort(unique(gy))
+  ix <- match(gx, ux)
+  iy <- match(gy, uy)
+  M <- matrix(NA_real_, length(ux), length(uy))
+  M[cbind(ix, iy)] <- grid$.fit
+  nx <- nrow(M)
+  ny <- ncol(M)
+  kept <- !is.na(M)
+  P <- matrix(NA_real_, nx + 2, ny + 2)
+  P[2:(nx + 1), 2:(ny + 1)] <- M
+  is_max <- kept
+  on_edge <- matrix(FALSE, nx, ny)
+  for (dx in -1:1) for (dy in -1:1) {
+    if (dx == 0 && dy == 0) next
+    N <- P[(2:(nx + 1)) + dx, (2:(ny + 1)) + dy]
+    on_edge <- on_edge | (kept & is.na(N))
+    is_max <- is_max & (is.na(N) | M > N)
+  }
+  idx <- which(is_max, arr.ind = TRUE)
+  maxima <- data.frame(ux[idx[, 1]], uy[idx[, 2]], fit = M[idx], interior = !on_edge[idx])
+  names(maxima)[1:2] <- trait_cols
+  maxima <- maxima[order(-maxima$fit), , drop = FALSE]
+  rownames(maxima) <- NULL
+  cell <- cbind(ix, iy)
+  list(maxima = maxima, is_max = is_max[cell], on_edge = on_edge[cell])
+}
+
+#' @noRd
 # internal utility: for each group, the mean of the two traits and the
 # highest point of the masked surface within that group's own convex hull,
-# which is where a species or year sits on a shared surface.
-.group_peaks <- function(grid, trait_cols, x, y, grp) {
+# which is where a species or year sits on a shared surface. peak_interior
+# says whether that point is a peak of the surface, peak_edge whether it
+# sits at the edge of the data.
+.group_peaks <- function(grid, trait_cols, x, y, grp, states) {
   gx <- grid[[trait_cols[1]]]
   gy <- grid[[trait_cols[2]]]
   seen <- grp[!is.na(grp)]
@@ -76,6 +115,8 @@
   rows <- lapply(levels_used, function(g) {
     sel <- !is.na(grp) & grp == g
     peak <- rep(NA_real_, 3)
+    interior <- NA
+    edge <- NA
     if (sum(sel) >= 3 && length(unique(x[sel])) >= 2 && length(unique(y[sel])) >= 2) {
       h <- .data_hull(x[sel], y[sel])
       if (nrow(h) >= 4) {
@@ -83,14 +124,18 @@
         if (any(inside)) {
           i <- which(inside)[which.max(grid$.fit[inside])]
           peak <- c(gx[i], gy[i], grid$.fit[i])
+          interior <- states$is_max[i] && !states$on_edge[i]
+          edge <- states$on_edge[i]
         }
       }
     }
     data.frame(group = as.character(g), n = sum(sel), m1 = mean(x[sel]), m2 = mean(y[sel]),
-               p1 = peak[1], p2 = peak[2], peak_fit = peak[3], stringsAsFactors = FALSE)
+               p1 = peak[1], p2 = peak[2], peak_fit = peak[3], peak_interior = interior, peak_edge = edge,
+               stringsAsFactors = FALSE)
   })
   out <- do.call(rbind, rows)
-  names(out) <- c("group", "n", paste0("mean_", trait_cols), paste0("peak_", trait_cols), "peak_fit")
+  names(out) <- c("group", "n", paste0("mean_", trait_cols), paste0("peak_", trait_cols), "peak_fit",
+                  "peak_interior", "peak_edge")
   rownames(out) <- NULL
   out
 }
@@ -158,10 +203,17 @@
 #'   still fills gaps between separate clusters of individuals, such as
 #'   several species on one surface; \code{too_far} blanks those too.
 #'
-#' @return A list containing the fitted model, grid predictions, and metadata:
-#'   \code{original_data} holds the rows that were analysed, and with a
-#'   \code{group} the \code{groups} data frame has one row per group with its
-#'   size, mean traits and local peak.
+#' @return A list containing the fitted model, grid predictions, and metadata.
+#'   \code{peaks} lists the local maxima of the kept surface, highest first,
+#'   with \code{interior} \code{TRUE} when every neighbouring cell is kept and
+#'   lower, and \code{FALSE} when the maximum sits against the edge of the
+#'   data, which may only be where the data end. \code{original_data}
+#'   holds the rows that were analysed. With a \code{group} the \code{groups}
+#'   data frame has one row per group with its size, mean traits and the
+#'   highest point of the surface within its own range, flagged
+#'   \code{peak_interior} when that point is an interior maximum of the
+#'   surface and \code{peak_edge} when it lies at the edge of the data; with
+#'   both \code{FALSE} the surface keeps rising past the group's range.
 #' @export
 #'
 #' @examples
@@ -426,10 +478,12 @@ correlated_fitness_surface <- function(
 
     message("Predictions range: ", paste(round(range(grid$.fit), 4), collapse = " to "))
     grid <- .mask_grid(grid, hull, trait_cols, mask, x1, x2, too_far)
+    states <- .cell_states(grid, trait_cols)
 
     result <- list(
       model = fit,
       grid = grid,
+      peaks = states$maxima,
       method = "gam",
       formula_used = formula_used,
       k = k_adj,
@@ -439,7 +493,7 @@ correlated_fitness_surface <- function(
       too_far = too_far,
       hull = hull_df,
       original_data = pts,
-      groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp) else NULL,
+      groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp, states) else NULL,
       group_effect = if (!is.null(group)) use_effect else NULL,
       data_type = data_type,
       trait_cols = trait_cols,
@@ -489,17 +543,19 @@ correlated_fitness_surface <- function(
     grid$.fit[is.na(grid$.fit)] <- mean(grid$.fit, na.rm = TRUE)
   }
   grid <- .mask_grid(grid, hull, trait_cols, mask, x1, x2, too_far)
+  states <- .cell_states(grid, trait_cols)
 
   result <- list(
     model = tps_model,
     grid = grid,
+    peaks = states$maxima,
     method = "tps",
     clamp = isTRUE(clamp),
     mask = mask,
     too_far = too_far,
     hull = hull_df,
     original_data = pts,
-    groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp) else NULL,
+    groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp, states) else NULL,
     group_effect = if (!is.null(group)) FALSE else NULL,
     data_type = data_type,
     trait_cols = trait_cols,
@@ -510,4 +566,26 @@ correlated_fitness_surface <- function(
   )
   class(result) <- "correlated_fitness"
   return(result)
+}
+
+#' @export
+print.correlated_fitness <- function(x, ...) {
+  tr <- x$trait_cols
+  cat("Fitness surface for", tr[1], "and", tr[2], "by",
+      if (identical(x$method, "tps")) "thin-plate spline" else "GAM",
+      "on", nrow(x$original_data), "individuals;",
+      sum(!is.na(x$grid$.fit)), "of", nrow(x$grid), "grid cells kept\n")
+  pk <- x$peaks
+  if (!is.null(pk)) {
+    n_in <- sum(pk$interior)
+    n_edge <- sum(!pk$interior)
+    cat(n_in, if (n_in == 1) "interior peak," else "interior peaks,",
+        n_edge, if (n_edge == 1) "edge maximum\n" else "edge maxima\n")
+    if (nrow(pk)) print(pk, row.names = FALSE, digits = 3)
+  }
+  if (!is.null(x$groups)) {
+    cat("Groups:\n")
+    print(x$groups, row.names = FALSE, digits = 3)
+  }
+  invisible(x)
 }
