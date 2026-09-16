@@ -14,7 +14,11 @@ library(RforEvolution)
 library(ggplot2)
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
-have <- function(pkg) requireNamespace(pkg, quietly = TRUE)
+# spelled out so rsconnect picks them up
+has_fields <- requireNamespace("fields", quietly = TRUE)
+has_plotly <- requireNamespace("plotly", quietly = TRUE)
+has_car <- requireNamespace("car", quietly = TRUE)
+has_performance <- requireNamespace("performance", quietly = TRUE)
 
 # fixed seed for the random steps; restores the RNG afterwards
 with_seed <- function(seed, expr) {
@@ -609,7 +613,7 @@ server <- function(input, output, session) {
   })
   surfaces <- reactive({
     s <- setup(); tr <- surf_traits()
-    if (s$surf_method == "tps" && !have("fields")) validate("Thin-plate spline needs the 'fields' package; switch to GAM in Advanced settings.")
+    if (s$surf_method == "tps" && !has_fields) validate("Thin-plate spline needs the 'fields' package; switch to GAM in Advanced settings.")
     surf <- suppressWarnings(suppressMessages(
       correlated_fitness_surface(s$prep, s$fit, tr, method = s$surf_method, grid_n = s$surf_grid, mask = !s$surf_full,
                                  too_far = s$surf_far, group = s$group, group_effect = s$within_group,
@@ -665,12 +669,12 @@ server <- function(input, output, session) {
   })
   output$land_plot <- renderPlot(land_plot_obj())
   output$land3d_ui <- renderUI({
-    if (have("plotly")) plotly::plotlyOutput("land3d_plotly", height = "420px")
+    if (has_plotly) plotly::plotlyOutput("land3d_plotly", height = "420px")
     else plotOutput("land3d", height = "420px")
   })
   output$land3d <- renderPlot({
     sf <- surfaces()
-    if (!have("fields")) { plot.new(); text(0.5, 0.5, "3D view needs the 'fields' or 'plotly' package"); return() }
+    if (!has_fields) { plot.new(); text(0.5, 0.5, "3D view needs the 'fields' or 'plotly' package"); return() }
     plot_adaptive_landscape_3d(sf$land, sf$traits, color_palette = theme_of(input$land_theme)$ramp(100))
   })
   output$land3d_plotly <- plotly::renderPlotly({
