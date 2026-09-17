@@ -1647,8 +1647,10 @@ fitness surfaces.</p>
 <span id="cb23-6"><a href="#cb23-6" tabindex="-1"></a>  <span class="at">population_variance =</span> <span class="cn">NULL</span>,<span class="co"># Within-population variance-covariance matrix</span></span>
 <span id="cb23-7"><a href="#cb23-7" tabindex="-1"></a>  <span class="at">simulation_n =</span> <span class="dv">1000</span>,       <span class="co"># Number of individuals to simulate per grid point</span></span>
 <span id="cb23-8"><a href="#cb23-8" tabindex="-1"></a>  <span class="at">grid_n =</span> <span class="dv">50</span>,               <span class="co"># Grid resolution (grid_n × grid_n)</span></span>
-<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>  <span class="at">custom_range =</span> <span class="cn">NULL</span>        <span class="co"># Optional custom range for population means</span></span>
-<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb23-9"><a href="#cb23-9" tabindex="-1"></a>  <span class="at">custom_range =</span> <span class="cn">NULL</span>,       <span class="co"># Optional custom range for population means</span></span>
+<span id="cb23-10"><a href="#cb23-10" tabindex="-1"></a>  <span class="at">clamp =</span> <span class="cn">TRUE</span>,              <span class="co"># Hold thin-plate fitness within the range of the fitness type</span></span>
+<span id="cb23-11"><a href="#cb23-11" tabindex="-1"></a>  <span class="at">support_warn =</span> <span class="fl">0.25</span>        <span class="co"># Share outside the data at the optimum that draws a note</span></span>
+<span id="cb23-12"><a href="#cb23-12" tabindex="-1"></a>)</span></code></pre></div>
 <p><strong>Calculation Steps:</strong></p>
 <ol style="list-style-type: decimal">
 <li>Create grid of possible population means (<span class="math inline">\(\bar{z}_1\)</span>, <span class="math inline">\(\bar{z}_2\)</span>) across the trait range</li>
@@ -1661,12 +1663,21 @@ model</li>
 \frac{1}{N}\sum \hat{w}_{\text{ind}}\)</span></li>
 <li>Find optimum - the population mean that maximises <span class="math inline">\(\bar{W}\)</span></li>
 </ol>
+<p>The simulated populations spread beyond the data, more so towards the
+edge of the grid, and the fitness of those individuals is extrapolated.
+The function reports how far this goes, as the share of each simulated
+population falling outside the convex hull of the observed traits, and
+says so when the optimum rests on it.</p>
 <p><strong>Returns:</strong></p>
 <ul>
 <li><code>$grid</code>: Population means with mean fitness
 (<code>.mean_fit</code>); with one trait also the fitness function at
 those means (<code>.ind_fit</code>)</li>
 <li><code>$optimum</code>: Population mean with highest fitness</li>
+<li><code>$support</code>: Share of simulated individuals outside the
+data, over the grid (<code>outside</code>) and at the optimum
+(<code>at_optimum</code>); per population mean in the grid’s
+<code>.outside</code></li>
 <li><code>$actual_population_means</code>: Actual means (if group_col
 provided)</li>
 </ul>
@@ -1691,6 +1702,7 @@ and the result is a curve rather than a surface.</p>
 <th align="right">size</th>
 <th align="right">colour</th>
 <th align="right">.mean_fit</th>
+<th align="right">.outside</th>
 </tr>
 </thead>
 <tbody>
@@ -1699,6 +1711,7 @@ and the result is a curve rather than a surface.</p>
 <td align="right">-0.5666342</td>
 <td align="right">-0.1465932</td>
 <td align="right">0.5624699</td>
+<td align="right">0.138</td>
 </tr>
 </tbody>
 </table>
@@ -1718,15 +1731,17 @@ function drawn dashed alongside it.</p>
 <span id="cb25-6"><a href="#cb25-6" tabindex="-1"></a>  <span class="at">bins =</span> <span class="dv">12</span>,                  <span class="co"># Number of contour bins</span></span>
 <span id="cb25-7"><a href="#cb25-7" tabindex="-1"></a>  <span class="at">show_optimum =</span> <span class="cn">TRUE</span>,        <span class="co"># Show optimal population mean (gold diamond)</span></span>
 <span id="cb25-8"><a href="#cb25-8" tabindex="-1"></a>  <span class="at">show_actual_means =</span> <span class="cn">TRUE</span>,   <span class="co"># Show actual population means (red points)</span></span>
-<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>  <span class="at">show_individual =</span> <span class="cn">TRUE</span>      <span class="co"># One trait: also draw the fitness function</span></span>
-<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>)</span>
-<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a></span>
-<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a><span class="fu">plot_adaptive_landscape_3d</span>(</span>
-<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a>  landscape,                  <span class="co"># Output from adaptive_landscape()</span></span>
-<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a>  trait_cols,                 <span class="co"># Two trait column names</span></span>
-<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a>  <span class="at">theta =</span> <span class="sc">-</span><span class="dv">30</span>,                <span class="co"># Azimuthal rotation angle</span></span>
-<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a>  <span class="at">phi =</span> <span class="dv">30</span>                    <span class="co"># Colatitude tilt angle</span></span>
-<span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb25-9"><a href="#cb25-9" tabindex="-1"></a>  <span class="at">show_individual =</span> <span class="cn">TRUE</span>,     <span class="co"># One trait: also draw the fitness function</span></span>
+<span id="cb25-10"><a href="#cb25-10" tabindex="-1"></a>  <span class="at">show_support =</span> <span class="cn">FALSE</span>,       <span class="co"># Mark where most of the simulated population leaves the data</span></span>
+<span id="cb25-11"><a href="#cb25-11" tabindex="-1"></a>  <span class="at">support_level =</span> <span class="fl">0.5</span>         <span class="co"># The share outside the data at which that line is drawn</span></span>
+<span id="cb25-12"><a href="#cb25-12" tabindex="-1"></a>)</span>
+<span id="cb25-13"><a href="#cb25-13" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" tabindex="-1"></a><span class="fu">plot_adaptive_landscape_3d</span>(</span>
+<span id="cb25-15"><a href="#cb25-15" tabindex="-1"></a>  landscape,                  <span class="co"># Output from adaptive_landscape()</span></span>
+<span id="cb25-16"><a href="#cb25-16" tabindex="-1"></a>  trait_cols,                 <span class="co"># Two trait column names</span></span>
+<span id="cb25-17"><a href="#cb25-17" tabindex="-1"></a>  <span class="at">theta =</span> <span class="sc">-</span><span class="dv">30</span>,                <span class="co"># Azimuthal rotation angle</span></span>
+<span id="cb25-18"><a href="#cb25-18" tabindex="-1"></a>  <span class="at">phi =</span> <span class="dv">30</span>                    <span class="co"># Colatitude tilt angle</span></span>
+<span id="cb25-19"><a href="#cb25-19" tabindex="-1"></a>)</span></code></pre></div>
 <p><strong>Example:</strong></p>
 <div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">plot_adaptive_landscape</span>(</span>
 <span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a>  <span class="at">landscape =</span> landscape,</span>

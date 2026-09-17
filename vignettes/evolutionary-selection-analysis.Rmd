@@ -715,7 +715,9 @@ adaptive_landscape(
   population_variance = NULL,# Within-population variance-covariance matrix
   simulation_n = 1000,       # Number of individuals to simulate per grid point
   grid_n = 50,               # Grid resolution (grid_n × grid_n)
-  custom_range = NULL        # Optional custom range for population means
+  custom_range = NULL,       # Optional custom range for population means
+  clamp = TRUE,              # Hold thin-plate fitness within the range of the fitness type
+  support_warn = 0.25        # Share outside the data at the optimum that draws a note
 )
 ```
 
@@ -728,10 +730,13 @@ adaptive_landscape(
 5. Calculate mean fitness $\bar{W} = \frac{1}{N}\sum \hat{w}_{\text{ind}}$
 6. Find optimum - the population mean that maximises $\bar{W}$
 
+The simulated populations spread beyond the data, more so towards the edge of the grid, and the fitness of those individuals is extrapolated. The function reports how far this goes, as the share of each simulated population falling outside the convex hull of the observed traits, and says so when the optimum rests on it.
+
 **Returns:**
 
 - `$grid`: Population means with mean fitness (`.mean_fit`); with one trait also the fitness function at those means (`.ind_fit`)
 - `$optimum`: Population mean with highest fitness
+- `$support`: Share of simulated individuals outside the data, over the grid (`outside`) and at the optimum (`at_optimum`); per population mean in the grid's `.outside`
 - `$actual_population_means`: Actual means (if group_col provided)
 
 With a single trait the grid is a line of population means, the model is normally the `$model` of `univariate_spline()`, and the result is a curve rather than a surface.
@@ -763,7 +768,9 @@ plot_adaptive_landscape(
   bins = 12,                  # Number of contour bins
   show_optimum = TRUE,        # Show optimal population mean (gold diamond)
   show_actual_means = TRUE,   # Show actual population means (red points)
-  show_individual = TRUE      # One trait: also draw the fitness function
+  show_individual = TRUE,     # One trait: also draw the fitness function
+  show_support = FALSE,       # Mark where most of the simulated population leaves the data
+  support_level = 0.5         # The share outside the data at which that line is drawn
 )
 
 plot_adaptive_landscape_3d(

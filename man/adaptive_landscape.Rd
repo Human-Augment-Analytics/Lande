@@ -13,7 +13,8 @@ adaptive_landscape(
   simulation_n = 1000,
   grid_n = 50,
   custom_range = NULL,
-  clamp = TRUE
+  clamp = TRUE,
+  support_warn = 0.25
 )
 }
 \arguments{
@@ -41,6 +42,10 @@ thin-plate model is held inside the range of the fitness type before
 averaging: 0 to 1 for survival, at least 0 for counts. Continuous fitness
 is left alone, and a GAM is unaffected because its link already respects
 the range. The run message says how many values were held.}
+
+\item{support_warn}{Share of the population simulated at the optimum that
+may fall outside the data before the result says the optimum rests on
+extrapolation. Default is 0.25.}
 }
 \value{
 An object of class \code{"adaptive_landscape"}.
@@ -53,6 +58,14 @@ using a fitted individual-level fitness model.
 For a single trait the grid also carries \code{.ind_fit}, the
   individual fitness function evaluated at each population mean, so the two
   curves can be drawn together (see \code{plot_adaptive_landscape()}).
+
+  The simulated populations spread beyond the data, especially towards the
+  edge of the grid, and the fitness of those individuals is extrapolated.
+  The function counts how far this goes: \code{.outside} in the grid is the
+  share of each simulated population falling outside the convex hull of the
+  observed trait pairs, or outside the observed range for one trait, and the
+  result's \code{support} gives that share over the whole grid and at the
+  optimum.
 }
 \examples{
 prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))

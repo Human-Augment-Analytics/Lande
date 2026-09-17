@@ -320,9 +320,10 @@ ui <- fluidPage(
         tabPanel("Adaptive landscape",
           br(), div(class = "interp", textOutput("opt_txt")),
           fluidRow(
-            column(3, br(), checkboxInput("show_opt", "Optimum", TRUE)),
+            column(2, br(), checkboxInput("show_opt", "Optimum", TRUE)),
             column(3, br(), checkboxInput("show_mean", "Current mean", TRUE)),
-            column(6, selectInput("land_theme", "Colours", names(THEMES)))),
+            column(3, br(), checkboxInput("show_support", "Shade where over half the simulation is outside the data", FALSE)),
+            column(4, selectInput("land_theme", "Colours", names(THEMES)))),
           fluidRow(
             column(6, plotOutput("land_plot", height = "420px")),
             column(6, uiOutput("land3d_ui"))),
@@ -654,17 +655,20 @@ server <- function(input, output, session) {
       v <- g[[t]]; opt[[t]] <= min(v) + 1e-9 || opt[[t]] >= max(v) - 1e-9
     }, logical(1))
     where <- sprintf("%s = %+.2f SD and %s = %+.2f SD from the current population mean", tr[1], dx, tr[2], dy)
+    sup <- sf$land$support
+    beyond <- if (is.null(sup)) "" else sprintf(" %.0f%% of the population simulated there lies outside the data.", 100 * sup$at_optimum)
     if (any(on_edge)) {
       dir <- paste(sprintf("%s %s", tr[on_edge], ifelse(opt[tr[on_edge]] > 0, "up", "down")), collapse = " and ")
-      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.", where, opt$.mean_fit, dir)
+      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.%s", where, opt$.mean_fit, dir, beyond)
     } else {
-      sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).", where, sqrt(dx^2 + dy^2), opt$.mean_fit)
+      sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).%s", where, sqrt(dx^2 + dy^2), opt$.mean_fit, beyond)
     }
   })
   land_plot_obj <- reactive({
     sf <- surfaces(); tr <- sf$traits
     p <- plot_adaptive_landscape(sf$land, tr, bins = 12,
-                                 show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE)
+                                 show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE,
+                                 show_support = isTRUE(input$show_support))
     p <- suppressMessages(apply_theme(p, input$land_theme, fill_name = "Mean fitness"))
     if (isTRUE(input$show_mean)) {
       # current population mean is (0, 0) in SD units

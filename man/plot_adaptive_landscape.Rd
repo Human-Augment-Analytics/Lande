@@ -14,6 +14,8 @@ plot_adaptive_landscape(
   show_actual_means = TRUE,
   show_individual = TRUE,
   point_alpha = 0.8,
+  show_support = FALSE,
+  support_level = 0.5,
   ...
 )
 }
@@ -36,6 +38,14 @@ plot_adaptive_landscape(
 individual fitness function (dashed). Default is \code{TRUE}.}
 
 \item{point_alpha}{Numeric value for point transparency. Default is 0.8.}
+
+\item{show_support}{Logical; mark where the simulation leaves the data: a
+dashed line at \code{support_level} and a white overlay on the population
+means beyond it, where more than that share of the simulated population
+falls outside the observed traits. Default is \code{FALSE}.}
+
+\item{support_level}{Share of the simulated population outside the data at
+which \code{show_support} draws its line. Default is 0.5.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }

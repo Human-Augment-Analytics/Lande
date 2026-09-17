@@ -16,5 +16,7 @@ First release.
   rows per term, residuals or dispersion of the gradient model.
 * Bumpus's sparrows bundled as data; pupfish and finch data in `extdata`.
 * A Shiny app for the whole workflow, opened with `run_app()`.
+* The adaptive landscape reports how much of each simulated population falls
+  outside the data, and the plot can mark where it does.
 * A `clamp` option on the landscape and the thin-plate surface holds predicted
   fitness inside the range of the fitness type; on by default.
