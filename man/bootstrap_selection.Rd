@@ -49,7 +49,14 @@ gradients on each resample to obtain bootstrap standard errors and percentile
 confidence intervals for every coefficient (beta, gamma, gamma_ij).
 }
 \details{
-When \code{group} is given, individuals are resampled within each
+Each resample goes through the whole procedure again: with
+  \code{standardize = TRUE} the traits are restandardised, and fitness is made
+  relative to the resample's own mean, before both models are refitted, so
+  the intervals carry the uncertainty in the standardisation as well as in
+  the fit. Resamples whose fit fails are dropped, and \code{N_Boot} counts
+  the ones that were used.
+
+  When \code{group} is given, individuals are resampled within each
   group so every resample keeps the original group sizes. A resample in
   which a trait has no variance within a group (so it could only be centred)
   is discarded rather than fitted on a degenerate value. The point estimate
