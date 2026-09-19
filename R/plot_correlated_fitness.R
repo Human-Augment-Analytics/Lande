@@ -166,7 +166,7 @@
       fill = "black", colour = "white", size = 2.8, inherit.aes = FALSE
     ),
     if (nrow(edges)) ggplot2::geom_point(
-      data = edges, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group edge maximum"),
+      data = edges, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group high point"),
       colour = "black", size = 2.6, stroke = 0.9, inherit.aes = FALSE
     ),
     ggplot2::geom_text(
@@ -183,7 +183,7 @@
 .mark_key <- function() {
   ggplot2::scale_shape_manual(
     name = NULL,
-    values = c("Optimum" = 18, "Edge maximum" = 5, "Group mean" = 21, "Group peak" = 24, "Group edge maximum" = 2),
+    values = c("Optimum" = 18, "Edge maximum" = 5, "Group mean" = 21, "Group peak" = 24, "Group high point" = 2),
     guide = ggplot2::guide_legend(order = 1)
   )
 }
