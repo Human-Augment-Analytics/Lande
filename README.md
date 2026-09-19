@@ -66,6 +66,10 @@ individual, as in Beausoleil et al. (2023). With `group` set and
 and highest point are marked, which puts several species on one surface. The
 highest point is filled for a peak and open otherwise.
 
+A GAM surface carries its standard error and a band. `uncertainty = "se"` or
+`"band"` in the plots draws them, and `peak_difference()` compares the fitted
+fitness at two points, or each with the dip between them.
+
 ## Adaptive landscapes
 
 ```r

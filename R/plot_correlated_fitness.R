@@ -77,6 +77,41 @@
 )
 
 #' @noRd
+# internal utility: what the uncertainty option adds to a surface plot. "se"
+# overlays dashed contour lines of the standard error of the fitted fitness;
+# "band" redraws the surface as three panels, lower, fit and upper, on one
+# fill scale. A surface without standard errors is drawn as the fit alone.
+.uncertainty <- function(tps, df, z_col, trait1, trait2, uncertainty) {
+  out <- list(df = df, z_col = z_col, se_layer = NULL, extra = NULL)
+  if (uncertainty == "none") return(out)
+  if (!".se" %in% names(tps$grid) || all(is.na(tps$grid$.se))) {
+    warning("This surface has no standard errors (they come with method = \"gam\"); drawing the fit alone")
+    return(out)
+  }
+  full <- z_col == ".fit_all"
+  if (uncertainty == "se") {
+    se_col <- if (full) ".se_all" else ".se"
+    out$se_layer <- ggplot2::geom_contour(
+      data = df, ggplot2::aes(x = .data[[trait1]], y = .data[[trait2]], z = .data[[se_col]]),
+      colour = "white", linetype = "dashed", linewidth = 0.4, bins = 6, inherit.aes = FALSE
+    )
+    out$extra <- ggplot2::labs(caption = "Dashed white: standard error of the fitted fitness")
+    return(out)
+  }
+  cols <- c(if (full) ".fit_lo_all" else ".fit_lo", z_col, if (full) ".fit_hi_all" else ".fit_hi")
+  panels <- c("Lower", "Fit", "Upper")
+  out$df <- do.call(rbind, lapply(1:3, function(i) {
+    d <- df
+    d$.z <- d[[cols[i]]]
+    d$.panel <- factor(panels[i], levels = panels)
+    d
+  }))
+  out$z_col <- ".z"
+  out$extra <- ggplot2::facet_wrap(~ .panel)
+  out
+}
+
+#' @noRd
 # internal utility: gold diamond for the optimum, open if it is on the edge
 .optimum_layer <- function(tps, df, trait1, trait2, fit_col) {
   col <- if (".fit" %in% names(df)) ".fit" else fit_col
@@ -169,6 +204,11 @@
 #'   group's range or the edge of the data. Default is \code{TRUE}.
 #' @param group_lines Logical; join each group's mean to its peak with a dashed
 #'   line. Default is \code{TRUE}.
+#' @param uncertainty What to draw of the surface's standard error, which a GAM
+#'   surface carries: \code{"none"} (the default), \code{"se"} for dashed
+#'   contour lines of the standard error of the fitted fitness over the
+#'   surface, or \code{"band"} for three panels, the lower bound, the fit and
+#'   the upper bound, on one fill scale.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object representing the correlated fitness surface.
@@ -186,10 +226,12 @@ plot_correlated_fitness <- function(
   show_optimum = TRUE,
   show_groups = TRUE,
   group_lines = TRUE,
+  uncertainty = c("none", "se", "band"),
   ...
 ) {
   # Input validation
   stopifnot(is.list(tps), "grid" %in% names(tps))
+  uncertainty <- match.arg(uncertainty)
 
   df <- tps$grid
 
@@ -213,8 +255,9 @@ plot_correlated_fitness <- function(
 
   # Masked surfaces: draw the full surface, then cover the outside of the data hull
   layers <- .surface_layers(tps, df, trait_cols[1], trait_cols[2], fitness_col)
-  draw_df <- layers$df
-  z_col <- layers$fit_col
+  unc <- .uncertainty(tps, layers$df, layers$fit_col, trait_cols[1], trait_cols[2], uncertainty)
+  draw_df <- unc$df
+  z_col <- unc$z_col
 
   p <- ggplot2::ggplot(draw_df) +
     # Filled contours
@@ -239,6 +282,7 @@ plot_correlated_fitness <- function(
       linewidth = 0.3,
       inherit.aes = FALSE
     ) +
+    unc$se_layer +
     layers$cover +
     # Labels
     ggplot2::labs(
@@ -278,6 +322,8 @@ plot_correlated_fitness <- function(
     }
   }
 
+  if (!is.null(unc$extra)) p <- p + unc$extra
+
   if (show_optimum) {
     p <- p + .optimum_layer(tps, df, trait_cols[1], trait_cols[2], fitness_col)
   }
@@ -308,9 +354,8 @@ plot_correlated_fitness <- function(
 #'   draw each group's mean and the highest point of the surface within that
 #'   group's hull, filled when it is a peak of the surface and open when it
 #'   is not. Default is \code{TRUE}.
-#' @param group_lines Logical; join each group's mean to its peak with a dashed
-#'   line. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
+#' @inheritParams plot_correlated_fitness
 #'
 #' @return A \code{ggplot} object with enhanced visualizations.
 #' @examples
@@ -329,9 +374,11 @@ plot_correlated_fitness_enhanced <- function(
   show_optimum = TRUE,
   show_groups = TRUE,
   group_lines = TRUE,
+  uncertainty = c("none", "se", "band"),
   ...
 ) {
   # Input validation
+  uncertainty <- match.arg(uncertainty)
   df <- tps$grid
 
   # Determine trait columns
@@ -347,7 +394,8 @@ plot_correlated_fitness_enhanced <- function(
     # Infer from grid columns, excluding any grouping column carried along
     possible_traits <- setdiff(
       names(df),
-      c(".fit", ".fit_all", ".inside", ".dist", "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
+      c(".fit", ".fit_all", ".inside", ".dist", ".se", ".se_all", ".fit_lo", ".fit_lo_all", ".fit_hi", ".fit_hi_all",
+        "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
     )
     if (length(possible_traits) >= 2) {
       trait1 <- possible_traits[1]
@@ -369,8 +417,9 @@ plot_correlated_fitness_enhanced <- function(
 
   # Masked surfaces: draw the full surface, then cover the outside of the data hull
   layers <- .surface_layers(tps, df, trait1, trait2, fit_col)
-  draw_df <- layers$df
-  z_col <- layers$fit_col
+  unc <- .uncertainty(tps, layers$df, layers$fit_col, trait1, trait2, uncertainty)
+  draw_df <- unc$df
+  z_col <- unc$z_col
 
   p <- ggplot2::ggplot() +
     ggplot2::geom_contour_filled(
@@ -393,6 +442,7 @@ plot_correlated_fitness_enhanced <- function(
       alpha = 0.3,
       linewidth = 0.3
     ) +
+    unc$se_layer +
     layers$cover +
     ggplot2::theme_bw() +
     ggplot2::theme(
@@ -446,6 +496,8 @@ plot_correlated_fitness_enhanced <- function(
       warning("Required columns not found in original_data")
     }
   }
+
+  if (!is.null(unc$extra)) p <- p + unc$extra
 
   if (show_optimum) {
     p <- p + .optimum_layer(tps, df, trait1, trait2, fit_col)

@@ -1495,8 +1495,10 @@ thin-plate splines (continuous) or GAMs (binary and count fitness).</p>
 <span id="cb18-11"><a href="#cb18-11" tabindex="-1"></a>  <span class="at">mask =</span> <span class="cn">TRUE</span>, <span class="co"># Leave grid points outside the data blank</span></span>
 <span id="cb18-12"><a href="#cb18-12" tabindex="-1"></a>  <span class="at">too_far =</span> <span class="cn">NULL</span>, <span class="co"># Also blank cells farther than this share of the range from any individual</span></span>
 <span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>  <span class="at">bs =</span> <span class="st">&quot;tp&quot;</span>, <span class="co"># GAM basis: &quot;tp&quot;, &quot;cr&quot; or &quot;ps&quot;</span></span>
-<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>  <span class="at">smoothing =</span> <span class="st">&quot;REML&quot;</span> <span class="co"># GAM smoothing parameter choice: &quot;REML&quot;, &quot;GCV.Cp&quot; or &quot;ML&quot;</span></span>
-<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>  <span class="at">smoothing =</span> <span class="st">&quot;REML&quot;</span>, <span class="co"># GAM smoothing parameter choice: &quot;REML&quot;, &quot;GCV.Cp&quot; or &quot;ML&quot;</span></span>
+<span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>  <span class="at">clamp =</span> <span class="cn">TRUE</span>, <span class="co"># Hold thin-plate predictions within the range of the fitness type</span></span>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.95</span> <span class="co"># Confidence level of the band around a GAM surface</span></span>
+<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a>)</span></code></pre></div>
 <p><strong>Method selection:</strong></p>
 <ul>
 <li><code>&quot;tps&quot;</code>: Uses <code>fields::Tps()</code> for continuous
@@ -1554,7 +1556,9 @@ cell sits at the edge of the data.</p>
 <li><code>$model</code>: Fitted model object</li>
 <li><code>$grid</code>: Data frame with trait values, predicted fitness
 (<code>.fit</code>, masked), <code>.fit_all</code> and
-<code>.inside</code></li>
+<code>.inside</code>; with the GAM also the standard error of the fit
+(<code>.se</code>) and its band (<code>.fit_lo</code>,
+<code>.fit_hi</code>)</li>
 <li><code>$hull</code>: The convex hull of the data, used by the
 plots</li>
 <li><code>$original_data</code>: The rows that were analysed</li>
@@ -1580,8 +1584,10 @@ goes in and a binomial GAM is fitted.</p>
 <span id="cb19-8"><a href="#cb19-8" tabindex="-1"></a><span class="co"># Find optimum (maximum fitness)</span></span>
 <span id="cb19-9"><a href="#cb19-9" tabindex="-1"></a>optimum <span class="ot">&lt;-</span> surface<span class="sc">$</span>grid[<span class="fu">which.max</span>(surface<span class="sc">$</span>grid<span class="sc">$</span>.fit), ]</span>
 <span id="cb19-10"><a href="#cb19-10" tabindex="-1"></a><span class="fu">print</span>(optimum)</span>
-<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co">#&gt;            size    colour      .fit  .fit_all .inside</span></span>
-<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt; 2248 -0.3887548 0.5928513 0.7006815 0.7006815    TRUE</span></span></code></pre></div>
+<span id="cb19-11"><a href="#cb19-11" tabindex="-1"></a><span class="co">#&gt;            size    colour      .fit       .se  .fit_lo   .fit_hi  .fit_all</span></span>
+<span id="cb19-12"><a href="#cb19-12" tabindex="-1"></a><span class="co">#&gt; 2248 -0.3887548 0.5928513 0.7006815 0.1199263 0.432857 0.8777501 0.7006815</span></span>
+<span id="cb19-13"><a href="#cb19-13" tabindex="-1"></a><span class="co">#&gt;        .se_all .fit_lo_all .fit_hi_all .inside</span></span>
+<span id="cb19-14"><a href="#cb19-14" tabindex="-1"></a><span class="co">#&gt; 2248 0.1199263    0.432857   0.8777501    TRUE</span></span></code></pre></div>
 </div>
 <div id="plot_correlated_fitness" class="section level3">
 <h3>5.10 <code>plot_correlated_fitness()</code></h3>
@@ -1594,16 +1600,30 @@ plots.</p>
 <span id="cb20-5"><a href="#cb20-5" tabindex="-1"></a>  <span class="at">show_optimum =</span> <span class="cn">TRUE</span>,  <span class="co"># Mark the highest fitness: gold diamond inside the data, open at its edge</span></span>
 <span id="cb20-6"><a href="#cb20-6" tabindex="-1"></a>  <span class="at">show_groups =</span> <span class="cn">TRUE</span>,   <span class="co"># Mark group means and highest points when the surface has a group</span></span>
 <span id="cb20-7"><a href="#cb20-7" tabindex="-1"></a>  <span class="at">group_lines =</span> <span class="cn">TRUE</span>,   <span class="co"># Dashed line from each group&#39;s mean to its peak</span></span>
-<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>  ...                   <span class="co"># Passed to ggplot2::labs(), e.g. title or fill</span></span>
-<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>)</span>
-<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a></span>
-<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a><span class="fu">plot_correlated_fitness_enhanced</span>(</span>
-<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a>  tps,                  <span class="co"># Output from correlated_fitness_surface()</span></span>
-<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a>  trait_cols,</span>
-<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a>  original_data,        <span class="co"># Individuals to overlay, coloured by fitness</span></span>
-<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a>  fitness_col,</span>
-<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a>  <span class="at">bins =</span> <span class="dv">12</span></span>
-<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb20-8"><a href="#cb20-8" tabindex="-1"></a>  <span class="at">uncertainty =</span> <span class="st">&quot;none&quot;</span>, <span class="co"># &quot;se&quot;: standard error lines; &quot;band&quot;: lower, fit and upper panels</span></span>
+<span id="cb20-9"><a href="#cb20-9" tabindex="-1"></a>  ...                   <span class="co"># Passed to ggplot2::labs(), e.g. title or fill</span></span>
+<span id="cb20-10"><a href="#cb20-10" tabindex="-1"></a>)</span>
+<span id="cb20-11"><a href="#cb20-11" tabindex="-1"></a></span>
+<span id="cb20-12"><a href="#cb20-12" tabindex="-1"></a><span class="fu">plot_correlated_fitness_enhanced</span>(</span>
+<span id="cb20-13"><a href="#cb20-13" tabindex="-1"></a>  tps,                  <span class="co"># Output from correlated_fitness_surface()</span></span>
+<span id="cb20-14"><a href="#cb20-14" tabindex="-1"></a>  trait_cols,</span>
+<span id="cb20-15"><a href="#cb20-15" tabindex="-1"></a>  original_data,        <span class="co"># Individuals to overlay, coloured by fitness</span></span>
+<span id="cb20-16"><a href="#cb20-16" tabindex="-1"></a>  fitness_col,</span>
+<span id="cb20-17"><a href="#cb20-17" tabindex="-1"></a>  <span class="at">bins =</span> <span class="dv">12</span>,</span>
+<span id="cb20-18"><a href="#cb20-18" tabindex="-1"></a>  <span class="at">uncertainty =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb20-19"><a href="#cb20-19" tabindex="-1"></a>)</span></code></pre></div>
+<p><strong>Uncertainty:</strong> a GAM surface carries the standard
+error of its fitted fitness and a band around it, worked out on the
+scale of the link. <code>uncertainty = &quot;se&quot;</code> draws the standard
+error as dashed contour lines over the surface, and
+<code>uncertainty = &quot;band&quot;</code> draws the lower bound, the fit and the
+upper bound side by side on one fill scale.
+<code>peak_difference(surface, from, to, valley = TRUE)</code> gives
+the difference in fitted fitness between two points, given
+as group names or trait values, and between each of them and the lowest
+point on the line joining them, with standard errors from the covariance
+of the model’s coefficients. The thin-plate spline gives no standard
+errors.</p>
 <p><strong>Example:</strong></p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>p <span class="ot">&lt;-</span> <span class="fu">plot_correlated_fitness</span>(</span>
 <span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="at">tps =</span> surface,</span>

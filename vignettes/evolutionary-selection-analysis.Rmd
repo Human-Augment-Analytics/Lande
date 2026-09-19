@@ -614,7 +614,9 @@ correlated_fitness_surface(
   mask = TRUE, # Leave grid points outside the data blank
   too_far = NULL, # Also blank cells farther than this share of the range from any individual
   bs = "tp", # GAM basis: "tp", "cr" or "ps"
-  smoothing = "REML" # GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"
+  smoothing = "REML", # GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"
+  clamp = TRUE, # Hold thin-plate predictions within the range of the fitness type
+  level = 0.95 # Confidence level of the band around a GAM surface
 )
 ```
 
@@ -633,7 +635,7 @@ correlated_fitness_surface(
 **Returns:** List containing:
 
 - `$model`: Fitted model object
-- `$grid`: Data frame with trait values, predicted fitness (`.fit`, masked), `.fit_all` and `.inside`
+- `$grid`: Data frame with trait values, predicted fitness (`.fit`, masked), `.fit_all` and `.inside`; with the GAM also the standard error of the fit (`.se`) and its band (`.fit_lo`, `.fit_hi`)
 - `$hull`: The convex hull of the data, used by the plots
 - `$original_data`: The rows that were analysed
 - `$peaks`: The local maxima of the kept surface, highest first, `interior` `TRUE` for a peak inside the data, `FALSE` for a maximum at its edge
@@ -667,6 +669,7 @@ plot_correlated_fitness(
   show_optimum = TRUE,  # Mark the highest fitness: gold diamond inside the data, open at its edge
   show_groups = TRUE,   # Mark group means and highest points when the surface has a group
   group_lines = TRUE,   # Dashed line from each group's mean to its peak
+  uncertainty = "none", # "se": standard error lines; "band": lower, fit and upper panels
   ...                   # Passed to ggplot2::labs(), e.g. title or fill
 )
 
@@ -675,9 +678,12 @@ plot_correlated_fitness_enhanced(
   trait_cols,
   original_data,        # Individuals to overlay, coloured by fitness
   fitness_col,
-  bins = 12
+  bins = 12,
+  uncertainty = "none"
 )
 ```
+
+**Uncertainty:** a GAM surface carries the standard error of its fitted fitness and a band around it, worked out on the scale of the link. `uncertainty = "se"` draws the standard error as dashed contour lines over the surface, and `uncertainty = "band"` draws the lower bound, the fit and the upper bound side by side on one fill scale. `peak_difference(surface, from, to, valley = TRUE)` gives the difference in fitted fitness between two points, given as group names or trait values, and between each of them and the lowest point on the line joining them, with standard errors from the covariance of the model's coefficients. The thin-plate spline gives no standard errors.
 
 **Example:**
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=6, fig.cap="Correlated fitness surface for size and colour"}

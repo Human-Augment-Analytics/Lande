@@ -14,6 +14,7 @@ plot_correlated_fitness_enhanced(
   show_optimum = TRUE,
   show_groups = TRUE,
   group_lines = TRUE,
+  uncertainty = c("none", "se", "band"),
   ...
 )
 }
@@ -40,6 +41,12 @@ is not. Default is \code{TRUE}.}
 
 \item{group_lines}{Logical; join each group's mean to its peak with a dashed
 line. Default is \code{TRUE}.}
+
+\item{uncertainty}{What to draw of the surface's standard error, which a GAM
+surface carries: \code{"none"} (the default), \code{"se"} for dashed
+contour lines of the standard error of the fitted fitness over the
+surface, or \code{"band"} for three panels, the lower bound, the fit and
+the upper bound, on one fill scale.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }

@@ -311,9 +311,11 @@ ui <- fluidPage(
             column(3, br(), checkboxInput("show_points", "Show individuals", TRUE)),
             column(3, br(), checkboxInput("show_groups", "Group means and peaks", TRUE))),
           fluidRow(
-            column(6, conditionalPanel("input.show_points",
+            column(5, conditionalPanel("input.show_points",
               sliderInput("point_alpha", "Opacity of the individuals", 0.05, 1, 0.5, step = 0.05))),
-            column(6, selectInput("theme", "Colours", names(THEMES)))),
+            column(4, selectInput("theme", "Colours", names(THEMES))),
+            column(3, selectInput("surf_unc", "Uncertainty (GAM)",
+                                  c("none" = "none", "standard error lines" = "se", "lower, fit and upper" = "band")))),
           plotOutput("surf_plot", height = "500px"),
           div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range: filled when it is a peak of the surface, open when the surface keeps rising past the group's range or the edge of the data."),
           downloadButton("dl_surfplot", "Download plot (PNG)")),
@@ -636,10 +638,14 @@ server <- function(input, output, session) {
     lines <- !isFALSE(input$group_lines)
     alpha <- if (is.numeric(input$point_alpha)) input$point_alpha else 0.5
     fill_name <- if (s$ftype == "binary") "Survival" else "Fitness"
+    # the thin-plate spline has no standard errors to draw
+    unc <- if (s$surf_method == "tps" || is.null(input$surf_unc)) "none" else input$surf_unc
     p <- if (isTRUE(input$show_points)) {
       suppressMessages(plot_correlated_fitness_enhanced(sf$surf, sf$traits, original_data = s$prep, fitness_col = s$fit, bins = 12,
-                                                        point_alpha = alpha, show_groups = groups, group_lines = lines, fill = fill_name))
-    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, group_lines = lines, fill = fill_name)
+                                                        point_alpha = alpha, show_groups = groups, group_lines = lines,
+                                                        uncertainty = unc, fill = fill_name))
+    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, group_lines = lines,
+                                   uncertainty = unc, fill = fill_name)
     suppressMessages(apply_theme(p, input$theme, binary = if (isTRUE(input$show_points)) s$ftype == "binary" else NULL,
                                  fill_name = fill_name, point_name = s$fit))
   })

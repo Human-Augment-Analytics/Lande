@@ -51,6 +51,9 @@
 # the edge and cover the outside cleanly.
 .mask_grid <- function(grid, hull, trait_cols, mask, x = NULL, y = NULL, too_far = NULL) {
   grid$.fit_all <- grid$.fit
+  # the standard error and the band are blanked with the fit
+  also <- intersect(c(".se", ".fit_lo", ".fit_hi"), names(grid))
+  for (col in also) grid[[paste0(col, "_all")]] <- grid[[col]]
   gx <- grid[[trait_cols[1]]]
   gy <- grid[[trait_cols[2]]]
   grid$.inside <- if (mask) mgcv::in.out(hull, cbind(gx, gy)) else rep(TRUE, nrow(grid))
@@ -60,6 +63,7 @@
   }
   if (!mask && is.null(too_far)) return(grid)
   grid$.fit[!grid$.inside] <- NA_real_
+  for (col in also) grid[[col]][!grid$.inside] <- NA_real_
   message("Masked ", sum(!grid$.inside), " of ", nrow(grid), " grid points outside the data")
   grid
 }
@@ -186,6 +190,8 @@
 #'   default), predictions are held inside the range of the fitness type, 0 to
 #'   1 for survival and at least 0 for counts, as \code{adaptive_landscape()}
 #'   does. The GAM respects the range through its link and is unaffected.
+#' @param level Confidence level of the band around a GAM surface. Default is
+#'   0.95.
 #'
 #' @details The family follows the fitness column: 0/1 fitness gets a binomial
 #'   family, non-negative whole numbers with more than two values (recapture
@@ -204,6 +210,10 @@
 #'   several species on one surface; \code{too_far} blanks those too.
 #'
 #' @return A list containing the fitted model, grid predictions, and metadata.
+#'   With \code{method = "gam"} the grid also carries \code{.se}, the standard
+#'   error of the fitted fitness, and \code{.fit_lo} and \code{.fit_hi}, the
+#'   band at \code{level}, worked out on the scale of the link and blanked
+#'   where the fit is; the thin-plate spline gives none.
 #'   \code{peaks} lists the local maxima of the kept surface, highest first,
 #'   with \code{interior} \code{TRUE} when every neighbouring cell is kept and
 #'   lower, and \code{FALSE} when the maximum sits against the edge of the
@@ -246,7 +256,8 @@ correlated_fitness_surface <- function(
   too_far = NULL,
   bs = c("tp", "cr", "ps"),
   smoothing = c("REML", "GCV.Cp", "ML"),
-  clamp = TRUE
+  clamp = TRUE,
+  level = 0.95
 ) {
   stopifnot(length(trait_cols) == 2L)
   bs <- match.arg(bs)
@@ -471,6 +482,24 @@ correlated_fitness_surface <- function(
 
     grid$.fit <- .fit
 
+    # the band comes from the scale of the link and the standard error of the
+    # fitted fitness from the delta method; Vc is used when the fit has it, so
+    # smoothing parameter uncertainty is counted
+    unc <- tryCatch(
+      stats::predict(fit, newdata = newdat, type = "link", se.fit = TRUE, unconditional = !is.null(fit$Vc)),
+      error = function(e) NULL
+    )
+    if (is.null(unc)) {
+      grid$.se <- grid$.fit_lo <- grid$.fit_hi <- NA_real_
+    } else {
+      eta <- as.numeric(unc$fit)
+      se <- as.numeric(unc$se.fit)
+      crit <- stats::qnorm(1 - (1 - level) / 2)
+      grid$.se <- abs(fit$family$mu.eta(eta)) * se
+      grid$.fit_lo <- fit$family$linkinv(eta - crit * se)
+      grid$.fit_hi <- fit$family$linkinv(eta + crit * se)
+    }
+
     if (anyNA(grid$.fit)) {
       warning("NA predictions detected, using mean imputation")
       grid$.fit[is.na(grid$.fit)] <- mean(grid$.fit, na.rm = TRUE)
@@ -489,6 +518,7 @@ correlated_fitness_surface <- function(
       k = k_adj,
       basis = bs,
       smoothing = smoothing,
+      level = level,
       mask = mask,
       too_far = too_far,
       hull = hull_df,
@@ -537,6 +567,9 @@ correlated_fitness_surface <- function(
     .fit <- held
   }
   grid$.fit <- .fit
+  # the thin-plate spline gives no standard errors
+  grid$.se <- grid$.fit_lo <- grid$.fit_hi <- NA_real_
+  message("Standard errors of the surface come with method = \"gam\"; none for the thin-plate spline")
 
   if (anyNA(grid$.fit)) {
     warning("NA predictions, using mean imputation")
@@ -582,6 +615,11 @@ print.correlated_fitness <- function(x, ...) {
     cat(n_in, if (n_in == 1) "interior peak," else "interior peaks,",
         n_edge, if (n_edge == 1) "edge maximum\n" else "edge maxima\n")
     if (nrow(pk)) print(pk, row.names = FALSE, digits = 3)
+  }
+  se <- x$grid$.se
+  if (!is.null(se) && any(!is.na(se))) {
+    cat("Standard error of the fitted fitness: median", signif(stats::median(se, na.rm = TRUE), 3),
+        "largest", signif(max(se, na.rm = TRUE), 3), "\n")
   }
   if (!is.null(x$groups)) {
     cat("Groups:\n")

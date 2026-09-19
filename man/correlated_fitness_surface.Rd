@@ -18,7 +18,8 @@ correlated_fitness_surface(
   too_far = NULL,
   bs = c("tp", "cr", "ps"),
   smoothing = c("REML", "GCV.Cp", "ML"),
-  clamp = TRUE
+  clamp = TRUE,
+  level = 0.95
 )
 }
 \arguments{
@@ -76,9 +77,16 @@ the nearest individual is kept in the grid column \code{.dist}.}
 default), predictions are held inside the range of the fitness type, 0 to
 1 for survival and at least 0 for counts, as \code{adaptive_landscape()}
 does. The GAM respects the range through its link and is unaffected.}
+
+\item{level}{Confidence level of the band around a GAM surface. Default is
+0.95.}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata.
+  With \code{method = "gam"} the grid also carries \code{.se}, the standard
+  error of the fitted fitness, and \code{.fit_lo} and \code{.fit_hi}, the
+  band at \code{level}, worked out on the scale of the link and blanked
+  where the fit is; the thin-plate spline gives none.
   \code{peaks} lists the local maxima of the kept surface, highest first,
   with \code{interior} \code{TRUE} when every neighbouring cell is kept and
   lower, and \code{FALSE} when the maximum sits against the edge of the
