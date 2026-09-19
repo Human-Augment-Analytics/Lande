@@ -443,6 +443,7 @@ Binary Models</a></li>
 Data</a></li>
 <li><a href="#multicollinearity" id="toc-multicollinearity">7.4
 Multicollinearity</a></li>
+<li><a href="#reduced-k-warning" id="toc-reduced-k-warning">7.5 Reduced k Warning</a></li>
 </ul></li>
 <li><a href="#references" id="toc-references">8. References</a></li>
 </ul></li>
@@ -1701,6 +1702,12 @@ data, over the grid (<code>outside</code>) and at the optimum
 <li><code>$actual_population_means</code>: Actual means (if group_col
 provided)</li>
 </ul>
+<p><strong>An optimum on the edge of the grid:</strong> this usually
+means the true optimum lies outside the observed traits.
+<code>custom_range</code>, a named list with one range per trait, moves
+or widens the grid, but fitness out there is extrapolated, and
+<code>$support</code> says how much of the simulated population that
+involves.</p>
 <p>With a single trait the grid is a line of population means, the model
 is normally the <code>$model</code> of <code>univariate_spline()</code>,
 and the result is a curve rather than a surface.</p>
@@ -1931,7 +1938,7 @@ standardised table):</p>
 <p><strong>Purpose:</strong> Compares the individual-level fitness
 surface with the population-level adaptive landscape: their optima, the
 distance between them, summary statistics and the correlation between
-the two surfaces.</p>
+the two surfaces. The surface is selection on individuals and the landscape is where the population mean would move, so the two can peak in different places.</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" tabindex="-1"></a>comparison <span class="ot">&lt;-</span> <span class="fu">compare_fitness_surfaces_data</span>(</span>
 <span id="cb31-2"><a href="#cb31-2" tabindex="-1"></a>  <span class="at">correlated_surface =</span> surface,</span>
 <span id="cb31-3"><a href="#cb31-3" tabindex="-1"></a>  <span class="at">adaptive_landscape =</span> landscape,</span>
@@ -2489,6 +2496,15 @@ the complete cases.</p>
 <li>Use ridge regression</li>
 <li>Collect more data</li>
 </ul>
+</div>
+<div id="reduced-k-warning" class="section level3">
+<h3>7.5 Reduced k Warning</h3>
+<p><code>univariate_spline()</code> warns “Reducing k from 10 to …” when
+a trait has fewer distinct values than the basis asks for, which happens
+with small groups, single years or coarsely measured traits. The curve is then less flexible than the default. To set the basis size
+yourself, in the spline or the surface:</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" tabindex="-1"></a>uni <span class="ot">&lt;-</span> <span class="fu">univariate_spline</span>(prepared, <span class="st">&quot;survival&quot;</span>, <span class="st">&quot;size&quot;</span>, <span class="at">k =</span> <span class="dv">5</span>)</span>
+<span id="cb44-2"><a href="#cb44-2" tabindex="-1"></a>surface <span class="ot">&lt;-</span> <span class="fu">correlated_fitness_surface</span>(prepared, <span class="st">&quot;survival&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;size&quot;</span>, <span class="st">&quot;colour&quot;</span>), <span class="at">k =</span> <span class="dv">15</span>)</span></code></pre></div>
 <hr />
 </div>
 </div>

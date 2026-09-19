@@ -745,6 +745,8 @@ The simulated populations spread beyond the data, more so towards the edge of th
 - `$support`: Share of simulated individuals outside the data, over the grid (`outside`) and at the optimum (`at_optimum`); per population mean in the grid's `.outside`
 - `$actual_population_means`: Actual means (if group_col provided)
 
+**An optimum on the edge of the grid:** this usually means the true optimum lies outside the observed traits. `custom_range`, a named list with one range per trait, moves or widens the grid, but fitness out there is extrapolated, and `$support` says how much of the simulated population that involves.
+
 With a single trait the grid is a line of population means, the model is normally the `$model` of `univariate_spline()`, and the result is a curve rather than a surface.
 
 **Example:**
@@ -875,7 +877,7 @@ selection_report(prepared, "survival", c("size", "colour"), fitness_type = "bina
 
 ### 5.15 `compare_fitness_surfaces_data()`
 
-**Purpose:** Compares the individual-level fitness surface with the population-level adaptive landscape: their optima, the distance between them, summary statistics and the correlation between the two surfaces.
+**Purpose:** Compares the individual-level fitness surface with the population-level adaptive landscape: their optima, the distance between them, summary statistics and the correlation between the two surfaces. The surface is selection on individuals and the landscape is where the population mean would move, so the two can peak in different places.
 
 ```{r, message=FALSE, warning=FALSE}
 comparison <- compare_fitness_surfaces_data(
@@ -1103,6 +1105,15 @@ if (requireNamespace("car", quietly = TRUE)) {
 
 - Use ridge regression
 - Collect more data
+
+### 7.5 Reduced k Warning
+
+`univariate_spline()` warns "Reducing k from 10 to ..." when a trait has fewer distinct values than the basis asks for, which happens with small groups, single years or coarsely measured traits. The curve is then less flexible than the default. To set the basis size yourself, in the spline or the surface:
+
+```r
+uni <- univariate_spline(prepared, "survival", "size", k = 5)
+surface <- correlated_fitness_surface(prepared, "survival", c("size", "colour"), k = 15)
+```
 
 ---
 
