@@ -147,7 +147,83 @@ correlational_table <- function(r) {
   )
 }
 
-# short reading of the gradient table
+# the R calls that repeat the analysis outside the app, with the current settings
+r_value <- function(x) {
+  if (is.null(x)) "NULL" else if (is.character(x)) {
+    if (length(x) == 1) sprintf('"%s"', x) else sprintf("c(%s)", paste(sprintf('"%s"', x), collapse = ", "))
+  } else if (is.logical(x)) as.character(x) else format(x)
+}
+# one call as text, wrapped at 80 characters under its bracket
+r_call <- function(fn, ..., assign = NULL) {
+  args <- list(...)
+  nm <- names(args)
+  if (is.null(nm)) nm <- rep("", length(args))
+  vals <- vapply(args, function(a) as.character(a)[1], "")
+  parts <- ifelse(nzchar(nm), paste(nm, "=", vals), vals)
+  head <- paste0(if (!is.null(assign)) paste0(assign, " <- "), fn, "(")
+  one <- paste0(head, paste(parts, collapse = ", "), ")")
+  if (nchar(one) <= 80) return(one)
+  pad <- strrep(" ", nchar(head))
+  out <- head
+  cur <- nchar(head)
+  for (i in seq_along(parts)) {
+    piece <- paste0(parts[i], if (i < length(parts)) "," else ")")
+    if (cur + nchar(piece) + 1 > 80 && cur > nchar(head)) {
+      out <- paste0(out, "\n", pad)
+      cur <- nchar(pad)
+    } else if (i > 1) {
+      out <- paste0(out, " ")
+      cur <- cur + 1
+    }
+    out <- paste0(out, piece)
+    cur <- cur + nchar(piece)
+  }
+  out
+}
+DATA_CODE <- list(
+  "Bumpus sparrows" = "dat <- bumpus",
+  "Crescent Pond pupfish" = c('dat <- read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "RforEvolution"))',
+                              'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
+  "Little Lake pupfish" = c('dat <- read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "RforEvolution"))',
+                            'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
+  "Finch community (five groups)" = 'dat <- read.csv(system.file("extdata", "finch_community.csv", package = "RforEvolution"))'
+)
+r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
+  fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
+  load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else sprintf('dat <- read.csv("%s")', file_name %||% "your_file.csv")
+  lines <- c(
+    "library(RforEvolution)", "", load,
+    paste("traits <-", r_value(s$traits)),
+    "", "# differentials and gradients, with the checks to report beside them",
+    r_call("selection_report", "dat", fit, "traits", fitness_type = type, group = grp),
+    if (s$per_group) r_call("selection_coefficients", "dat", fit, "traits", fitness_type = type, group = r_value(s$group), return_grouped = "TRUE"),
+    r_call("check_selection_assumptions", "dat", fit, "traits", fitness_type = type, group = grp),
+    sprintf("set.seed(%d)", s$seed),
+    r_call("bootstrap_selection", "dat", fit, "traits", fitness_type = type, group = grp, n_boot = n_boot),
+    if (canonical && length(s$traits) > 1) r_call("canonical_analysis", "dat", fit, "traits", fitness_type = type, group = grp),
+    "", "# fitness function",
+    r_call("prepare_selection_data", "dat", fit, "traits", group = grp, na_action = '"drop"', assign = "prep"),
+    sprintf("set.seed(%d)", s$seed),
+    r_call("univariate_spline", "prep", fit, r_value(uni_trait), fitness_type = type, group = grp, k = spline_k,
+           bs = r_value(s$spline_bs), smoothing = r_value(s$spline_sm), bootstrap = "TRUE", n_boot = 200, assign = "uni"),
+    r_call("plot_univariate_fitness", "uni", r_value(uni_trait))
+  )
+  if (length(surf_traits) == 2 && surf_traits[1] != surf_traits[2]) {
+    tr <- r_value(surf_traits)
+    lines <- c(lines, "", "# fitness surface and adaptive landscape",
+      r_call("correlated_fitness_surface", "prep", fit, tr, method = r_value(s$surf_method), grid_n = s$surf_grid,
+             mask = r_value(!s$surf_full), too_far = r_value(s$surf_far), group = r_value(s$group),
+             group_effect = r_value(s$within_group), k = r_value(s$surf_k), bs = r_value(s$surf_bs),
+             smoothing = r_value(s$surf_sm), clamp = r_value(s$clamp), assign = "surf"),
+      r_call("plot_correlated_fitness", "surf", tr, uncertainty = r_value(uncertainty)),
+      sprintf("set.seed(%d)", s$seed),
+      r_call("adaptive_landscape", "prep", "surf$model", tr, group_col = grp, grid_n = s$grid_n,
+             simulation_n = s$sim_n, clamp = r_value(s$clamp), assign = "land"),
+      r_call("plot_adaptive_landscape", "land", tr))
+  }
+  lines
+}
+
 # short reading of the gradient table
 interpret <- function(r, traits, ftype, n, group) {
   get <- function(type, term) {
@@ -270,7 +346,11 @@ ui <- fluidPage(
           br(), verbatimTextOutput("data_summary"),
           h4(class = "sec", "Traits and fitness"), tableOutput("trait_summary"),
           plotOutput("hist_plot", height = "300px"),
-          h4(class = "sec", "Settings"), verbatimTextOutput("settings")),
+          h4(class = "sec", "Settings"), verbatimTextOutput("settings"),
+          h4(class = "sec", "R code"),
+          div(class = "help-note", "The calls that repeat this analysis in R with the settings above."),
+          verbatimTextOutput("r_code"),
+          downloadButton("dl_code", "Download R script")),
         tabPanel("Selection gradients",
           br(),
           h4(class = "sec", "Selection differentials and gradients"),
@@ -791,6 +871,22 @@ server <- function(input, output, session) {
   })
 
   # ---- Settings used (Data tab) ----
+  code_lines <- reactive({
+    s <- setup()
+    sx <- input$surf_x; sy <- input$surf_y
+    r_code(s, input$dataset, if (!is.null(input$file)) input$file$name else NULL,
+           uni_trait = if (isTRUE(input$uni_trait %in% s$traits)) input$uni_trait else s$traits[1],
+           spline_k = input$spline_k %||% 10,
+           surf_traits = if (length(s$traits) >= 2 && isTRUE(sx %in% s$traits) && isTRUE(sy %in% s$traits)) c(sx, sy) else character(),
+           n_boot = if (is.numeric(input$n_boot) && !is.na(input$n_boot)) round(input$n_boot) else 500,
+           uncertainty = if (s$surf_method == "tps" || is.null(input$surf_unc)) "none" else input$surf_unc,
+           canonical = isTRUE(input$canonical))
+  })
+  output$r_code <- renderText(paste(code_lines(), collapse = "\n"))
+  output$dl_code <- downloadHandler(
+    filename = function() "selection_analysis.R",
+    content = function(f) writeLines(code_lines(), f))
+
   output$settings <- renderText({
     s <- setup(); b <- boot_val()
     paste(

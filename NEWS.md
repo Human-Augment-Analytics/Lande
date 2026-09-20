@@ -15,7 +15,8 @@ First release.
 * Assumption checks in one table: multivariate normality of the traits, VIF,
   rows per term, residuals or dispersion of the gradient model.
 * Bumpus's sparrows bundled as data; pupfish and finch data in `extdata`.
-* A Shiny app for the whole workflow, opened with `run_app()`.
+* A Shiny app for the whole workflow, opened with `run_app()`, which writes out
+  the R calls that repeat an analysis with the current settings.
 * `canonical_analysis()` rotates the gamma matrix to its canonical axes, with
   double-regression standard errors and an optional bootstrap, and
   `plot_canonical_axes()` draws fitness along them.

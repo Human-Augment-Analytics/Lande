@@ -46,6 +46,9 @@ et al. (2023), five groups with recapture years as fitness, which opens with one
 surface for all groups and the 0.15 distance rule set (shipped in
 `inst/extdata`). Uploaded CSVs need numeric fitness and trait columns.
 
+The Data tab ends with the R calls that repeat the analysis with the current
+settings, to read or download as a script.
+
 ## Optional packages
 
 - `fields`: thin-plate spline surfaces, static 3D landscape
