@@ -255,6 +255,7 @@ ui <- fluidPage(
         numericInput("surf_far", "Blank surface cells farther than this share of the axis range from any individual (blank: off)", NA, 0.02, 1, 0.01),
         checkboxInput("group_lines", "Join each group mean to its peak on the surface", TRUE),
         checkboxInput("clamp", "Keep thin-plate fitness within the range of the fitness type", TRUE),
+        checkboxInput("canonical", "Canonical analysis of γ on the gradients tab", FALSE),
         numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
         selectInput("surf_bs", "Surface basis (GAM)", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
         selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
@@ -275,6 +276,7 @@ ui <- fluidPage(
           h4(class = "sec", "Selection differentials and gradients"),
           tableOutput("grad_table"),
           uiOutput("corr_table_ui"),
+          uiOutput("canon_ui"),
           div(class = "help-note", "S total selection; β directional; γ quadratic (negative stabilising, positive disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
           h4(class = "sec", "Summary"),
           uiOutput("interpretation"),
@@ -521,6 +523,29 @@ server <- function(input, output, session) {
     tagList(h4(class = "sec", "Correlational selection"), tableOutput("corr_table"))
   })
   output$corr_table <- renderTable({ s <- setup(); correlational_table(s$report) }, align = "lrr")
+
+  # canonical axes of gamma, only when asked for in Advanced settings
+  canon <- reactive({
+    s <- setup()
+    if (!isTRUE(input$canonical) || length(s$traits) < 2) return(NULL)
+    tryCatch(suppressWarnings(suppressMessages(
+      canonical_analysis(s$d, s$fit, s$traits, fitness_type = s$ftype, standardize = TRUE, group = s$group_model))),
+      error = function(e) NULL)
+  })
+  output$canon_ui <- renderUI({
+    if (is.null(canon())) return(NULL)
+    tagList(h4(class = "sec", "Canonical axes of γ"), tableOutput("canon_table"),
+            div(class = "help-note", "λ is the curvature along each axis (negative stabilising, positive disruptive), and θ the directional selection along it. The axes are estimated from these data, so the tests are anticonservative and the largest curvatures overestimated."))
+  })
+  output$canon_table <- renderTable({
+    ca <- canon(); if (is.null(ca)) return(NULL)
+    a <- ca$axes
+    out <- data.frame(Axis = a$axis, `λ ± SE` = pm(a$lambda, a$se),
+                      p = paste(sub("^= ", "", fmt_p(a$p_value)), stars(a$p_value)), `θ` = fmt(a$theta),
+                      check.names = FALSE, stringsAsFactors = FALSE)
+    load <- as.data.frame(t(round(ca$M, 2)), check.names = FALSE)
+    cbind(out, load)
+  }, align = "l")
   output$interpretation <- renderUI({
     s <- setup(); lines <- interpret(s$report, s$traits, s$ftype, nrow(s$d), s$group)
     sep <- which(lines == "")[1]

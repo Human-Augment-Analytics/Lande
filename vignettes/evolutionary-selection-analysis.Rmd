@@ -135,6 +135,8 @@ $$w = \alpha + \beta_1 z_1 + \beta_2 z_2 + \frac{1}{2}\gamma_{11} z_1^2 + \frac{
 | $\gamma_{ii} > 0$ | Disruptive selection | Extreme trait values have highest fitness |
 | $\gamma_{ij} > 0$ | Positive correlational | Selection favours positive correlation between traits |
 | $\gamma_{ij} < 0$ | Negative correlational | Selection favours negative correlation between traits |
+**Canonical axes:** with several traits the curvature is spread over the $\gamma_{ii}$ and the $\gamma_{ij}$ together. Canonical analysis (Phillips & Arnold, 1989; Blows & Brooks, 2003) rotates $\boldsymbol{\gamma}$ to its eigenvectors, combinations of the traits that each have a single curvature, the eigenvalue $\lambda$. See `canonical_analysis()` in section 5.17.
+
 **File:** `analyze_nonlinear_selection.R`, `analyze_disruptive_selection.R`
 
 ### 2.6 Nonparametric Fitness Functions and Surfaces
@@ -960,6 +962,37 @@ plot_temporal_landscape(years, type = "heatmap")
 
 The spline finds more than one peak in 2005 and 2008 and a steep rise towards large beaks in 2009, the year with the strongest selection in Beausoleil et al. (2019). Peaks in a fitted curve are a description, not a test; their test was the quadratic gradient on the birds between the peaks, which is `analyze_disruptive_selection()` in section 5.6 run on that subset.
 
+### 5.17 `canonical_analysis()` and `plot_canonical_axes()`
+
+**Purpose:** Rotate the matrix of quadratic and correlational gradients to its canonical axes and read the curvature along each.
+
+```R
+canonical_analysis(
+  data, fitness_col, trait_cols,
+  fitness_type = "auto",
+  standardize = TRUE,
+  group = NULL,        # Standardise and relativise within groups, as the gradients do
+  bootstrap = FALSE,   # Percentile intervals for the eigenvalues
+  n_boot = 200,
+  conf = 0.95
+)
+```
+
+**Returns:** the gamma matrix, $\beta$, the loadings `M` with one column per axis, and an `axes` table with each eigenvalue $\lambda$, its standard error and p-value from the double regression of Bisgaard and Ankenman (1996), and the directional selection along the axis, $\theta = \mathbf{M}^\top\boldsymbol{\beta}$. The prepared data come back with the canonical scores `m1`, `m2`, ... added.
+
+```{r, message=FALSE, warning=FALSE}
+ca <- canonical_analysis(bumpus, "survival", c("total_length", "weight", "humerus"))
+ca
+```
+
+A negative $\lambda$ is curvature along that axis, consistent with stabilising selection, and a positive one with disruptive selection, exactly as for $\gamma_{ii}$. The tests treat the axes as known when they were estimated from the same data, so they are anticonservative (Reynolds et al., 2010). Sampling error in $\boldsymbol{\gamma}$ also spreads its eigenvalues, so the largest curvatures are overestimated, more so with many traits and few individuals (Morrissey, 2014). `bootstrap = TRUE` gives percentile intervals, with each resample's axes matched to the original ones, and `plot_canonical_axes()` draws the fitness surface along any two axes, or the fitness function along one, which is where to check whether a curved axis has a peak inside the data.
+
+```{r, message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.cap="Fitness surface along the first and last canonical axes"}
+plot_canonical_axes(ca, which = c(1, 3), grid_n = 30)
+```
+
+---
+
 ## 6. Interpretation Guide
 
 ### 6.1 Statistical Significance
@@ -1154,3 +1187,13 @@ surface <- correlated_fitness_surface(prepared, "survival", c("size", "colour"),
 16. Hereford, J., Hansen, T. F., & Houle, D. (2004). Comparing strengths of directional selection: how strong is strong? *Evolution*, 58(10), 2133-2143.
 
 17. Morrissey, M. B., & Sakrejda, K. (2013). Unification of regression-based methods for the analysis of natural selection. *Evolution*, 67(7), 2094-2100.
+
+18. Phillips, P. C., & Arnold, S. J. (1989). Visualizing multivariate selection. *Evolution*, 43(6), 1209-1222.
+
+19. Blows, M. W., & Brooks, R. (2003). Measuring nonlinear selection. *The American Naturalist*, 162(6), 815-820.
+
+20. Bisgaard, S., & Ankenman, B. (1996). Standard errors for the eigenvalues in second-order response surface models. *Technometrics*, 38(3), 238-246.
+
+21. Reynolds, R. J., Childers, D. K., & Pajewski, N. M. (2010). The distribution and hypothesis testing of eigenvalues from the canonical analysis of the gamma matrix of quadratic and correlational selection gradients. *Evolution*, 64(4), 1076-1085.
+
+22. Morrissey, M. B. (2014). In search of the best methods for multivariate selection analysis. *Methods in Ecology and Evolution*, 5(10), 1095-1109.

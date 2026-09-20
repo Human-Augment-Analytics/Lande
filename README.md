@@ -46,6 +46,9 @@ check_selection_assumptions(bumpus, "survival", traits)
 
 # One set of gradients per sex, each sex standardised on its own
 selection_coefficients(bumpus, "survival", traits, group = "sex", return_grouped = TRUE)
+
+# Canonical axes of the gamma matrix
+canonical_analysis(bumpus, "survival", traits)
 ```
 
 ## Fitness functions and surfaces

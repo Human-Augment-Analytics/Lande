@@ -16,6 +16,9 @@ First release.
   rows per term, residuals or dispersion of the gradient model.
 * Bumpus's sparrows bundled as data; pupfish and finch data in `extdata`.
 * A Shiny app for the whole workflow, opened with `run_app()`.
+* `canonical_analysis()` rotates the gamma matrix to its canonical axes, with
+  double-regression standard errors and an optional bootstrap, and
+  `plot_canonical_axes()` draws fitness along them.
 * Standard errors and a band on the GAM fitness surface, drawn with the plots'
   `uncertainty` option, and `peak_difference()` to compare two points of a
   surface, or each with the dip between them.
