@@ -620,7 +620,8 @@ correlated_fitness_surface(
   bs = "tp", # GAM basis: "tp", "cr" or "ps"
   smoothing = "REML", # GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"
   clamp = TRUE, # Hold thin-plate predictions within the range of the fitness type
-  level = 0.95 # Confidence level of the band around a GAM surface
+  level = 0.95, # Confidence level of the band around a GAM surface
+  by_group = FALSE # TRUE: a separate surface for each group, returned as a named list
 )
 ```
 
@@ -633,6 +634,8 @@ correlated_fitness_surface(
 **Basis dimension:** with `k = NULL` the GAM uses `min(30, max(10, floor(sqrt(n1 * n2))))`, where `n1` and `n2` are the numbers of distinct values of each trait, capped at one less than the number of observations. Pass an integer to override it.
 
 **Masking:** the fitted surface is evaluated on a rectangular grid, and the corners of that rectangle are usually places no individual occupies. With `mask = TRUE` grid points outside the convex hull of the observed trait pairs get `NA` fitness, so the optimum is found within the data, and the plots draw the surface up to the hull and leave the outside blank. The grid keeps the unmasked predictions in `.fit_all`, records which points were kept in `.inside`, and the result carries the hull polygon in `$hull`. The hull still bridges gaps between separate clusters of individuals, such as two species on one surface. `too_far` adds the distance rule from `mgcv::vis.gam`: after scaling the grid to the unit square, cells farther than `too_far` from the nearest individual are blanked as well, and the distance is kept in `.dist`. Beausoleil et al. (2023) used 0.15. The default applies no distance rule.
+
+**Separate fits:** `by_group = TRUE`, here and in `univariate_spline()`, fits each group on its own rows and returns a named list, rather than one shape shifted by a group term. Prepare the data with the same `group` so each is standardised on its own, and plot with `lapply()`.
 
 **Groups:** with `group` the GAM includes the column as a fixed effect and predicts the surface at the reference level, as the gradient models do for year or site. `group_effect = FALSE` fits one surface to everyone and uses the group only for the overlay, which is what a community surface of several species needs. The result's `$groups` table gives, for each group, its size, its mean of both traits and the highest point of the surface within that group's own convex hull, with `peak_interior` saying whether that point is a peak of the surface and `peak_edge` whether it sits at the edge of the data; when both are `FALSE` the surface keeps rising past the group's range. The plots mark the means as labelled open circles and the peaks as triangles, filled for a peak and open otherwise, which is how Beausoleil et al. (2023) placed several species on one surface. `$peaks` lists every local maximum of the kept surface the same way, and the gold optimum becomes an open diamond when the highest cell sits at the edge of the data.
 

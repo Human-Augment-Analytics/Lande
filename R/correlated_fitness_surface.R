@@ -192,6 +192,10 @@
 #'   does. The GAM respects the range through its link and is unaffected.
 #' @param level Confidence level of the band around a GAM surface. Default is
 #'   0.95.
+#' @param by_group Logical; if \code{TRUE} fit a separate surface to each level
+#'   of \code{group} and return a named list of surfaces, each with its own
+#'   shape, grid and hull. The default \code{FALSE} fits one surface, with the
+#'   group as a fixed effect or only marked on it (see \code{group_effect}).
 #'
 #' @details The family follows the fitness column: 0/1 fitness gets a binomial
 #'   family, non-negative whole numbers with more than two values (recapture
@@ -257,7 +261,8 @@ correlated_fitness_surface <- function(
   bs = c("tp", "cr", "ps"),
   smoothing = c("REML", "GCV.Cp", "ML"),
   clamp = TRUE,
-  level = 0.95
+  level = 0.95,
+  by_group = FALSE
 ) {
   stopifnot(length(trait_cols) == 2L)
   bs <- match.arg(bs)
@@ -267,6 +272,15 @@ correlated_fitness_surface <- function(
       stop("too_far must be a single positive number (a fraction of the grid's range) or NULL")
     }
   }
+  if (isTRUE(by_group)) {
+    surfaces <- .fit_by_group(data, group, function(rows) {
+      correlated_fitness_surface(rows, fitness_col, trait_cols, grid_n = grid_n, method = method,
+                                 group = NULL, k = k, mask = mask, too_far = too_far, bs = bs,
+                                 smoothing = smoothing, clamp = clamp, level = level)
+    })
+    return(surfaces)
+  }
+
   need <- c(fitness_col, trait_cols)
 
   # Input validation

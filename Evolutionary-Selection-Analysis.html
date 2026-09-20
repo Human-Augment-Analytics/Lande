@@ -1510,8 +1510,9 @@ thin-plate splines (continuous) or GAMs (binary and count fitness).</p>
 <span id="cb18-13"><a href="#cb18-13" tabindex="-1"></a>  <span class="at">bs =</span> <span class="st">&quot;tp&quot;</span>, <span class="co"># GAM basis: &quot;tp&quot;, &quot;cr&quot; or &quot;ps&quot;</span></span>
 <span id="cb18-14"><a href="#cb18-14" tabindex="-1"></a>  <span class="at">smoothing =</span> <span class="st">&quot;REML&quot;</span>, <span class="co"># GAM smoothing parameter choice: &quot;REML&quot;, &quot;GCV.Cp&quot; or &quot;ML&quot;</span></span>
 <span id="cb18-15"><a href="#cb18-15" tabindex="-1"></a>  <span class="at">clamp =</span> <span class="cn">TRUE</span>, <span class="co"># Hold thin-plate predictions within the range of the fitness type</span></span>
-<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.95</span> <span class="co"># Confidence level of the band around a GAM surface</span></span>
-<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a>)</span></code></pre></div>
+<span id="cb18-16"><a href="#cb18-16" tabindex="-1"></a>  <span class="at">level =</span> <span class="fl">0.95</span>, <span class="co"># Confidence level of the band around a GAM surface</span></span>
+<span id="cb18-17"><a href="#cb18-17" tabindex="-1"></a>  <span class="at">by_group =</span> <span class="cn">FALSE</span> <span class="co"># TRUE: a separate surface for each group, returned as a named list</span></span>
+<span id="cb18-18"><a href="#cb18-18" tabindex="-1"></a>)</span></code></pre></div>
 <p><strong>Method selection:</strong></p>
 <ul>
 <li><code>&quot;tps&quot;</code>: Uses <code>fields::Tps()</code> for continuous
@@ -1547,6 +1548,11 @@ cells farther than <code>too_far</code> from the nearest individual are
 blanked as well, and the distance is kept in <code>.dist</code>.
 Beausoleil et al. (2023) used 0.15. The default applies no distance
 rule.</p>
+<p><strong>Separate fits:</strong> <code>by_group = TRUE</code>, here
+and in <code>univariate_spline()</code>, fits each group on its own rows
+and returns a named list, rather than one shape shifted by a group term. Prepare the data with the same
+<code>group</code> so each is standardised on its own, and plot with
+<code>lapply()</code>.</p>
 <p><strong>Groups:</strong> with <code>group</code> the GAM includes the
 column as a fixed effect and predicts the surface at the reference
 level, as the gradient models do for year or site.

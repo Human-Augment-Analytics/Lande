@@ -19,7 +19,8 @@ correlated_fitness_surface(
   bs = c("tp", "cr", "ps"),
   smoothing = c("REML", "GCV.Cp", "ML"),
   clamp = TRUE,
-  level = 0.95
+  level = 0.95,
+  by_group = FALSE
 )
 }
 \arguments{
@@ -80,6 +81,11 @@ does. The GAM respects the range through its link and is unaffected.}
 
 \item{level}{Confidence level of the band around a GAM surface. Default is
 0.95.}
+
+\item{by_group}{Logical; if \code{TRUE} fit a separate surface to each level
+of \code{group} and return a named list of surfaces, each with its own
+shape, grid and hull. The default \code{FALSE} fits one surface, with the
+group as a fixed effect or only marked on it (see \code{group_effect}).}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata.
