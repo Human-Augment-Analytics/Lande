@@ -578,6 +578,7 @@ and indirect effects through correlated traits:</p>
 <p><span class="math display">\[\mathbf{S} = \text{Cov}(\mathbf{z}, w) =
 \begin{bmatrix} \text{Cov}(z_1, w) \\ \text{Cov}(z_2, w) \\ \vdots \\
 \text{Cov}(z_m, w) \end{bmatrix}\]</span></p>
+<p>It is the change in the trait mean within a generation (Arnold &amp; Wade, 1984).</p>
 <p><strong>Interpretation:</strong> <span class="math inline">\(S\)</span> represents the shift in trait mean
 after one generation of selection. A positive <span class="math inline">\(S\)</span> indicates the trait mean increases.
 <strong>File:</strong> <code>selection_differential.R</code></p>
@@ -2287,7 +2288,11 @@ peak on either axis.</p>
 </table>
 <p>These bands are relative to the published record: across the studies
 collated by Kingsolver et al. (2001) the median <span class="math inline">\(|\beta|\)</span> was 0.16 and the median <span class="math inline">\(|\gamma|\)</span> was 0.10, so a gradient above
-0.3 is stronger than most selection measured in the wild.</p>
+0.3 is stronger than most selection measured in the wild. Gradients
+standardised by the trait mean instead of its standard deviation put
+traits with different variances on one scale, and Hereford et al. (2004)
+collate the record on that scale; the package reports
+variance-standardised gradients only.</p>
 </div>
 <div id="example-interpretations" class="section level3">
 <h3>6.4 Example Interpretations</h3>
@@ -2312,8 +2317,8 @@ Scenario 3: γ_size x beak = 0.32, p = 0.004
 <p><code>check_selection_assumptions()</code> puts the checks a Lande
 and Arnold analysis rests on in one table: Mardia’s tests of
 multivariate normality of the traits, which is what lets the gradients
-be read as the slope and curvature of the fitness surface (they equal
-<span class="math inline">\(\mathbf{P}^{-1}\mathbf{S}\)</span> by least
+be read as the slope and curvature of the fitness surface (Lande &amp;
+Arnold, 1983; Morrissey &amp; Sakrejda, 2013; they equal <span class="math inline">\(\mathbf{P}^{-1}\mathbf{S}\)</span> by least
 squares whatever the distribution), Shapiro-Wilk for each trait, the
 largest VIF, the individuals (for survival, the rarer outcome) per
 quadratic term, and for the gradient models residual normality and
@@ -2560,6 +2565,15 @@ Gotanda, K. M., Huber, S. K., Barrett, R. D. H., &amp; Hendry, A. P.
 (2019). Temporally varying disruptive selection in the medium ground
 finch (<em>Geospiza fortis</em>). <em>Proceedings of the Royal Society
 B</em>, 286(1916), 20192290.</p></li>
+<li><p>Arnold, S. J., &amp; Wade, M. J. (1984). On the measurement of
+natural and sexual selection: theory. <em>Evolution</em>, 38(4),
+709-719.</p></li>
+<li><p>Hereford, J., Hansen, T. F., &amp; Houle, D. (2004). Comparing
+strengths of directional selection: how strong is strong?
+<em>Evolution</em>, 58(10), 2133-2143.</p></li>
+<li><p>Morrissey, M. B., &amp; Sakrejda, K. (2013). Unification of
+regression-based methods for the analysis of natural selection.
+<em>Evolution</em>, 67(7), 2094-2100.</p></li>
 </ol>
 </div>
 </div>

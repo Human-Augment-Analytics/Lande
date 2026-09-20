@@ -89,6 +89,8 @@ For multiple traits, the vector of selection differentials is:
 
 $$\mathbf{S} = \text{Cov}(\mathbf{z}, w) = \begin{bmatrix} \text{Cov}(z_1, w) \\ \text{Cov}(z_2, w) \\ \vdots \\ \text{Cov}(z_m, w) \end{bmatrix}$$
 
+It is the change in the trait mean within a generation (Arnold & Wade, 1984).
+
 **Interpretation:** $S$ represents the shift in trait mean after one generation of selection. A positive $S$ indicates the trait mean increases.
 **File:** `selection_differential.R`
 
@@ -1002,7 +1004,7 @@ The classic example is Brodie (1992) on garter snakes: neither colour pattern no
 | 0.1 - 0.3 | Moderate selection |
 | > 0.3 | Strong selection |
 
-These bands are relative to the published record: across the studies collated by Kingsolver et al. (2001) the median $|\beta|$ was 0.16 and the median $|\gamma|$ was 0.10, so a gradient above 0.3 is stronger than most selection measured in the wild.
+These bands are relative to the published record: across the studies collated by Kingsolver et al. (2001) the median $|\beta|$ was 0.16 and the median $|\gamma|$ was 0.10, so a gradient above 0.3 is stronger than most selection measured in the wild. Gradients standardised by the trait mean instead of its standard deviation put traits with different variances on one scale, and Hereford et al. (2004) collate the record on that scale; the package reports variance-standardised gradients only.
 
 ### 6.4 Example Interpretations
 
@@ -1026,7 +1028,7 @@ Scenario 3: γ_size x beak = 0.32, p = 0.004
 
 ### 7.0 Check the Assumptions First
 
-`check_selection_assumptions()` puts the checks a Lande and Arnold analysis rests on in one table: Mardia's tests of multivariate normality of the traits, which is what lets the gradients be read as the slope and curvature of the fitness surface (they equal $\mathbf{P}^{-1}\mathbf{S}$ by least squares whatever the distribution), Shapiro-Wilk for each trait, the largest VIF, the individuals (for survival, the rarer outcome) per quadratic term, and for the gradient models residual normality and heteroscedasticity, separation, or the dispersion ratio. With the `performance` package installed it adds that package's heteroscedasticity and overdispersion tests and an R squared. Palacio et al. (2019) set out what to report; this table is meant to sit beside the gradients.
+`check_selection_assumptions()` puts the checks a Lande and Arnold analysis rests on in one table: Mardia's tests of multivariate normality of the traits, which is what lets the gradients be read as the slope and curvature of the fitness surface (Lande & Arnold, 1983; Morrissey & Sakrejda, 2013; they equal $\mathbf{P}^{-1}\mathbf{S}$ by least squares whatever the distribution), Shapiro-Wilk for each trait, the largest VIF, the individuals (for survival, the rarer outcome) per quadratic term, and for the gradient models residual normality and heteroscedasticity, separation, or the dispersion ratio. With the `performance` package installed it adds that package's heteroscedasticity and overdispersion tests and an R squared. Palacio et al. (2019) set out what to report; this table is meant to sit beside the gradients.
 
 ```{r, message=FALSE, warning=FALSE}
 check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
@@ -1147,3 +1149,8 @@ surface <- correlated_fitness_surface(prepared, "survival", c("size", "colour"),
 
 14. Beausoleil, M.-O., Camacho, C., Rabadán-González, J., Richard, R., Lalla, K., Raeymaekers, J. A. M., Knutie, S. A., De León, L. F., Chaves, J. A., Clayton, D. H., Koop, J. A. H., Sharpe, D. M. T., Gotanda, K. M., Huber, S. K., Barrett, R. D. H., & Hendry, A. P. (2019). Temporally varying disruptive selection in the medium ground finch (*Geospiza fortis*). *Proceedings of the Royal Society B*, 286(1916), 20192290.
 
+15. Arnold, S. J., & Wade, M. J. (1984). On the measurement of natural and sexual selection: theory. *Evolution*, 38(4), 709-719.
+
+16. Hereford, J., Hansen, T. F., & Houle, D. (2004). Comparing strengths of directional selection: how strong is strong? *Evolution*, 58(10), 2133-2143.
+
+17. Morrissey, M. B., & Sakrejda, K. (2013). Unification of regression-based methods for the analysis of natural selection. *Evolution*, 67(7), 2094-2100.
