@@ -1,4 +1,4 @@
-# RforEvolution GUI
+# Lande GUI
 
 Shiny front-end for the package. Pick a dataset or upload a CSV (one row per
 individual), choose the fitness column, the traits and optionally a group
@@ -36,7 +36,7 @@ and the switch for the line from each group mean to its peak.
 ## Run locally
 
 ```r
-RforEvolution::run_app()          # from the installed package
+Lande::run_app()          # from the installed package
 shiny::runApp("inst/app")         # from a checkout, after devtools::load_all()
 ```
 
@@ -64,5 +64,5 @@ shinylive::export("app", "docs")
 
 Everything runs in the visitor's browser (first load fetches WebR and the
 packages, roughly 20 to 40 MB). Keep the landscape grid and simulation sliders
-modest. RforEvolution has no compiled code, so under WebR you load the CRAN
+modest. Lande has no compiled code, so under WebR you load the CRAN
 dependencies and source `R/*.R` directly.

@@ -51,7 +51,7 @@ A \code{ggplot} object.
 Plot fitness functions and landscapes over time
 }
 \examples{
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 prep <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
 plot_temporal_landscape(years, ncol = 4)

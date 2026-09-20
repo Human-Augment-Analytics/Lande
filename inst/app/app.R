@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# RforEvolution: interactive selection analysis
+# Lande: interactive selection analysis
 #
 # Run locally:   shiny::runApp("app")
 # Static export (GitHub Pages): shinylive::export("app", "docs"); serve docs/
@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 
 library(shiny)
-library(RforEvolution)
+library(Lande)
 library(ggplot2)
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
@@ -33,7 +33,7 @@ with_seed <- function(seed, expr) {
 # data files ship with the package; fall back to the source tree when run from a checkout
 extdata <- function(f) {
   candidates <- c(
-    system.file("extdata", f, package = "RforEvolution"),
+    system.file("extdata", f, package = "Lande"),
     file.path("..", "extdata", f),
     file.path("inst", "extdata", f)
   )
@@ -49,7 +49,7 @@ high_density <- function(d) d[d$density == "H", ]
 load_dataset <- function(name) {
   switch(name,
     "Bumpus sparrows" = {
-      utils::data("bumpus", package = "RforEvolution")
+      utils::data("bumpus", package = "Lande")
       list(data = get("bumpus"), fitness = "survival",
            traits = c("weight", "total_length"), group = "sex")
     },
@@ -182,17 +182,17 @@ r_call <- function(fn, ..., assign = NULL) {
 }
 DATA_CODE <- list(
   "Bumpus sparrows" = "dat <- bumpus",
-  "Crescent Pond pupfish" = c('dat <- read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "RforEvolution"))',
+  "Crescent Pond pupfish" = c('dat <- read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande"))',
                               'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
-  "Little Lake pupfish" = c('dat <- read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "RforEvolution"))',
+  "Little Lake pupfish" = c('dat <- read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))',
                             'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
-  "Finch community (five groups)" = 'dat <- read.csv(system.file("extdata", "finch_community.csv", package = "RforEvolution"))'
+  "Finch community (five groups)" = 'dat <- read.csv(system.file("extdata", "finch_community.csv", package = "Lande"))'
 )
 r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
   fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
   load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else sprintf('dat <- read.csv("%s")', file_name %||% "your_file.csv")
   lines <- c(
-    "library(RforEvolution)", "", load,
+    "library(Lande)", "", load,
     paste("traits <-", r_value(s$traits)),
     "", "# differentials and gradients, with the checks to report beside them",
     r_call("selection_report", "dat", fit, "traits", fitness_type = type, group = grp),
@@ -299,7 +299,7 @@ ui <- fluidPage(
       reset();
     })();
   "))),
-  titlePanel("RforEvolution"),
+  titlePanel("Lande"),
   sidebarLayout(
     sidebarPanel(
       width = 3,
@@ -910,7 +910,7 @@ server <- function(input, output, session) {
       sprintf("Adaptive landscape: %d x %d grid, %d simulated individuals per point", s$grid_n, s$grid_n, s$sim_n),
       if (is.null(b)) "Bootstrap: not run" else sprintf("Bootstrap: %d resamples", attr(b, "n_boot")),
       sprintf("Random seed: %d", s$seed),
-      sprintf("RforEvolution %s, R %s.%s", as.character(utils::packageVersion("RforEvolution")), R.version$major, R.version$minor),
+      sprintf("Lande %s, R %s.%s", as.character(utils::packageVersion("Lande")), R.version$major, R.version$minor),
       sep = "\n")
   })
 }

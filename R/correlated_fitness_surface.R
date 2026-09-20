@@ -238,8 +238,8 @@
 #' # two lakes of pupfish on one surface: cells far from any fish blank, each
 #' # lake's mean and local peak marked, the lake kept out of the model
 #' pup <- rbind(
-#'   read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "RforEvolution")),
-#'   read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "RforEvolution"))
+#'   read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande")),
+#'   read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))
 #' )
 #' pup <- pup[pup$density == "H", ]
 #' prep2 <- prepare_selection_data(pup, "survival", c("nasal", "SL"))

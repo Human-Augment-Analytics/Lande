@@ -78,7 +78,7 @@ can be seen. Beausoleil et al. (2019) did this for Darwin's finches, one
 year at a time.
 }
 \examples{
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 prep <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
 years$summary

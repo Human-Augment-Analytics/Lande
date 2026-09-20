@@ -1,4 +1,4 @@
-# RforEvolution
+# Lande
 
 Stroud lab's Lande-Arnold toolkit for measuring phenotypic selection.
 
@@ -19,13 +19,13 @@ the counts are overdispersed.
 
 ```r
 # install.packages("remotes")
-remotes::install_github("Human-Augment-Analytics/R-for-Evolution")
+remotes::install_github("Human-Augment-Analytics/Lande")
 ```
 
 ## Gradients
 
 ```r
-library(RforEvolution)
+library(Lande)
 
 traits <- c("weight", "total_length", "humerus")
 
@@ -87,7 +87,7 @@ plot_adaptive_landscape(land1, "weight")
 ## Over time
 
 ```r
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 finch <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(finch, "survived", "beak_pc1", "year")
 years$summary
@@ -111,7 +111,7 @@ five-group finch community of Beausoleil et al. (2023) with recapture years as
 fitness.
 The pupfish files hold every enclosure treatment; Martin's analyses use the
 high-density fish, `density == "H"`, and so do the examples and the app.
-Sources and the dataset DOI are listed under `?RforEvolution`.
+Sources and the dataset DOI are listed under `?Lande`.
 
 ## Notes
 

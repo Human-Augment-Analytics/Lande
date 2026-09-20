@@ -16,7 +16,7 @@ run_app <- function(...) {
   if (!requireNamespace("shiny", quietly = TRUE)) {
     stop("run_app() needs the shiny package: install.packages(\"shiny\")", call. = FALSE)
   }
-  dir <- system.file("app", package = "RforEvolution")
+  dir <- system.file("app", package = "Lande")
   if (!nzchar(dir)) stop("The app folder is missing from this installation", call. = FALSE)
   shiny::runApp(dir, ...)
 }

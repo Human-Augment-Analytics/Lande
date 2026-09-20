@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
   fig.width = 6.5, fig.height = 4.5, dpi = 72, out.width = "100%"
 )
 set.seed(1)
-library(RforEvolution)
+library(Lande)
 ```
 
 <style>
@@ -275,7 +275,7 @@ Solid arrows show data passed from one function to the next. Blue dashed arrows 
 The package loads everything it needs:
 
 ```{r, message=FALSE, warning=FALSE}
-library(RforEvolution)
+library(Lande)
 ```
 
 ### 4.2 Package Descriptions
@@ -946,7 +946,7 @@ Standardise the traits once, over all periods, before calling: the periods must 
 
 **Example:** medium ground finches at El Garrapatero, one row per bird per year it was seen, survival to the next year against beak size (first principal component of the three beak medians), from the public data of Beausoleil et al. (2019).
 ```{r, message=FALSE, warning=FALSE, results='hide'}
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 finch_prep <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(finch_prep, "survived", "beak_pc1", "year", simulation_n = 200)
 ```
