@@ -239,8 +239,8 @@
 #' # lake's mean and local peak marked, the lake kept out of the model
 #' pup <- rbind(crescent_pond_pupfish, little_lake_pupfish)
 #' pup <- pup[pup$density == "H", ]
-#' prep2 <- prepare_selection_data(pup, "survival", c("nasal", "SL"))
-#' surf2 <- correlated_fitness_surface(prep2, "survival", c("nasal", "SL"), grid_n = 30,
+#' prep2 <- prepare_selection_data(pup, "survival", c("nose", "noseangle"))
+#' surf2 <- correlated_fitness_surface(prep2, "survival", c("nose", "noseangle"), grid_n = 30,
 #'                                     too_far = 0.15, group = "lake", group_effect = FALSE)
 #' surf2$groups
 correlated_fitness_surface <- function(
