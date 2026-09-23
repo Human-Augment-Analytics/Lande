@@ -153,10 +153,11 @@ plot_adaptive_landscape <- function(
 
         # Add labels if group_col provided
         if (!is.null(group_col) && group_col %in% names(actual_df)) {
+            labels_df <- .shared_labels(actual_df, trait_cols, group_col)
             if (requireNamespace("ggrepel", quietly = TRUE)) {
                 p <- p +
                     ggrepel::geom_text_repel(
-                        data = actual_df,
+                        data = labels_df,
                         ggplot2::aes(
                             x = .data[[trait_cols[1]]],
                             y = .data[[trait_cols[2]]],
@@ -170,7 +171,7 @@ plot_adaptive_landscape <- function(
             } else {
                 p <- p +
                     ggplot2::geom_text(
-                        data = actual_df,
+                        data = labels_df,
                         ggplot2::aes(
                             x = .data[[trait_cols[1]]],
                             y = .data[[trait_cols[2]]],
@@ -285,10 +286,11 @@ plot_adaptive_landscape <- function(
             xintercept = means[[trait]], color = "red", alpha = 0.6, linewidth = 0.5
         )
         if (!is.null(group_col) && group_col %in% names(means)) {
+            lab <- .shared_labels(means, trait, group_col)
             p <- p + ggplot2::annotate(
                 "text",
-                x = means[[trait]], y = max(curves$y, na.rm = TRUE),
-                label = means[[group_col]], angle = 90, vjust = -0.4, hjust = 1,
+                x = lab[[trait]], y = max(curves$y, na.rm = TRUE),
+                label = lab[[group_col]], angle = 90, vjust = -0.4, hjust = 1,
                 size = 3, color = "red"
             )
         }

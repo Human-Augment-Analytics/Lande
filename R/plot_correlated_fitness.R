@@ -170,10 +170,27 @@
       colour = "black", size = 2.6, stroke = 0.9, inherit.aes = FALSE
     ),
     ggplot2::geom_text(
-      data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], label = .data$group),
+      data = .shared_labels(g, c(m1, m2), "group"), ggplot2::aes(x = .data[[m1]], y = .data[[m2]], label = .data$group),
       vjust = -1, size = 3, colour = "black", inherit.aes = FALSE
     )
   )
+}
+
+#' @noRd
+# internal utility: one label per position, so groups that share a mean get
+# "a, b" instead of labels printed over each other. With each group
+# standardised within itself every mean is zero.
+.shared_labels <- function(df, cols, label) {
+  key <- do.call(paste, lapply(cols, function(k) round(df[[k]], 6)))
+  first <- !duplicated(key)
+  out <- df[first, , drop = FALSE]
+  out[[label]] <- vapply(
+    key[first],
+    function(k) paste(as.character(df[[label]][key == k]), collapse = ", "),
+    character(1), USE.NAMES = FALSE
+  )
+  rownames(out) <- NULL
+  out
 }
 
 #' @noRd
