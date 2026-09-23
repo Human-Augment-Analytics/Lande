@@ -31,6 +31,10 @@
 #'   is the ordinary \code{selection_coefficients()} fit on the full data and
 #'   its warnings are reported as usual.
 #'
+#'   With strongly skewed traits the intervals for beta are too narrow, if less
+#'   so than the parametric ones (see \code{check_selection_assumptions()});
+#'   transform such traits before standardising.
+#'
 #' @return A data frame with one row per coefficient and columns \code{Term},
 #'   \code{Type}, \code{Estimate} (point estimate on the full data),
 #'   \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, \code{P_Value}, and

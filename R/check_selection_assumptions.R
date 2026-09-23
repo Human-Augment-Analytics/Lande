@@ -58,7 +58,10 @@
 #'   1983; Morrissey and Sakrejda 2013), and what ties gamma to the change in
 #'   the phenotypic covariance. So it matters for reading the gradients, not
 #'   for computing them, and it is the traits that need to be normal, not
-#'   fitness. Mardia's (1970)
+#'   fitness. Skew also matters for the intervals: in the package's
+#'   simulation (validation/simulation.R) nominal 95\% intervals for beta
+#'   covered 79\% of the time with log-normal traits, 86\% by bootstrap, so
+#'   transform strongly skewed traits before standardising. Mardia's (1970)
 #'   skewness and kurtosis tests are used for that; each trait is also tested
 #'   on its own with Shapiro and Wilk's test when there are 5000 rows or fewer.
 #'   Collinearity is the largest variance inflation factor from the linear
