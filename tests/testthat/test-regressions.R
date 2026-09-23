@@ -12,21 +12,40 @@ sim_data <- function(n = 200, seed = 11) {
   )
 }
 
-test_that("direct analyzer calls pick up relative fitness from prepared data", {
+test_that("direct analyzer calls fit the column they are given", {
   df <- sim_data()
   prep <- suppressWarnings(suppressMessages(prepare_selection_data(df, "w", c("z1", "z2"))))
 
   ref <- suppressWarnings(suppressMessages(
     selection_coefficients(df, "w", c("z1", "z2"), fitness_type = "continuous")))
   lin <- suppressWarnings(suppressMessages(
-    analyze_linear_selection(prep, "w", c("z1", "z2"), "continuous")))
+    analyze_linear_selection(prep, "relative_fitness", c("z1", "z2"), "continuous")))
   nl <- suppressWarnings(suppressMessages(
-    analyze_nonlinear_selection(prep, "w", c("z1", "z2"), "continuous")))
+    analyze_nonlinear_selection(prep, "relative_fitness", c("z1", "z2"), "continuous")))
+  # the raw column is fitted as asked, with a note about the relative one
+  expect_message(
+    raw <- suppressWarnings(analyze_linear_selection(prep, "w", c("z1", "z2"), "continuous")),
+    "relative_fitness"
+  )
+  expect_equal(unname(coef(raw$model)["z1"]), unname(coef(lm(w ~ z1 + z2, data = prep))["z1"]))
 
   expect_equal(unname(coef(lin$model)["z1"]),
                ref$Beta_Coefficient[ref$Term == "z1"], tolerance = 1e-10)
   expect_equal(2 * unname(coef(nl$model)["I(z1^2)"]),
                ref$Beta_Coefficient[ref$Term == "z1²"], tolerance = 1e-10)
+})
+
+test_that("a stale relative_fitness column does not change the gradients", {
+  set.seed(7)
+  d <- data.frame(g = rep(c("a", "b"), each = 100), z1 = rnorm(200), z2 = rnorm(200))
+  d$w <- ifelse(d$g == "a", 2, 6) + 0.5 * d$z1 + rnorm(200, 0, 0.5)
+  # the same data with a leftover relative_fitness column, worked out within groups
+  stale <- d
+  stale$relative_fitness <- d$w / ave(d$w, d$g)
+  fit <- function(x, ...) suppressWarnings(suppressMessages(selection_coefficients(x, "w", c("z1", "z2"), ...)))
+  expect_equal(fit(stale)$Beta_Coefficient, fit(d)$Beta_Coefficient, tolerance = 1e-8)
+  expect_equal(fit(stale, use_relative_for_fit = FALSE)$Beta_Coefficient,
+               fit(d, use_relative_for_fit = FALSE)$Beta_Coefficient, tolerance = 1e-8)
 })
 
 test_that("a direct binary call with a non-0/1 column is rejected clearly", {
