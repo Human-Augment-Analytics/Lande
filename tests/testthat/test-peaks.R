@@ -33,9 +33,8 @@ test_that("two bumps give two interior peaks", {
 })
 
 test_that("the finch community has three interior peaks and an edge maximum", {
-  finch <- read.csv(system.file("extdata", "finch_community.csv", package = "Lande"))
   tr <- c("beak_length", "beak_depth")
-  prep <- quiet(prepare_selection_data(finch, "recaptures", tr))
+  prep <- quiet(prepare_selection_data(finch_community, "recaptures", tr))
   s <- quiet(correlated_fitness_surface(prep, "recaptures", tr, grid_n = 50, too_far = 0.15,
                                         group = "species", group_effect = FALSE))
   g <- s$groups

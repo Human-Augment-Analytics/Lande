@@ -30,19 +30,6 @@ with_seed <- function(seed, expr) {
   expr
 }
 
-# data files ship with the package; fall back to the source tree when run from a checkout
-extdata <- function(f) {
-  candidates <- c(
-    system.file("extdata", f, package = "Lande"),
-    file.path("..", "extdata", f),
-    file.path("inst", "extdata", f)
-  )
-  hit <- candidates[nzchar(candidates) & file.exists(candidates)]
-  validate(need(length(hit) > 0,
-    paste0("Dataset file '", f, "' not found; run the app from the package source tree.")))
-  hit[1]
-}
-
 # run a fit and keep its warnings, to show beside the results. The VIF warning
 # is left out: it comes from the quadratic model, where squares and products
 # are collinear by construction, and the assumption table has the linear VIF.
@@ -71,20 +58,18 @@ high_density <- function(d) d[d$density == "H", ]
 
 load_dataset <- function(name) {
   switch(name,
-    "Bumpus sparrows" = {
-      utils::data("bumpus", package = "Lande")
-      list(data = get("bumpus"), fitness = "survival",
-           traits = c("weight", "total_length"), group = "sex")
-    },
+    "Bumpus sparrows" = list(
+      data = Lande::bumpus, fitness = "survival",
+      traits = c("weight", "total_length"), group = "sex"),
     "Crescent Pond pupfish" = list(
-      data = high_density(utils::read.csv(extdata("crescent_pond_pupfish.csv"))),
+      data = high_density(Lande::crescent_pond_pupfish),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     "Little Lake pupfish" = list(
-      data = high_density(utils::read.csv(extdata("little_lake_pupfish.csv"))),
+      data = high_density(Lande::little_lake_pupfish),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     # five groups on one surface: standardised together, blank far from any bird
     "Finch community (five groups)" = list(
-      data = utils::read.csv(extdata("finch_community.csv")),
+      data = Lande::finch_community,
       fitness = "recaptures", traits = c("beak_length", "beak_depth"), group = "species",
       within_group = FALSE, too_far = 0.15)
   )
@@ -205,11 +190,11 @@ r_call <- function(fn, ..., assign = NULL) {
 }
 DATA_CODE <- list(
   "Bumpus sparrows" = "dat <- bumpus",
-  "Crescent Pond pupfish" = c('dat <- read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande"))',
+  "Crescent Pond pupfish" = c("dat <- crescent_pond_pupfish",
                               'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
-  "Little Lake pupfish" = c('dat <- read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))',
+  "Little Lake pupfish" = c("dat <- little_lake_pupfish",
                             'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
-  "Finch community (five groups)" = 'dat <- read.csv(system.file("extdata", "finch_community.csv", package = "Lande"))'
+  "Finch community (five groups)" = "dat <- finch_community"
 )
 r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
   fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
