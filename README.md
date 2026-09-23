@@ -87,8 +87,7 @@ plot_adaptive_landscape(land1, "weight")
 ## Over time
 
 ```r
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
-finch <- prepare_selection_data(finch, "survived", "beak_pc1")
+finch <- prepare_selection_data(finch_yearly, "survived", "beak_pc1")
 years <- temporal_landscape(finch, "survived", "beak_pc1", "year")
 years$summary
 plot_temporal_landscape(years)
@@ -104,14 +103,18 @@ rotatable 3D landscape. The app lives in `inst/app`; see its README there.
 
 ## Data
 
-`bumpus`: Bumpus's 1898 house sparrows, 136 birds, nine traits and survival.
-In `inst/extdata`: the Crescent Pond and Little Lake pupfish of Martin (2016),
-the yearly medium ground finch data of Beausoleil et al. (2019), and the
-five-group finch community of Beausoleil et al. (2023) with recapture years as
-fitness.
-The pupfish files hold every enclosure treatment; Martin's analyses use the
-high-density fish, `density == "H"`, and so do the examples and the app.
-Sources and the dataset DOI are listed under `?Lande`.
+- `bumpus`: Bumpus's 1898 house sparrows, 136 birds, nine traits and survival.
+- `crescent_pond_pupfish` and `little_lake_pupfish`: the pupfish of Martin
+  (2016), F2 hybrids in field enclosures in two lakes and laboratory-reared
+  fish of the three parental species. Martin's analyses use the high-density
+  enclosures, `density == "H"`, and so do the examples and the app.
+- `finch_yearly`: the yearly medium ground finch data of Beausoleil et al.
+  (2019).
+- `finch_community`: the five-group finch community of Beausoleil et al.
+  (2023), with recapture years as fitness.
+
+Each has a help page with its columns and source. The pupfish and finch data
+are also in `inst/extdata` as CSV files.
 
 ## Notes
 

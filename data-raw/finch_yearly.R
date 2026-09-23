@@ -1,8 +1,9 @@
-# Builds inst/extdata/finch_yearly.csv: one row per medium ground finch per
-# year it was seen at El Garrapatero, with survival to the next year and beak
-# size, from the public data of Beausoleil et al. (2019) kept in
-# validation/data/bird_data.csv. Beak size is the first principal component of
-# the three beak medians, signed so that larger beaks score higher.
+# Builds inst/extdata/finch_yearly.csv and data/finch_yearly.rda: one row
+# per medium ground finch per year it was seen at El Garrapatero, with survival
+# to the next year and beak size, from the public data of Beausoleil et al.
+# (2019) kept in validation/data/bird_data.csv. Beak size is the first
+# principal component of the three beak medians, signed so that larger beaks
+# score higher.
 # Run from the package root.
 raw <- read.csv("validation/data/bird_data.csv")
 raw <- raw[raw$Species1 == "fortis", ]
@@ -27,3 +28,5 @@ out <- do.call(rbind, rows)
 out <- out[complete.cases(out[, c("survived", "beak_pc1")]), ]
 rownames(out) <- NULL
 write.csv(out, "inst/extdata/finch_yearly.csv", row.names = FALSE)
+finch_yearly <- out
+save(finch_yearly, file = "data/finch_yearly.rda", compress = "xz")
