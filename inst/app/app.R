@@ -43,6 +43,18 @@ extdata <- function(f) {
   hit[1]
 }
 
+# run a fit and keep its warnings, to show beside the results. The VIF warning
+# is left out: it comes from the quadratic model, where squares and products
+# are collinear by construction, and the assumption table has the linear VIF.
+with_warnings <- function(expr) {
+  warned <- character()
+  value <- withCallingHandlers(suppressMessages(expr), warning = function(w) {
+    warned <<- c(warned, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  list(value = value, warnings = grep("High multicollinearity", warned, value = TRUE, invert = TRUE))
+}
+
 # download names start with the dataset: a short name for the bundled ones,
 # the file name for an upload
 STEMS <- c("Bumpus sparrows" = "bumpus", "Crescent Pond pupfish" = "crescent_pond_pupfish",
@@ -283,6 +295,7 @@ interpret <- function(r, traits, ftype, n, group) {
 ui <- fluidPage(
   tags$head(tags$style(HTML(
     ".help-note{color:#555;font-size:13px;margin-top:6px}
+     .help-note.warn{color:#8a4b00}
      .interp{background:#f6f8fa;border-left:3px solid #2c7fb8;padding:10px 14px;margin:10px 0;font-size:14px}
      .interp .shiny-text-output{white-space:pre-wrap;padding:0;margin:0}
      .interp ul{margin:0;padding-left:20px}
@@ -370,6 +383,7 @@ ui <- fluidPage(
           h4(class = "sec", "Selection differentials and gradients"),
           tableOutput("grad_table"),
           uiOutput("corr_table_ui"),
+          uiOutput("fit_warnings"),
           uiOutput("canon_ui"),
           div(class = "help-note", "S total selection; β directional; γ quadratic (negative stabilising, positive disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
           h4(class = "sec", "Summary"),
@@ -510,20 +524,25 @@ server <- function(input, output, session) {
     grp_model <- if (within) grp else NULL
     prep <- suppressWarnings(suppressMessages(
       prepare_selection_data(d, fit, traits, standardize = TRUE, group = grp_model, add_relative = TRUE, na_action = "drop")))
-    report <- suppressWarnings(suppressMessages(
-      selection_report(d, fit, traits, fitness_type = resolved, standardize = TRUE, group = grp_model)))
+    fitted <- with_warnings(
+      selection_report(d, fit, traits, fitness_type = resolved, standardize = TRUE, group = grp_model))
+    report <- fitted$value
+    warned <- fitted$warnings
     grouped <- NULL
     if (!is.null(grp) && isTRUE(input$per_group)) {
-      grouped <- tryCatch(suppressWarnings(suppressMessages(
+      per <- tryCatch(with_warnings(
         selection_coefficients(d, fit, traits, fitness_type = resolved, standardize = TRUE,
-                               group = grp, return_grouped = TRUE))), error = function(e) NULL)
+                               group = grp, return_grouped = TRUE)),
+        error = function(e) list(value = NULL, warnings = paste("Per-group fits failed:", conditionMessage(e))))
+      grouped <- per$value
+      if (length(per$warnings)) warned <- c(warned, paste("Per group:", per$warnings))
     }
     keep_or <- function(x, default) if (isTRUE(x %in% traits)) x else default
     updateSelectInput(session, "uni_trait", choices = traits, selected = keep_or(input$uni_trait, traits[1]))
     updateSelectInput(session, "surf_x", choices = traits, selected = keep_or(input$surf_x, traits[1]))
     updateSelectInput(session, "surf_y", choices = traits, selected = keep_or(input$surf_y, traits[min(2, length(traits))]))
     list(d = d, prep = prep, fit = fit, traits = traits, group = grp, ftype = resolved,
-         report = report, grouped = grouped, source = current()$source,
+         report = report, grouped = grouped, warnings = unique(warned), source = current()$source,
          ftype_how = if (input$ftype == "auto") "detected" else "set by hand",
          per_group = isTRUE(input$per_group),
          seed = if (is.numeric(input$seed) && !is.na(input$seed)) round(input$seed) else 1,
@@ -617,6 +636,11 @@ server <- function(input, output, session) {
     tagList(h4(class = "sec", "Correlational selection"), tableOutput("corr_table"))
   })
   output$corr_table <- renderTable({ s <- setup(); correlational_table(s$report) }, align = "lrr")
+  output$fit_warnings <- renderUI({
+    w <- setup()$warnings
+    if (!length(w)) return(NULL)
+    div(class = "help-note warn", paste("Warnings from the fit:", paste(w, collapse = "; ")))
+  })
 
   # canonical axes of gamma, only when asked for in Advanced settings
   canon <- reactive({
