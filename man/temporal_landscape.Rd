@@ -62,7 +62,8 @@ traits.}
 An object of class \code{"temporal_landscape"}: \code{fits} and
   \code{landscapes}, one per period; \code{summary}, one row per period
   with n, mean fitness, trait means, the smooth's degrees of freedom, the
-  position and height of the highest fitted fitness, the number of interior
+  position and height of the highest fitted fitness and whether it sits at
+  the edge of the data (\code{optimum_edge}), the number of interior
   peaks (one trait) and the landscape optimum; \code{grid}, the fitted
   values of every period stacked with a \code{time} column; for one trait
   \code{heat}, each period's fitness function on one common trait grid,
@@ -77,7 +78,7 @@ can be seen. Beausoleil et al. (2019) did this for Darwin's finches, one
 year at a time.
 }
 \examples{
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 prep <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
 years$summary

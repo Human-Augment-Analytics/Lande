@@ -1,4 +1,4 @@
-# RforEvolution
+# Lande <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 Stroud lab's Lande-Arnold toolkit for measuring phenotypic selection.
 
@@ -19,13 +19,13 @@ the counts are overdispersed.
 
 ```r
 # install.packages("remotes")
-remotes::install_github("Human-Augment-Analytics/R-for-Evolution")
+remotes::install_github("Human-Augment-Analytics/Lande")
 ```
 
 ## Gradients
 
 ```r
-library(RforEvolution)
+library(Lande)
 
 traits <- c("weight", "total_length", "humerus")
 
@@ -46,6 +46,9 @@ check_selection_assumptions(bumpus, "survival", traits)
 
 # One set of gradients per sex, each sex standardised on its own
 selection_coefficients(bumpus, "survival", traits, group = "sex", return_grouped = TRUE)
+
+# Canonical axes of the gamma matrix
+canonical_analysis(bumpus, "survival", traits)
 ```
 
 ## Fitness functions and surfaces
@@ -63,7 +66,12 @@ plot_correlated_fitness(surf, c("weight", "total_length"), show_points = TRUE)
 `too_far` also blanks cells farther than a share of the axis range from any
 individual, as in Beausoleil et al. (2023). With `group` set and
 `group_effect = FALSE` one surface is fitted to everyone and each group's mean
-and local peak are marked, which puts several species on one surface.
+and highest point are marked, which puts several species on one surface. The
+highest point is filled for a peak and open otherwise.
+
+A GAM surface carries its standard error and a band. `uncertainty = "se"` or
+`"band"` in the plots draws them, and `peak_difference()` compares the fitted
+fitness at two points, or each with the dip between them.
 
 ## Adaptive landscapes
 
@@ -79,7 +87,7 @@ plot_adaptive_landscape(land1, "weight")
 ## Over time
 
 ```r
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 finch <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(finch, "survived", "beak_pc1", "year")
 years$summary
@@ -101,7 +109,9 @@ In `inst/extdata`: the Crescent Pond and Little Lake pupfish of Martin (2016),
 the yearly medium ground finch data of Beausoleil et al. (2019), and the
 five-group finch community of Beausoleil et al. (2023) with recapture years as
 fitness.
-Sources and the dataset DOI are listed under `?RforEvolution`.
+The pupfish files hold every enclosure treatment; Martin's analyses use the
+high-density fish, `density == "H"`, and so do the examples and the app.
+Sources and the dataset DOI are listed under `?Lande`.
 
 ## Notes
 

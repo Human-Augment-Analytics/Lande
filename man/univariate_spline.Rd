@@ -15,7 +15,8 @@ univariate_spline(
   bs = c("cr", "tp", "ps"),
   smoothing = c("GCV.Cp", "REML", "ML"),
   bootstrap = FALSE,
-  n_boot = 1000
+  n_boot = 1000,
+  by_group = FALSE
 )
 }
 \arguments{
@@ -42,6 +43,12 @@ univariate_spline(
 \item{bootstrap}{Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.}
 
 \item{n_boot}{Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.}
+
+\item{by_group}{Logical; if \code{TRUE} fit each level of \code{group} on its
+own rows and return a named list of fits, one per group.
+The default \code{FALSE} fits one curve with the group as a fixed
+effect. Prepare the data with the same \code{group} first, so that each
+group is standardised on its own.}
 }
 \value{
 A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.

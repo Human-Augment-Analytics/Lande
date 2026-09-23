@@ -77,9 +77,67 @@
 )
 
 #' @noRd
+# internal utility: what the uncertainty option adds to a surface plot. "se"
+# overlays dashed contour lines of the standard error of the fitted fitness;
+# "band" redraws the surface as three panels, lower, fit and upper, on one
+# fill scale. A surface without standard errors is drawn as the fit alone.
+.uncertainty <- function(tps, df, z_col, trait1, trait2, uncertainty) {
+  out <- list(df = df, z_col = z_col, se_layer = NULL, extra = NULL)
+  if (uncertainty == "none") return(out)
+  if (!".se" %in% names(tps$grid) || all(is.na(tps$grid$.se))) {
+    warning("This surface has no standard errors (they come with method = \"gam\"); drawing the fit alone")
+    return(out)
+  }
+  full <- z_col == ".fit_all"
+  if (uncertainty == "se") {
+    se_col <- if (full) ".se_all" else ".se"
+    out$se_layer <- ggplot2::geom_contour(
+      data = df, ggplot2::aes(x = .data[[trait1]], y = .data[[trait2]], z = .data[[se_col]]),
+      colour = "white", linetype = "dashed", linewidth = 0.4, bins = 6, inherit.aes = FALSE
+    )
+    out$extra <- ggplot2::labs(caption = "Dashed white: standard error of the fitted fitness")
+    return(out)
+  }
+  cols <- c(if (full) ".fit_lo_all" else ".fit_lo", z_col, if (full) ".fit_hi_all" else ".fit_hi")
+  panels <- c("Lower", "Fit", "Upper")
+  out$df <- do.call(rbind, lapply(1:3, function(i) {
+    d <- df
+    d$.z <- d[[cols[i]]]
+    d$.panel <- factor(panels[i], levels = panels)
+    d
+  }))
+  out$z_col <- ".z"
+  out$extra <- ggplot2::facet_wrap(~ .panel)
+  out
+}
+
+#' @noRd
+# internal utility: gold diamond for the optimum, open if it is on the edge
+.optimum_layer <- function(tps, df, trait1, trait2, fit_col) {
+  col <- if (".fit" %in% names(df)) ".fit" else fit_col
+  d <- df[!is.na(df[[col]]), , drop = FALSE]
+  if (!nrow(d)) return(NULL)
+  opt <- d[which.max(d[[col]]), , drop = FALSE]
+  pk <- tps$peaks
+  interior <- if (is.null(pk) || !nrow(pk)) TRUE else {
+    same <- abs(pk[[trait1]] - opt[[trait1]]) < 1e-8 & abs(pk[[trait2]] - opt[[trait2]]) < 1e-8
+    any(same & pk$interior)
+  }
+  if (interior) {
+    ggplot2::geom_point(data = opt, ggplot2::aes(x = .data[[trait1]], y = .data[[trait2]], shape = "Optimum"),
+                        colour = "gold", size = 4, inherit.aes = FALSE)
+  } else {
+    ggplot2::geom_point(data = opt, ggplot2::aes(x = .data[[trait1]], y = .data[[trait2]], shape = "Edge maximum"),
+                        colour = "black", size = 3.5, stroke = 0.9, inherit.aes = FALSE)
+  }
+}
+
+#' @noRd
 # internal utility: group means (open circles, labelled) and the highest
-# point of the surface within each group's hull (filled triangles), joined by
-# a dashed line. Only present when the surface was fitted with a group.
+# point of the surface within each group's hull, a filled triangle when that
+# point is a peak of the surface and an open one when the surface keeps
+# rising past the group's range or the edge of the data, joined to the mean
+# by a dashed line. Only present when the surface was fitted with a group.
 .group_layers <- function(tps, trait1, trait2, lines = TRUE) {
   g <- tps$groups
   if (is.null(g) || !nrow(g)) return(NULL)
@@ -89,6 +147,10 @@
   p2 <- paste0("peak_", trait2)
   if (!all(c(m1, m2, p1, p2) %in% names(g))) return(NULL)
   with_peak <- g[!is.na(g[[p1]]), , drop = FALSE]
+  # surfaces fitted before the flag existed have no peak_interior column
+  is_peak <- if ("peak_interior" %in% names(with_peak)) with_peak$peak_interior %in% TRUE else rep(TRUE, nrow(with_peak))
+  peaks <- with_peak[is_peak, , drop = FALSE]
+  edges <- with_peak[!is_peak, , drop = FALSE]
   list(
     if (lines) ggplot2::geom_segment(
       data = with_peak,
@@ -99,24 +161,46 @@
       data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], shape = "Group mean"),
       fill = "white", colour = "black", size = 3, inherit.aes = FALSE
     ),
-    ggplot2::geom_point(
-      data = with_peak, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group peak"),
+    if (nrow(peaks)) ggplot2::geom_point(
+      data = peaks, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group peak"),
       fill = "black", colour = "white", size = 2.8, inherit.aes = FALSE
     ),
+    if (nrow(edges)) ggplot2::geom_point(
+      data = edges, ggplot2::aes(x = .data[[p1]], y = .data[[p2]], shape = "Group high point"),
+      colour = "black", size = 2.6, stroke = 0.9, inherit.aes = FALSE
+    ),
     ggplot2::geom_text(
-      data = g, ggplot2::aes(x = .data[[m1]], y = .data[[m2]], label = .data$group),
+      data = .shared_labels(g, c(m1, m2), "group"), ggplot2::aes(x = .data[[m1]], y = .data[[m2]], label = .data$group),
       vjust = -1, size = 3, colour = "black", inherit.aes = FALSE
     )
   )
 }
 
 #' @noRd
-# one key for the marks drawn on a surface: the optimum and, with a group,
-# the group means and peaks. Only the marks present appear in it.
+# internal utility: one label per position, so groups that share a mean get
+# "a, b" instead of labels printed over each other. With each group
+# standardised within itself every mean is zero.
+.shared_labels <- function(df, cols, label) {
+  key <- do.call(paste, lapply(cols, function(k) round(df[[k]], 6)))
+  first <- !duplicated(key)
+  out <- df[first, , drop = FALSE]
+  out[[label]] <- vapply(
+    key[first],
+    function(k) paste(as.character(df[[label]][key == k]), collapse = ", "),
+    character(1), USE.NAMES = FALSE
+  )
+  rownames(out) <- NULL
+  out
+}
+
+#' @noRd
+# one key for the marks drawn on a surface: the optimum, or the highest cell
+# when it sits at the edge, and, with a group, the group means and peaks.
+# Only the marks present appear in it.
 .mark_key <- function() {
   ggplot2::scale_shape_manual(
     name = NULL,
-    values = c("Optimum" = 18, "Group mean" = 21, "Group peak" = 24),
+    values = c("Optimum" = 18, "Edge maximum" = 5, "Group mean" = 21, "Group peak" = 24, "Group high point" = 2),
     guide = ggplot2::guide_legend(order = 1)
   )
 }
@@ -128,12 +212,20 @@
 #' @param bins Integer specifying the number of contour bins. Default is 12.
 #' @param point_alpha Numeric value for point transparency. Default is 0.7.
 #' @param show_points Logical indicating whether to show original data points. Default is \code{FALSE}.
-#' @param show_optimum Logical indicating whether to mark the optimum point. Default is \code{TRUE}.
+#' @param show_optimum Logical; mark the highest kept cell, a gold diamond, or
+#'   an open one when it is on the edge of the data. Default is \code{TRUE}.
 #' @param show_groups Logical; when the surface was fitted with a \code{group},
 #'   draw each group's mean (open circle, labelled) and the highest point of
-#'   the surface within that group's hull (filled triangle). Default is \code{TRUE}.
+#'   the surface within that group's hull: a filled triangle when it is a
+#'   peak of the surface, an open one when the surface keeps rising past the
+#'   group's range or the edge of the data. Default is \code{TRUE}.
 #' @param group_lines Logical; join each group's mean to its peak with a dashed
 #'   line. Default is \code{TRUE}.
+#' @param uncertainty What to draw of the surface's standard error, which a GAM
+#'   surface carries: \code{"none"} (the default), \code{"se"} for dashed
+#'   contour lines of the standard error of the fitted fitness over the
+#'   surface, or \code{"band"} for three panels, the lower bound, the fit and
+#'   the upper bound, on one fill scale.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #'
 #' @return A \code{ggplot} object representing the correlated fitness surface.
@@ -151,10 +243,12 @@ plot_correlated_fitness <- function(
   show_optimum = TRUE,
   show_groups = TRUE,
   group_lines = TRUE,
+  uncertainty = c("none", "se", "band"),
   ...
 ) {
   # Input validation
   stopifnot(is.list(tps), "grid" %in% names(tps))
+  uncertainty <- match.arg(uncertainty)
 
   df <- tps$grid
 
@@ -178,8 +272,9 @@ plot_correlated_fitness <- function(
 
   # Masked surfaces: draw the full surface, then cover the outside of the data hull
   layers <- .surface_layers(tps, df, trait_cols[1], trait_cols[2], fitness_col)
-  draw_df <- layers$df
-  z_col <- layers$fit_col
+  unc <- .uncertainty(tps, layers$df, layers$fit_col, trait_cols[1], trait_cols[2], uncertainty)
+  draw_df <- unc$df
+  z_col <- unc$z_col
 
   p <- ggplot2::ggplot(draw_df) +
     # Filled contours
@@ -204,6 +299,7 @@ plot_correlated_fitness <- function(
       linewidth = 0.3,
       inherit.aes = FALSE
     ) +
+    unc$se_layer +
     layers$cover +
     # Labels
     ggplot2::labs(
@@ -243,18 +339,10 @@ plot_correlated_fitness <- function(
     }
   }
 
+  if (!is.null(unc$extra)) p <- p + unc$extra
+
   if (show_optimum) {
-    opt <- df[which.max(df[[fitness_col]]), ]
-    p <- p + ggplot2::geom_point(
-      data = opt,
-      ggplot2::aes(
-        x = .data[[trait_cols[1]]],
-        y = .data[[trait_cols[2]]],
-        shape = "Optimum"
-      ),
-      color = "gold",
-      size = 4
-    )
+    p <- p + .optimum_layer(tps, df, trait_cols[1], trait_cols[2], fitness_col)
   }
 
   if (show_groups) {
@@ -279,13 +367,12 @@ plot_correlated_fitness <- function(
 #' @param fitness_col Optional character string specifying the fitness column for coloring points.
 #' @param bins Integer specifying the number of contour bins. Default is 12.
 #' @param point_alpha Numeric value for point transparency. Default is 0.7.
-#' @param show_optimum Logical indicating whether to mark the optimum point. Default is \code{TRUE}.
 #' @param show_groups Logical; when the surface was fitted with a \code{group},
 #'   draw each group's mean and the highest point of the surface within that
-#'   group's hull. Default is \code{TRUE}.
-#' @param group_lines Logical; join each group's mean to its peak with a dashed
-#'   line. Default is \code{TRUE}.
+#'   group's hull, filled when it is a peak of the surface and open when it
+#'   is not. Default is \code{TRUE}.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
+#' @inheritParams plot_correlated_fitness
 #'
 #' @return A \code{ggplot} object with enhanced visualizations.
 #' @examples
@@ -304,9 +391,11 @@ plot_correlated_fitness_enhanced <- function(
   show_optimum = TRUE,
   show_groups = TRUE,
   group_lines = TRUE,
+  uncertainty = c("none", "se", "band"),
   ...
 ) {
   # Input validation
+  uncertainty <- match.arg(uncertainty)
   df <- tps$grid
 
   # Determine trait columns
@@ -322,7 +411,8 @@ plot_correlated_fitness_enhanced <- function(
     # Infer from grid columns, excluding any grouping column carried along
     possible_traits <- setdiff(
       names(df),
-      c(".fit", ".fit_all", ".inside", ".dist", "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
+      c(".fit", ".fit_all", ".inside", ".dist", ".se", ".se_all", ".fit_lo", ".fit_lo_all", ".fit_hi", ".fit_hi_all",
+        "fitness", "pred", "fit", "lwr", "upr", "type", "surface_type", tps$group_used)
     )
     if (length(possible_traits) >= 2) {
       trait1 <- possible_traits[1]
@@ -344,8 +434,9 @@ plot_correlated_fitness_enhanced <- function(
 
   # Masked surfaces: draw the full surface, then cover the outside of the data hull
   layers <- .surface_layers(tps, df, trait1, trait2, fit_col)
-  draw_df <- layers$df
-  z_col <- layers$fit_col
+  unc <- .uncertainty(tps, layers$df, layers$fit_col, trait1, trait2, uncertainty)
+  draw_df <- unc$df
+  z_col <- unc$z_col
 
   p <- ggplot2::ggplot() +
     ggplot2::geom_contour_filled(
@@ -368,6 +459,7 @@ plot_correlated_fitness_enhanced <- function(
       alpha = 0.3,
       linewidth = 0.3
     ) +
+    unc$se_layer +
     layers$cover +
     ggplot2::theme_bw() +
     ggplot2::theme(
@@ -422,19 +514,10 @@ plot_correlated_fitness_enhanced <- function(
     }
   }
 
+  if (!is.null(unc$extra)) p <- p + unc$extra
+
   if (show_optimum) {
-    opt <- df[which.max(df[[fit_col]]), ]
-    p <- p +
-      ggplot2::geom_point(
-        data = opt,
-        ggplot2::aes(
-          x = .data[[trait1]],
-          y = .data[[trait2]],
-          shape = "Optimum"
-        ),
-        color = "gold",
-        size = 4
-      )
+    p <- p + .optimum_layer(tps, df, trait1, trait2, fit_col)
   }
 
   if (show_groups) {

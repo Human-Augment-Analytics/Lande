@@ -17,7 +17,10 @@ correlated_fitness_surface(
   mask = TRUE,
   too_far = NULL,
   bs = c("tp", "cr", "ps"),
-  smoothing = c("REML", "GCV.Cp", "ML")
+  smoothing = c("REML", "GCV.Cp", "ML"),
+  clamp = TRUE,
+  level = 0.95,
+  by_group = FALSE
 )
 }
 \arguments{
@@ -70,12 +73,36 @@ the nearest individual is kept in the grid column \code{.dist}.}
 
 \item{smoothing}{How the GAM's smoothing parameter is chosen: \code{"REML"}
 (the default), \code{"GCV.Cp"} or \code{"ML"}.}
+
+\item{clamp}{Logical; with \code{method = "tps"} and \code{TRUE} (the
+default), predictions are held inside the range of the fitness type, 0 to
+1 for survival and at least 0 for counts, as \code{adaptive_landscape()}
+does. The GAM respects the range through its link and is unaffected.}
+
+\item{level}{Confidence level of the band around a GAM surface. Default is
+0.95.}
+
+\item{by_group}{Logical; if \code{TRUE} fit a separate surface to each level
+of \code{group} and return a named list of surfaces, each with its own
+shape, grid and hull. The default \code{FALSE} fits one surface, with the
+group as a fixed effect or only marked on it (see \code{group_effect}).}
 }
 \value{
-A list containing the fitted model, grid predictions, and metadata:
-  \code{original_data} holds the rows that were analysed, and with a
-  \code{group} the \code{groups} data frame has one row per group with its
-  size, mean traits and local peak.
+A list containing the fitted model, grid predictions, and metadata.
+  With \code{method = "gam"} the grid also carries \code{.se}, the standard
+  error of the fitted fitness, and \code{.fit_lo} and \code{.fit_hi}, the
+  band at \code{level}, worked out on the scale of the link and blanked
+  where the fit is; the thin-plate spline gives none.
+  \code{peaks} lists the local maxima of the kept surface, highest first,
+  with \code{interior} \code{TRUE} when every neighbouring cell is kept and
+  lower, and \code{FALSE} when the maximum sits against the edge of the
+  data, which may only be where the data end. \code{original_data}
+  holds the rows that were analysed. With a \code{group} the \code{groups}
+  data frame has one row per group with its size, mean traits and the
+  highest point of the surface within its own range, flagged
+  \code{peak_interior} when that point is an interior maximum of the
+  surface and \code{peak_edge} when it lies at the edge of the data; with
+  both \code{FALSE} the surface keeps rising past the group's range.
 }
 \description{
 Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).
@@ -106,8 +133,8 @@ surf$grid[which.max(surf$grid$.fit), ]
 # two lakes of pupfish on one surface: cells far from any fish blank, each
 # lake's mean and local peak marked, the lake kept out of the model
 pup <- rbind(
-  read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "RforEvolution")),
-  read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "RforEvolution"))
+  read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande")),
+  read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))
 )
 pup <- pup[pup$density == "H", ]
 prep2 <- prepare_selection_data(pup, "survival", c("nasal", "SL"))

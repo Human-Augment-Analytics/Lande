@@ -50,7 +50,8 @@
 #' @return An object of class \code{"temporal_landscape"}: \code{fits} and
 #'   \code{landscapes}, one per period; \code{summary}, one row per period
 #'   with n, mean fitness, trait means, the smooth's degrees of freedom, the
-#'   position and height of the highest fitted fitness, the number of interior
+#'   position and height of the highest fitted fitness and whether it sits at
+#'   the edge of the data (\code{optimum_edge}), the number of interior
 #'   peaks (one trait) and the landscape optimum; \code{grid}, the fitted
 #'   values of every period stacked with a \code{time} column; for one trait
 #'   \code{heat}, each period's fitness function on one common trait grid,
@@ -59,7 +60,7 @@
 #' @export
 #'
 #' @examples
-#' finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+#' finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 #' prep <- prepare_selection_data(finch, "survived", "beak_pc1")
 #' years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
 #' years$summary
@@ -150,6 +151,7 @@ temporal_landscape <- function(
       opt <- c(g[[trait_cols]][i], NA_real_)
       opt_fit <- g$fit[i]
       peaks <- .count_peaks(g$fit)
+      at_edge <- i == 1L || i == nrow(g)
     } else {
       g <- fit$grid
       g$time <- tm
@@ -159,6 +161,7 @@ temporal_landscape <- function(
       opt <- c(g[[trait_cols[1]]][i], g[[trait_cols[2]]][i])
       opt_fit <- g$.fit[i]
       peaks <- NA_integer_
+      at_edge <- .cell_states(g, trait_cols)$on_edge[i]
     }
 
     land_opt <- c(NA_real_, NA_real_)
@@ -180,14 +183,16 @@ temporal_landscape <- function(
     row[[paste0("optimum_", trait_cols[1])]] <- opt[1]
     if (!one) row[[paste0("optimum_", trait_cols[2])]] <- opt[2]
     row$optimum_fit <- opt_fit
+    row$optimum_edge <- at_edge
     if (one) row$peaks <- peaks
     if (landscape) {
       row[[paste0("landscape_optimum_", trait_cols[1])]] <- land_opt[1]
       if (!one) row[[paste0("landscape_optimum_", trait_cols[2])]] <- land_opt[2]
     }
     rows[[key]] <- row
-    message(sprintf("%s: n = %d, mean fitness %.3f, edf %.1f%s", key, nrow(sub), mean(sub[[fitness_col]]), edf,
-                    if (one) sprintf(", %d interior peak%s", peaks, if (peaks == 1) "" else "s") else ""))
+    message(sprintf("%s: n = %d, mean fitness %.3f, edf %.1f%s%s", key, nrow(sub), mean(sub[[fitness_col]]), edf,
+                    if (one) sprintf(", %d interior peak%s", peaks, if (peaks == 1) "" else "s") else "",
+                    if (at_edge) ", highest fitness at the edge of the data" else ""))
   }
 
   if (!length(fits)) stop("No period has at least ", min_n, " complete rows")
@@ -220,6 +225,10 @@ print.temporal_landscape <- function(x, ...) {
   cat("Fitness", if (length(x$trait_cols) == 1) "function" else "surface", "by", x$time_col,
       "for", paste(x$trait_cols, collapse = " and "), "\n")
   print(x$summary, row.names = FALSE, digits = 3)
+  edge <- x$summary$optimum_edge
+  if (!is.null(edge) && any(edge)) {
+    cat("Highest fitness at the edge of the data in", sum(edge), "of", length(edge), "periods\n")
+  }
   if (length(x$skipped)) cat("Skipped:", paste(x$skipped, collapse = ", "), "\n")
   invisible(x)
 }

@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(RforEvolution)
+library(Lande)
 
-test_check("RforEvolution")
+test_check("Lande")

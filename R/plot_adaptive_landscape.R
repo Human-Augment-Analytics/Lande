@@ -27,6 +27,12 @@
 #' @param show_individual Logical; for a single trait, also draw the
 #'   individual fitness function (dashed). Default is \code{TRUE}.
 #' @param point_alpha Numeric value for point transparency. Default is 0.8.
+#' @param show_support Logical; mark where the simulation leaves the data: a
+#'   dashed line at \code{support_level} and a white overlay on the population
+#'   means beyond it, where more than that share of the simulated population
+#'   falls outside the observed traits. Default is \code{FALSE}.
+#' @param support_level Share of the simulated population outside the data at
+#'   which \code{show_support} draws its line. Default is 0.5.
 #' @param ... Additional arguments passed to \code{ggplot2::labs()}.
 #' @return A \code{ggplot} object representing the adaptive landscape.
 #' @examples
@@ -46,6 +52,8 @@ plot_adaptive_landscape <- function(
   show_actual_means = TRUE,
   show_individual = TRUE,
   point_alpha = 0.8,
+  show_support = FALSE,
+  support_level = 0.5,
   ...
 ) {
     # Input validation
@@ -67,7 +75,7 @@ plot_adaptive_landscape <- function(
     if (length(trait_cols) == 1L) {
         return(.plot_landscape_curve(
             landscape, trait_cols, group_col, show_optimum,
-            show_actual_means, show_individual, ...
+            show_actual_means, show_individual, show_support, support_level, ...
         ))
     }
 
@@ -106,6 +114,23 @@ plot_adaptive_landscape <- function(
             aspect.ratio = 0.8
         )
 
+    # where most of the simulated population falls outside the data
+    if (show_support && ".outside" %in% names(df)) {
+        far <- df[df$.outside > support_level, , drop = FALSE]
+        if (nrow(far)) {
+            p <- p + ggplot2::geom_raster(
+                data = far, ggplot2::aes(x = .data[[trait_cols[1]]], y = .data[[trait_cols[2]]]),
+                fill = "white", alpha = 0.45, inherit.aes = FALSE
+            )
+        }
+        if (min(df$.outside) < support_level && max(df$.outside) > support_level) {
+            p <- p + ggplot2::geom_contour(
+                ggplot2::aes(z = .data$.outside), breaks = support_level,
+                colour = "black", linetype = "dashed", linewidth = 0.6
+            )
+        }
+    }
+
     # Add actual population means
     if (show_actual_means && !is.null(landscape$actual_population_means)) {
         actual_df <- landscape$actual_population_means
@@ -128,10 +153,11 @@ plot_adaptive_landscape <- function(
 
         # Add labels if group_col provided
         if (!is.null(group_col) && group_col %in% names(actual_df)) {
+            labels_df <- .shared_labels(actual_df, trait_cols, group_col)
             if (requireNamespace("ggrepel", quietly = TRUE)) {
                 p <- p +
                     ggrepel::geom_text_repel(
-                        data = actual_df,
+                        data = labels_df,
                         ggplot2::aes(
                             x = .data[[trait_cols[1]]],
                             y = .data[[trait_cols[2]]],
@@ -145,7 +171,7 @@ plot_adaptive_landscape <- function(
             } else {
                 p <- p +
                     ggplot2::geom_text(
-                        data = actual_df,
+                        data = labels_df,
                         ggplot2::aes(
                             x = .data[[trait_cols[1]]],
                             y = .data[[trait_cols[2]]],
@@ -198,7 +224,8 @@ plot_adaptive_landscape <- function(
 # individual fitness function alongside so the smoothing by within-population
 # variance is visible.
 .plot_landscape_curve <- function(landscape, trait, group_col, show_optimum,
-                                  show_actual_means, show_individual, ...) {
+                                  show_actual_means, show_individual,
+                                  show_support = FALSE, support_level = 0.5, ...) {
     df <- landscape$grid
     curves <- data.frame(
         x = df[[trait]], y = df$.mean_fit,
@@ -235,16 +262,35 @@ plot_adaptive_landscape <- function(
             legend.position = "bottom"
         )
 
+    # grey bands over the population means where most of the simulated
+    # population falls outside the observed range
+    if (show_support && ".outside" %in% names(df)) {
+        x <- df[[trait]]
+        far <- x[df$.outside > support_level]
+        mid <- mean(range(x))
+        bands <- rbind(
+            if (any(far < mid)) data.frame(xmin = min(x), xmax = max(far[far < mid])),
+            if (any(far >= mid)) data.frame(xmin = min(far[far >= mid]), xmax = max(x))
+        )
+        if (!is.null(bands)) {
+            p <- p + ggplot2::geom_rect(
+                data = bands, ggplot2::aes(xmin = .data$xmin, xmax = .data$xmax),
+                ymin = -Inf, ymax = Inf, fill = "grey50", alpha = 0.2, inherit.aes = FALSE
+            )
+        }
+    }
+
     if (show_actual_means && !is.null(landscape$actual_population_means)) {
         means <- landscape$actual_population_means
         p <- p + ggplot2::geom_vline(
             xintercept = means[[trait]], color = "red", alpha = 0.6, linewidth = 0.5
         )
         if (!is.null(group_col) && group_col %in% names(means)) {
+            lab <- .shared_labels(means, trait, group_col)
             p <- p + ggplot2::annotate(
                 "text",
-                x = means[[trait]], y = max(curves$y, na.rm = TRUE),
-                label = means[[group_col]], angle = 90, vjust = -0.4, hjust = 1,
+                x = lab[[trait]], y = max(curves$y, na.rm = TRUE),
+                label = lab[[group_col]], angle = 90, vjust = -0.4, hjust = 1,
                 size = 3, color = "red"
             )
         }

@@ -18,6 +18,29 @@
 # ======================================================
 
 
+#' @noRd
+# internal utility: one independent fit per level of a grouping column. A group
+# whose fit fails is left out with a warning that names it.
+.fit_by_group <- function(data, group, fit) {
+  if (is.null(group)) stop("`by_group = TRUE` needs a `group` column")
+  if (!group %in% names(data)) stop("Group column '", group, "' not found in data")
+  g <- data[[group]]
+  seen <- g[!is.na(g)]
+  levels_used <- if (is.factor(seen)) levels(droplevels(seen)) else sort(unique(seen))
+  fits <- lapply(levels_used, function(level) {
+    rows <- data[!is.na(g) & g == level, , drop = FALSE]
+    tryCatch(fit(rows), error = function(e) {
+      warning("Group '", level, "' left out: ", conditionMessage(e), call. = FALSE)
+      NULL
+    })
+  })
+  names(fits) <- as.character(levels_used)
+  fits <- fits[!vapply(fits, is.null, logical(1))]
+  if (!length(fits)) stop("No group could be fitted")
+  attr(fits, "group") <- group
+  fits
+}
+
 #' Estimate univariate correlated fitness function
 #'
 #' This function calculates a univariate correlated fitness function using a GAM smooth term.
@@ -36,6 +59,11 @@
 #'   (generalised cross-validation, the default), \code{"REML"} or \code{"ML"}.
 #' @param bootstrap Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.
 #' @param n_boot Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.
+#' @param by_group Logical; if \code{TRUE} fit each level of \code{group} on its
+#'   own rows and return a named list of fits, one per group.
+#'   The default \code{FALSE} fits one curve with the group as a fixed
+#'   effect. Prepare the data with the same \code{group} first, so that each
+#'   group is standardised on its own.
 #'
 #' @details By default the fitness function is a penalised cubic regression
 #'   spline with the smoothing parameter chosen by generalised
@@ -66,10 +94,20 @@ univariate_spline <- function(data,
                               bs = c("cr", "tp", "ps"),
                               smoothing = c("GCV.Cp", "REML", "ML"),
                               bootstrap = FALSE,
-                              n_boot = 1000) {
+                              n_boot = 1000,
+                              by_group = FALSE) {
   fitness_type <- match.arg(fitness_type)
   bs <- match.arg(bs)
   smoothing <- match.arg(smoothing)
+
+  if (isTRUE(by_group)) {
+    fits <- .fit_by_group(data, group, function(rows) {
+      univariate_spline(rows, fitness_col, trait_col, fitness_type = fitness_type, group = NULL,
+                        relative_col = relative_col, k = k, bs = bs, smoothing = smoothing,
+                        bootstrap = bootstrap, n_boot = n_boot)
+    })
+    return(fits)
+  }
 
   # Input validation
   if (length(trait_col) != 1L) {

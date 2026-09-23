@@ -14,6 +14,7 @@ plot_correlated_fitness_enhanced(
   show_optimum = TRUE,
   show_groups = TRUE,
   group_lines = TRUE,
+  uncertainty = c("none", "se", "band"),
   ...
 )
 }
@@ -30,14 +31,22 @@ plot_correlated_fitness_enhanced(
 
 \item{point_alpha}{Numeric value for point transparency. Default is 0.7.}
 
-\item{show_optimum}{Logical indicating whether to mark the optimum point. Default is \code{TRUE}.}
+\item{show_optimum}{Logical; mark the highest kept cell, a gold diamond, or
+an open one when it is on the edge of the data. Default is \code{TRUE}.}
 
 \item{show_groups}{Logical; when the surface was fitted with a \code{group},
 draw each group's mean and the highest point of the surface within that
-group's hull. Default is \code{TRUE}.}
+group's hull, filled when it is a peak of the surface and open when it
+is not. Default is \code{TRUE}.}
 
 \item{group_lines}{Logical; join each group's mean to its peak with a dashed
 line. Default is \code{TRUE}.}
+
+\item{uncertainty}{What to draw of the surface's standard error, which a GAM
+surface carries: \code{"none"} (the default), \code{"se"} for dashed
+contour lines of the standard error of the fitted fitness over the
+surface, or \code{"band"} for three panels, the lower bound, the fit and
+the upper bound, on one fill scale.}
 
 \item{...}{Additional arguments passed to \code{ggplot2::labs()}.}
 }

@@ -119,6 +119,20 @@ test_that("a distance rule blanks grid points far from any individual", {
   }
 })
 
+test_that("groups that share a mean get one label", {
+  set.seed(19)
+  df <- data.frame(sex = rep(c("f", "m"), each = 60), z1 = rnorm(120), z2 = rnorm(120))
+  df$w <- rbinom(120, 1, 0.5)
+  prep <- suppressWarnings(suppressMessages(prepare_selection_data(df, "w", c("z1", "z2"), group = "sex")))
+  s <- suppressWarnings(suppressMessages(correlated_fitness_surface(prep, "w", c("z1", "z2"), grid_n = 15, group = "sex")))
+  # standardised within sex, so both means are at zero
+  labels <- unlist(lapply(ggplot2::ggplot_build(plot_correlated_fitness(s, c("z1", "z2")))$data, function(d) d$label))
+  expect_equal(labels, "f, m")
+  land <- suppressMessages(adaptive_landscape(prep, s$model, c("z1", "z2"), group_col = "sex", simulation_n = 20, grid_n = 5))
+  labels <- unlist(lapply(ggplot2::ggplot_build(plot_adaptive_landscape(land, c("z1", "z2"), group_col = "sex"))$data, function(d) d$label))
+  expect_equal(labels[labels != "Optimum"], "f, m")
+})
+
 test_that("a grouped surface reports each group's mean and local peak", {
   set.seed(6)
   n <- 160
@@ -130,7 +144,8 @@ test_that("a grouped surface reports each group's mean and local peak", {
 
   s <- suppressMessages(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 25, method = "gam", group = "sp"))
   g <- s$groups
-  expect_equal(names(g), c("group", "n", "mean_z1", "mean_z2", "peak_z1", "peak_z2", "peak_fit"))
+  expect_equal(names(g), c("group", "n", "mean_z1", "mean_z2", "peak_z1", "peak_z2", "peak_fit",
+                           "peak_interior", "peak_edge"))
   expect_equal(g$group, c("a", "b"))
   expect_equal(g$n, c(n / 2, n / 2))
   expect_equal(g$mean_z1, as.numeric(tapply(df$z1, df$sp, mean)))

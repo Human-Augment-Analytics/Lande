@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# RforEvolution: interactive selection analysis
+# Lande: interactive selection analysis
 #
 # Run locally:   shiny::runApp("app")
 # Static export (GitHub Pages): shinylive::export("app", "docs"); serve docs/
@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 
 library(shiny)
-library(RforEvolution)
+library(Lande)
 library(ggplot2)
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
@@ -33,7 +33,7 @@ with_seed <- function(seed, expr) {
 # data files ship with the package; fall back to the source tree when run from a checkout
 extdata <- function(f) {
   candidates <- c(
-    system.file("extdata", f, package = "RforEvolution"),
+    system.file("extdata", f, package = "Lande"),
     file.path("..", "extdata", f),
     file.path("inst", "extdata", f)
   )
@@ -43,18 +43,32 @@ extdata <- function(f) {
   hit[1]
 }
 
+# download names start with the dataset: a short name for the bundled ones,
+# the file name for an upload
+STEMS <- c("Bumpus sparrows" = "bumpus", "Crescent Pond pupfish" = "crescent_pond_pupfish",
+           "Little Lake pupfish" = "little_lake_pupfish", "Finch community (five groups)" = "finch_community")
+file_stem <- function(source) {
+  bundled <- sub(" \\(bundled\\)$", "", source)
+  if (bundled %in% names(STEMS)) return(STEMS[[bundled]])
+  stem <- gsub("^_+|_+$", "", tolower(gsub("[^A-Za-z0-9]+", "_", sub("\\.[^.]*$", "", basename(source)))))
+  if (nzchar(stem)) stem else "data"
+}
+
+# Martin analysed the high-density enclosures only
+high_density <- function(d) d[d$density == "H", ]
+
 load_dataset <- function(name) {
   switch(name,
     "Bumpus sparrows" = {
-      utils::data("bumpus", package = "RforEvolution")
+      utils::data("bumpus", package = "Lande")
       list(data = get("bumpus"), fitness = "survival",
            traits = c("weight", "total_length"), group = "sex")
     },
     "Crescent Pond pupfish" = list(
-      data = utils::read.csv(extdata("crescent_pond_pupfish.csv")),
+      data = high_density(utils::read.csv(extdata("crescent_pond_pupfish.csv"))),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     "Little Lake pupfish" = list(
-      data = utils::read.csv(extdata("little_lake_pupfish.csv")),
+      data = high_density(utils::read.csv(extdata("little_lake_pupfish.csv"))),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     # five groups on one surface: standardised together, blank far from any bird
     "Finch community (five groups)" = list(
@@ -144,6 +158,83 @@ correlational_table <- function(r) {
   )
 }
 
+# the R calls that repeat the analysis outside the app, with the current settings
+r_value <- function(x) {
+  if (is.null(x)) "NULL" else if (is.character(x)) {
+    if (length(x) == 1) sprintf('"%s"', x) else sprintf("c(%s)", paste(sprintf('"%s"', x), collapse = ", "))
+  } else if (is.logical(x)) as.character(x) else format(x)
+}
+# one call as text, wrapped at 80 characters under its bracket
+r_call <- function(fn, ..., assign = NULL) {
+  args <- list(...)
+  nm <- names(args)
+  if (is.null(nm)) nm <- rep("", length(args))
+  vals <- vapply(args, function(a) as.character(a)[1], "")
+  parts <- ifelse(nzchar(nm), paste(nm, "=", vals), vals)
+  head <- paste0(if (!is.null(assign)) paste0(assign, " <- "), fn, "(")
+  one <- paste0(head, paste(parts, collapse = ", "), ")")
+  if (nchar(one) <= 80) return(one)
+  pad <- strrep(" ", nchar(head))
+  out <- head
+  cur <- nchar(head)
+  for (i in seq_along(parts)) {
+    piece <- paste0(parts[i], if (i < length(parts)) "," else ")")
+    if (cur + nchar(piece) + 1 > 80 && cur > nchar(head)) {
+      out <- paste0(out, "\n", pad)
+      cur <- nchar(pad)
+    } else if (i > 1) {
+      out <- paste0(out, " ")
+      cur <- cur + 1
+    }
+    out <- paste0(out, piece)
+    cur <- cur + nchar(piece)
+  }
+  out
+}
+DATA_CODE <- list(
+  "Bumpus sparrows" = "dat <- bumpus",
+  "Crescent Pond pupfish" = c('dat <- read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande"))',
+                              'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
+  "Little Lake pupfish" = c('dat <- read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))',
+                            'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
+  "Finch community (five groups)" = 'dat <- read.csv(system.file("extdata", "finch_community.csv", package = "Lande"))'
+)
+r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
+  fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
+  load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else sprintf('dat <- read.csv("%s")', file_name %||% "your_file.csv")
+  lines <- c(
+    "library(Lande)", "", load,
+    paste("traits <-", r_value(s$traits)),
+    "", "# differentials and gradients, with the checks to report beside them",
+    r_call("selection_report", "dat", fit, "traits", fitness_type = type, group = grp),
+    if (s$per_group) r_call("selection_coefficients", "dat", fit, "traits", fitness_type = type, group = r_value(s$group), return_grouped = "TRUE"),
+    r_call("check_selection_assumptions", "dat", fit, "traits", fitness_type = type, group = grp),
+    sprintf("set.seed(%d)", s$seed),
+    r_call("bootstrap_selection", "dat", fit, "traits", fitness_type = type, group = grp, n_boot = n_boot),
+    if (canonical && length(s$traits) > 1) r_call("canonical_analysis", "dat", fit, "traits", fitness_type = type, group = grp),
+    "", "# fitness function",
+    r_call("prepare_selection_data", "dat", fit, "traits", group = grp, na_action = '"drop"', assign = "prep"),
+    sprintf("set.seed(%d)", s$seed),
+    r_call("univariate_spline", "prep", fit, r_value(uni_trait), fitness_type = type, group = grp, k = spline_k,
+           bs = r_value(s$spline_bs), smoothing = r_value(s$spline_sm), bootstrap = "TRUE", n_boot = 200, assign = "uni"),
+    r_call("plot_univariate_fitness", "uni", r_value(uni_trait))
+  )
+  if (length(surf_traits) == 2 && surf_traits[1] != surf_traits[2]) {
+    tr <- r_value(surf_traits)
+    lines <- c(lines, "", "# fitness surface and adaptive landscape",
+      r_call("correlated_fitness_surface", "prep", fit, tr, method = r_value(s$surf_method), grid_n = s$surf_grid,
+             mask = r_value(!s$surf_full), too_far = r_value(s$surf_far), group = r_value(s$group),
+             group_effect = r_value(s$within_group), k = r_value(s$surf_k), bs = r_value(s$surf_bs),
+             smoothing = r_value(s$surf_sm), clamp = r_value(s$clamp), assign = "surf"),
+      r_call("plot_correlated_fitness", "surf", tr, uncertainty = r_value(uncertainty)),
+      sprintf("set.seed(%d)", s$seed),
+      r_call("adaptive_landscape", "prep", "surf$model", tr, group_col = grp, grid_n = s$grid_n,
+             simulation_n = s$sim_n, clamp = r_value(s$clamp), assign = "land"),
+      r_call("plot_adaptive_landscape", "land", tr))
+  }
+  lines
+}
+
 # short reading of the gradient table
 interpret <- function(r, traits, ftype, n, group) {
   get <- function(type, term) {
@@ -200,6 +291,7 @@ ui <- fluidPage(
      details summary{cursor:pointer;font-weight:600;margin:10px 0}
      h4.sec{margin-top:18px}"
   ))),
+  tags$head(tags$link(rel = "icon", type = "image/png", href = "favicon.png")),
   # drop the connection after ten minutes without a click or keypress, so a tab
   # left open does not keep the server instance awake
   tags$head(tags$script(HTML("
@@ -219,7 +311,9 @@ ui <- fluidPage(
       reset();
     })();
   "))),
-  titlePanel("RforEvolution"),
+  # in line with the sidebar contents, which sit 20px inside its border
+  titlePanel(tags$img(src = "logo.png", height = "110px", alt = "Lande", style = "margin-left: 20px"),
+             windowTitle = "Lande"),
   sidebarLayout(
     sidebarPanel(
       width = 3,
@@ -250,6 +344,8 @@ ui <- fluidPage(
         checkboxInput("surf_full", "Draw the surface beyond the data", FALSE),
         numericInput("surf_far", "Blank surface cells farther than this share of the axis range from any individual (blank: off)", NA, 0.02, 1, 0.01),
         checkboxInput("group_lines", "Join each group mean to its peak on the surface", TRUE),
+        checkboxInput("clamp", "Keep thin-plate fitness within the range of the fitness type", TRUE),
+        checkboxInput("canonical", "Canonical analysis of γ on the gradients tab", FALSE),
         numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
         selectInput("surf_bs", "Surface basis (GAM)", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
         selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
@@ -264,12 +360,17 @@ ui <- fluidPage(
           br(), verbatimTextOutput("data_summary"),
           h4(class = "sec", "Traits and fitness"), tableOutput("trait_summary"),
           plotOutput("hist_plot", height = "300px"),
-          h4(class = "sec", "Settings"), verbatimTextOutput("settings")),
+          h4(class = "sec", "Settings"), verbatimTextOutput("settings"),
+          h4(class = "sec", "R code"),
+          div(class = "help-note", "The calls that repeat this analysis in R with the settings above."),
+          verbatimTextOutput("r_code"),
+          downloadButton("dl_code", "Download R script")),
         tabPanel("Selection gradients",
           br(),
           h4(class = "sec", "Selection differentials and gradients"),
           tableOutput("grad_table"),
           uiOutput("corr_table_ui"),
+          uiOutput("canon_ui"),
           div(class = "help-note", "S total selection; β directional; γ quadratic (negative stabilising, positive disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
           h4(class = "sec", "Summary"),
           uiOutput("interpretation"),
@@ -306,18 +407,21 @@ ui <- fluidPage(
             column(3, br(), checkboxInput("show_points", "Show individuals", TRUE)),
             column(3, br(), checkboxInput("show_groups", "Group means and peaks", TRUE))),
           fluidRow(
-            column(6, conditionalPanel("input.show_points",
+            column(5, conditionalPanel("input.show_points",
               sliderInput("point_alpha", "Opacity of the individuals", 0.05, 1, 0.5, step = 0.05))),
-            column(6, selectInput("theme", "Colours", names(THEMES)))),
+            column(4, selectInput("theme", "Colours", names(THEMES))),
+            column(3, selectInput("surf_unc", "Uncertainty (GAM)",
+                                  c("none" = "none", "standard error lines" = "se", "lower, fit and upper" = "band")))),
           plotOutput("surf_plot", height = "500px"),
-          div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range."),
+          div(class = "help-note", "A group's peak is the highest point of the surface within that group's own range: filled when it is a peak of the surface, open when the surface keeps rising past the group's range or the edge of the data."),
           downloadButton("dl_surfplot", "Download plot (PNG)")),
         tabPanel("Adaptive landscape",
           br(), div(class = "interp", textOutput("opt_txt")),
           fluidRow(
-            column(3, br(), checkboxInput("show_opt", "Optimum", TRUE)),
+            column(2, br(), checkboxInput("show_opt", "Optimum", TRUE)),
             column(3, br(), checkboxInput("show_mean", "Current mean", TRUE)),
-            column(6, selectInput("land_theme", "Colours", names(THEMES)))),
+            column(3, br(), checkboxInput("show_support", "Shade where over half the simulation is outside the data", FALSE)),
+            column(4, selectInput("land_theme", "Colours", names(THEMES)))),
           fluidRow(
             column(6, plotOutput("land_plot", height = "420px")),
             column(6, uiOutput("land3d_ui"))),
@@ -426,6 +530,7 @@ server <- function(input, output, session) {
          surf_method = input$surf_method, surf_grid = input$surf_grid, surf_full = isTRUE(input$surf_full),
          surf_k = if (is.numeric(input$surf_k) && !is.na(input$surf_k)) round(input$surf_k) else NULL,
          surf_far = if (is.numeric(input$surf_far) && !is.na(input$surf_far) && input$surf_far > 0) input$surf_far else NULL,
+         clamp = !isFALSE(input$clamp),
          within_group = within, group_model = grp_model,
          surf_bs = input$surf_bs %||% "tp", surf_sm = input$surf_sm %||% "REML",
          spline_bs = input$spline_bs %||% "cr", spline_sm = input$spline_sm %||% "GCV.Cp",
@@ -512,6 +617,29 @@ server <- function(input, output, session) {
     tagList(h4(class = "sec", "Correlational selection"), tableOutput("corr_table"))
   })
   output$corr_table <- renderTable({ s <- setup(); correlational_table(s$report) }, align = "lrr")
+
+  # canonical axes of gamma, only when asked for in Advanced settings
+  canon <- reactive({
+    s <- setup()
+    if (!isTRUE(input$canonical) || length(s$traits) < 2) return(NULL)
+    tryCatch(suppressWarnings(suppressMessages(
+      canonical_analysis(s$d, s$fit, s$traits, fitness_type = s$ftype, standardize = TRUE, group = s$group_model))),
+      error = function(e) NULL)
+  })
+  output$canon_ui <- renderUI({
+    if (is.null(canon())) return(NULL)
+    tagList(h4(class = "sec", "Canonical axes of γ"), tableOutput("canon_table"),
+            div(class = "help-note", "λ is the curvature along each axis (negative stabilising, positive disruptive), and θ the directional selection along it. The axes are estimated from these data, so the tests are anticonservative and the largest curvatures overestimated."))
+  })
+  output$canon_table <- renderTable({
+    ca <- canon(); if (is.null(ca)) return(NULL)
+    a <- ca$axes
+    out <- data.frame(Axis = a$axis, `λ ± SE` = pm(a$lambda, a$se),
+                      p = paste(sub("^= ", "", fmt_p(a$p_value)), stars(a$p_value)), `θ` = fmt(a$theta),
+                      check.names = FALSE, stringsAsFactors = FALSE)
+    load <- as.data.frame(t(round(ca$M, 2)), check.names = FALSE)
+    cbind(out, load)
+  }, align = "l")
   output$interpretation <- renderUI({
     s <- setup(); lines <- interpret(s$report, s$traits, s$ftype, nrow(s$d), s$group)
     sep <- which(lines == "")[1]
@@ -548,15 +676,17 @@ server <- function(input, output, session) {
     if (is.null(b)) "Error bars: ± 1.96 SE."
     else sprintf("Bootstrap: %d resamples, seed %d.", attr(b, "n_boot"), setup()$seed)
   })
+  dl_name <- function(...) paste(c(file_stem(setup()$source), ...), collapse = "_")
+
   output$dl_report <- downloadHandler(
-    filename = function() "selection_gradients.csv",
+    filename = function() paste0(dl_name("selection_gradients"), ".csv"),
     content = function(f) {
       s <- setup(); r <- s$report; b <- boot_val()
       if (!is.null(b)) { m <- match(paste(r$Term, r$Type), paste(b$Term, b$Type)); r$Boot_SE <- b$Boot_SE[m]; r$CI_lower <- b$CI_lower[m]; r$CI_upper <- b$CI_upper[m] }
       utils::write.csv(as.data.frame(r), f, row.names = FALSE)
     })
   output$dl_gradplot <- downloadHandler(
-    filename = function() "selection_gradients.png",
+    filename = function() paste0(dl_name("selection_gradients"), ".png"),
     content = function(f) ggsave(f, grad_plot_obj(), width = 7, height = 4.5, dpi = 200))
 
   # ---- Fitness functions tab ----
@@ -577,13 +707,13 @@ server <- function(input, output, session) {
   uni_plot_obj <- reactive(plot_univariate_fitness(uni_fit(), uni_choice(), classic_plot = input$classic))
   output$uni_plot <- renderPlot(uni_plot_obj())
   output$dl_uniplot <- downloadHandler(
-    filename = function() paste0("fitness_function_", uni_choice(), ".png"),
+    filename = function() paste0(dl_name("fitness_function", uni_choice()), ".png"),
     content = function(f) ggsave(f, uni_plot_obj(), width = 7, height = 5, dpi = 200))
   uni_land <- reactive({
     s <- setup(); u <- uni_fit()
     with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
       out <- adaptive_landscape(s$prep, u$model, uni_choice(), group_col = s$group_model,
-                                grid_n = s$grid_n, simulation_n = s$sim_n)))))
+                                grid_n = s$grid_n, simulation_n = s$sim_n, clamp = s$clamp)))))
     out
   })
   output$uni_land_plot <- renderPlot({
@@ -617,10 +747,10 @@ server <- function(input, output, session) {
     surf <- suppressWarnings(suppressMessages(
       correlated_fitness_surface(s$prep, s$fit, tr, method = s$surf_method, grid_n = s$surf_grid, mask = !s$surf_full,
                                  too_far = s$surf_far, group = s$group, group_effect = s$within_group,
-                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm)))
+                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm, clamp = s$clamp)))
     land <- with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
       out <- adaptive_landscape(s$prep, surf$model, tr, group_col = s$group_model,
-                                grid_n = s$grid_n, simulation_n = s$sim_n)))))
+                                grid_n = s$grid_n, simulation_n = s$sim_n, clamp = s$clamp)))))
     list(surf = surf, land = out, traits = tr)
   })
   surf_plot_obj <- reactive({
@@ -629,16 +759,20 @@ server <- function(input, output, session) {
     lines <- !isFALSE(input$group_lines)
     alpha <- if (is.numeric(input$point_alpha)) input$point_alpha else 0.5
     fill_name <- if (s$ftype == "binary") "Survival" else "Fitness"
+    # the thin-plate spline has no standard errors to draw
+    unc <- if (s$surf_method == "tps" || is.null(input$surf_unc)) "none" else input$surf_unc
     p <- if (isTRUE(input$show_points)) {
       suppressMessages(plot_correlated_fitness_enhanced(sf$surf, sf$traits, original_data = s$prep, fitness_col = s$fit, bins = 12,
-                                                        point_alpha = alpha, show_groups = groups, group_lines = lines, fill = fill_name))
-    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, group_lines = lines, fill = fill_name)
+                                                        point_alpha = alpha, show_groups = groups, group_lines = lines,
+                                                        uncertainty = unc, fill = fill_name))
+    } else plot_correlated_fitness(sf$surf, sf$traits, bins = 12, show_groups = groups, group_lines = lines,
+                                   uncertainty = unc, fill = fill_name)
     suppressMessages(apply_theme(p, input$theme, binary = if (isTRUE(input$show_points)) s$ftype == "binary" else NULL,
                                  fill_name = fill_name, point_name = s$fit))
   })
   output$surf_plot <- renderPlot(surf_plot_obj())
   output$dl_surfplot <- downloadHandler(
-    filename = function() "fitness_surface.png",
+    filename = function() paste0(dl_name("fitness_surface", surf_traits()), ".png"),
     content = function(f) ggsave(f, surf_plot_obj(), width = 7.5, height = 6, dpi = 200))
 
   output$opt_txt <- renderText({
@@ -648,17 +782,20 @@ server <- function(input, output, session) {
       v <- g[[t]]; opt[[t]] <= min(v) + 1e-9 || opt[[t]] >= max(v) - 1e-9
     }, logical(1))
     where <- sprintf("%s = %+.2f SD and %s = %+.2f SD from the current population mean", tr[1], dx, tr[2], dy)
+    sup <- sf$land$support
+    beyond <- if (is.null(sup)) "" else sprintf(" %.0f%% of the population simulated there lies outside the data.", 100 * sup$at_optimum)
     if (any(on_edge)) {
       dir <- paste(sprintf("%s %s", tr[on_edge], ifelse(opt[tr[on_edge]] > 0, "up", "down")), collapse = " and ")
-      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.", where, opt$.mean_fit, dir)
+      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.%s", where, opt$.mean_fit, dir, beyond)
     } else {
-      sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).", where, sqrt(dx^2 + dy^2), opt$.mean_fit)
+      sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).%s", where, sqrt(dx^2 + dy^2), opt$.mean_fit, beyond)
     }
   })
   land_plot_obj <- reactive({
     sf <- surfaces(); tr <- sf$traits
     p <- plot_adaptive_landscape(sf$land, tr, bins = 12,
-                                 show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE)
+                                 show_optimum = isTRUE(input$show_opt), show_actual_means = FALSE,
+                                 show_support = isTRUE(input$show_support))
     p <- suppressMessages(apply_theme(p, input$land_theme, fill_name = "Mean fitness"))
     if (isTRUE(input$show_mean)) {
       # current population mean is (0, 0) in SD units
@@ -709,7 +846,7 @@ server <- function(input, output, session) {
         camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))))
   })
   output$dl_landplot <- downloadHandler(
-    filename = function() "adaptive_landscape.png",
+    filename = function() paste0(dl_name("adaptive_landscape", surfaces()$traits), ".png"),
     content = function(f) ggsave(f, land_plot_obj(), width = 7.5, height = 6, dpi = 200))
 
   # ---- Groups tab ----
@@ -750,6 +887,22 @@ server <- function(input, output, session) {
   })
 
   # ---- Settings used (Data tab) ----
+  code_lines <- reactive({
+    s <- setup()
+    sx <- input$surf_x; sy <- input$surf_y
+    r_code(s, input$dataset, if (!is.null(input$file)) input$file$name else NULL,
+           uni_trait = if (isTRUE(input$uni_trait %in% s$traits)) input$uni_trait else s$traits[1],
+           spline_k = input$spline_k %||% 10,
+           surf_traits = if (length(s$traits) >= 2 && isTRUE(sx %in% s$traits) && isTRUE(sy %in% s$traits)) c(sx, sy) else character(),
+           n_boot = if (is.numeric(input$n_boot) && !is.na(input$n_boot)) round(input$n_boot) else 500,
+           uncertainty = if (s$surf_method == "tps" || is.null(input$surf_unc)) "none" else input$surf_unc,
+           canonical = isTRUE(input$canonical))
+  })
+  output$r_code <- renderText(paste(code_lines(), collapse = "\n"))
+  output$dl_code <- downloadHandler(
+    filename = function() paste0(dl_name("selection_analysis"), ".R"),
+    content = function(f) writeLines(code_lines(), f))
+
   output$settings <- renderText({
     s <- setup(); b <- boot_val()
     paste(
@@ -763,7 +916,8 @@ server <- function(input, output, session) {
                 if (s$per_group) "; selection also estimated per group" else ""),
       sprintf("Individuals with complete data: %d", nrow(s$d)),
       sprintf("Fitness function: %s basis, %s smoothing, k = %d", s$spline_bs, sub("\\.Cp$", "", s$spline_sm), input$spline_k),
-      sprintf("Fitness surface: %s, %d x %d grid, %s", if (s$surf_method == "tps") "thin-plate spline" else
+      sprintf("Fitness surface: %s, %d x %d grid, %s",
+              if (s$surf_method == "tps") paste0("thin-plate spline", if (s$clamp) ", held within the fitness range" else "") else
                 sprintf("GAM with %s basis, %s smoothing, k %s", s$surf_bs, sub("\\.Cp$", "", s$surf_sm),
                         if (is.null(s$surf_k)) "from the data" else paste("=", s$surf_k)),
               s$surf_grid, s$surf_grid, paste0(if (s$surf_full) "drawn over the full grid" else "blank outside the data",
@@ -772,7 +926,7 @@ server <- function(input, output, session) {
       sprintf("Adaptive landscape: %d x %d grid, %d simulated individuals per point", s$grid_n, s$grid_n, s$sim_n),
       if (is.null(b)) "Bootstrap: not run" else sprintf("Bootstrap: %d resamples", attr(b, "n_boot")),
       sprintf("Random seed: %d", s$seed),
-      sprintf("RforEvolution %s, R %s.%s", as.character(utils::packageVersion("RforEvolution")), R.version$major, R.version$minor),
+      sprintf("Lande %s, R %s.%s", as.character(utils::packageVersion("Lande")), R.version$major, R.version$minor),
       sep = "\n")
   })
 }

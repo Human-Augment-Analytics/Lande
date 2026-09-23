@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
   fig.width = 6.5, fig.height = 4.5, dpi = 72, out.width = "100%"
 )
 set.seed(1)
-library(RforEvolution)
+library(Lande)
 ```
 
 <style>
@@ -89,6 +89,8 @@ For multiple traits, the vector of selection differentials is:
 
 $$\mathbf{S} = \text{Cov}(\mathbf{z}, w) = \begin{bmatrix} \text{Cov}(z_1, w) \\ \text{Cov}(z_2, w) \\ \vdots \\ \text{Cov}(z_m, w) \end{bmatrix}$$
 
+It is the change in the trait mean within a generation (Arnold & Wade, 1984).
+
 **Interpretation:** $S$ represents the shift in trait mean after one generation of selection. A positive $S$ indicates the trait mean increases.
 **File:** `selection_differential.R`
 
@@ -133,6 +135,8 @@ $$w = \alpha + \beta_1 z_1 + \beta_2 z_2 + \frac{1}{2}\gamma_{11} z_1^2 + \frac{
 | $\gamma_{ii} > 0$ | Disruptive selection | Extreme trait values have highest fitness |
 | $\gamma_{ij} > 0$ | Positive correlational | Selection favours positive correlation between traits |
 | $\gamma_{ij} < 0$ | Negative correlational | Selection favours negative correlation between traits |
+**Canonical axes:** with several traits the curvature is spread over the $\gamma_{ii}$ and the $\gamma_{ij}$ together. Canonical analysis (Phillips & Arnold, 1989; Blows & Brooks, 2003) rotates $\boldsymbol{\gamma}$ to its eigenvectors, combinations of the traits that each have a single curvature, the eigenvalue $\lambda$. See `canonical_analysis()` in section 5.17.
+
 **File:** `analyze_nonlinear_selection.R`, `analyze_disruptive_selection.R`
 
 ### 2.6 Nonparametric Fitness Functions and Surfaces
@@ -271,7 +275,7 @@ Solid arrows show data passed from one function to the next. Blue dashed arrows 
 The package loads everything it needs:
 
 ```{r, message=FALSE, warning=FALSE}
-library(RforEvolution)
+library(Lande)
 ```
 
 ### 4.2 Package Descriptions
@@ -614,7 +618,10 @@ correlated_fitness_surface(
   mask = TRUE, # Leave grid points outside the data blank
   too_far = NULL, # Also blank cells farther than this share of the range from any individual
   bs = "tp", # GAM basis: "tp", "cr" or "ps"
-  smoothing = "REML" # GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"
+  smoothing = "REML", # GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"
+  clamp = TRUE, # Hold thin-plate predictions within the range of the fitness type
+  level = 0.95, # Confidence level of the band around a GAM surface
+  by_group = FALSE # TRUE: a separate surface for each group, returned as a named list
 )
 ```
 
@@ -628,15 +635,18 @@ correlated_fitness_surface(
 
 **Masking:** the fitted surface is evaluated on a rectangular grid, and the corners of that rectangle are usually places no individual occupies. With `mask = TRUE` grid points outside the convex hull of the observed trait pairs get `NA` fitness, so the optimum is found within the data, and the plots draw the surface up to the hull and leave the outside blank. The grid keeps the unmasked predictions in `.fit_all`, records which points were kept in `.inside`, and the result carries the hull polygon in `$hull`. The hull still bridges gaps between separate clusters of individuals, such as two species on one surface. `too_far` adds the distance rule from `mgcv::vis.gam`: after scaling the grid to the unit square, cells farther than `too_far` from the nearest individual are blanked as well, and the distance is kept in `.dist`. Beausoleil et al. (2023) used 0.15. The default applies no distance rule.
 
-**Groups:** with `group` the GAM includes the column as a fixed effect and predicts the surface at the reference level, as the gradient models do for year or site. `group_effect = FALSE` fits one surface to everyone and uses the group only for the overlay, which is what a community surface of several species needs. The result's `$groups` table gives, for each group, its size, its mean of both traits and the highest point of the surface within that group's own convex hull. The plots mark the means as labelled open circles and the local peaks as filled triangles, which is how Beausoleil et al. (2023) placed several species on one surface.
+**Separate fits:** `by_group = TRUE`, here and in `univariate_spline()`, fits each group on its own rows and returns a named list, rather than one shape shifted by a group term. Prepare the data with the same `group` so each is standardised on its own, and plot with `lapply()`.
+
+**Groups:** with `group` the GAM includes the column as a fixed effect and predicts the surface at the reference level, as the gradient models do for year or site. `group_effect = FALSE` fits one surface to everyone and uses the group only for the overlay, which is what a community surface of several species needs. The result's `$groups` table gives, for each group, its size, its mean of both traits and the highest point of the surface within that group's own convex hull, with `peak_interior` saying whether that point is a peak of the surface and `peak_edge` whether it sits at the edge of the data; when both are `FALSE` the surface keeps rising past the group's range. The plots mark the means as labelled open circles and the peaks as triangles, filled for a peak and open otherwise, which is how Beausoleil et al. (2023) placed several species on one surface. `$peaks` lists every local maximum of the kept surface the same way, and the gold optimum becomes an open diamond when the highest cell sits at the edge of the data.
 
 **Returns:** List containing:
 
 - `$model`: Fitted model object
-- `$grid`: Data frame with trait values, predicted fitness (`.fit`, masked), `.fit_all` and `.inside`
+- `$grid`: Data frame with trait values, predicted fitness (`.fit`, masked), `.fit_all` and `.inside`; with the GAM also the standard error of the fit (`.se`) and its band (`.fit_lo`, `.fit_hi`)
 - `$hull`: The convex hull of the data, used by the plots
 - `$original_data`: The rows that were analysed
-- `$groups`: With `group`, one row per group with its mean traits and local peak
+- `$peaks`: The local maxima of the kept surface, highest first, `interior` `TRUE` for a peak inside the data, `FALSE` for a maximum at its edge
+- `$groups`: With `group`, one row per group with its mean traits and highest point, flagged `peak_interior` and `peak_edge`
 - `$method`: Method used
 - `$k`: Basis dimension used (GAM method)
 - `$data_type`: "binary", "count" or "continuous"
@@ -663,9 +673,10 @@ plot_correlated_fitness(
   tps,                  # Output from correlated_fitness_surface()
   trait_cols,           # The two trait names
   bins = 12,            # Number of contour bins
-  show_optimum = TRUE,  # Mark the highest predicted fitness
-  show_groups = TRUE,   # Mark group means and local peaks when the surface has a group
+  show_optimum = TRUE,  # Mark the highest fitness: gold diamond inside the data, open at its edge
+  show_groups = TRUE,   # Mark group means and highest points when the surface has a group
   group_lines = TRUE,   # Dashed line from each group's mean to its peak
+  uncertainty = "none", # "se": standard error lines; "band": lower, fit and upper panels
   ...                   # Passed to ggplot2::labs(), e.g. title or fill
 )
 
@@ -674,9 +685,12 @@ plot_correlated_fitness_enhanced(
   trait_cols,
   original_data,        # Individuals to overlay, coloured by fitness
   fitness_col,
-  bins = 12
+  bins = 12,
+  uncertainty = "none"
 )
 ```
+
+**Uncertainty:** a GAM surface carries the standard error of its fitted fitness and a band around it, worked out on the scale of the link. `uncertainty = "se"` draws the standard error as dashed contour lines over the surface, and `uncertainty = "band"` draws the lower bound, the fit and the upper bound side by side on one fill scale. `peak_difference(surface, from, to, valley = TRUE)` gives the difference in fitted fitness between two points, given as group names or trait values, and between each of them and the lowest point on the line joining them, with standard errors from the covariance of the model's coefficients. The thin-plate spline gives no standard errors.
 
 **Example:**
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=6, fig.cap="Correlated fitness surface for size and colour"}
@@ -714,7 +728,9 @@ adaptive_landscape(
   population_variance = NULL,# Within-population variance-covariance matrix
   simulation_n = 1000,       # Number of individuals to simulate per grid point
   grid_n = 50,               # Grid resolution (grid_n × grid_n)
-  custom_range = NULL        # Optional custom range for population means
+  custom_range = NULL,       # Optional custom range for population means
+  clamp = TRUE,              # Hold thin-plate fitness within the range of the fitness type
+  support_warn = 0.25        # Share outside the data at the optimum that draws a note
 )
 ```
 
@@ -727,11 +743,16 @@ adaptive_landscape(
 5. Calculate mean fitness $\bar{W} = \frac{1}{N}\sum \hat{w}_{\text{ind}}$
 6. Find optimum - the population mean that maximises $\bar{W}$
 
+The simulated populations spread beyond the data, more so towards the edge of the grid, and the fitness of those individuals is extrapolated. The function reports how far this goes, as the share of each simulated population falling outside the convex hull of the observed traits, and says so when the optimum rests on it.
+
 **Returns:**
 
 - `$grid`: Population means with mean fitness (`.mean_fit`); with one trait also the fitness function at those means (`.ind_fit`)
 - `$optimum`: Population mean with highest fitness
+- `$support`: Share of simulated individuals outside the data, over the grid (`outside`) and at the optimum (`at_optimum`); per population mean in the grid's `.outside`
 - `$actual_population_means`: Actual means (if group_col provided)
+
+**An optimum on the edge of the grid:** this usually means the true optimum lies outside the observed traits. `custom_range`, a named list with one range per trait, moves or widens the grid, but fitness out there is extrapolated, and `$support` says how much of the simulated population that involves.
 
 With a single trait the grid is a line of population means, the model is normally the `$model` of `univariate_spline()`, and the result is a curve rather than a surface.
 
@@ -762,7 +783,9 @@ plot_adaptive_landscape(
   bins = 12,                  # Number of contour bins
   show_optimum = TRUE,        # Show optimal population mean (gold diamond)
   show_actual_means = TRUE,   # Show actual population means (red points)
-  show_individual = TRUE      # One trait: also draw the fitness function
+  show_individual = TRUE,     # One trait: also draw the fitness function
+  show_support = FALSE,       # Mark where most of the simulated population leaves the data
+  support_level = 0.5         # The share outside the data at which that line is drawn
 )
 
 plot_adaptive_landscape_3d(
@@ -861,7 +884,7 @@ selection_report(prepared, "survival", c("size", "colour"), fitness_type = "bina
 
 ### 5.15 `compare_fitness_surfaces_data()`
 
-**Purpose:** Compares the individual-level fitness surface with the population-level adaptive landscape: their optima, the distance between them, summary statistics and the correlation between the two surfaces.
+**Purpose:** Compares the individual-level fitness surface with the population-level adaptive landscape: their optima, the distance between them, summary statistics and the correlation between the two surfaces. The surface is selection on individuals and the landscape is where the population mean would move, so the two can peak in different places.
 
 ```{r, message=FALSE, warning=FALSE}
 comparison <- compare_fitness_surfaces_data(
@@ -917,13 +940,13 @@ plot_temporal_landscape(
 )
 ```
 
-**Returns:** a list with one fit and one landscape per period, a `summary` table (n, mean fitness, trait means, the smooth's degrees of freedom, the position and height of the highest fitness, the number of interior peaks for one trait, and the landscape optimum), the fitted values of every period stacked in `grid`, for one trait the fitness functions on a common grid in `heat` (blank where a period has no individuals), and the periods skipped for having fewer than `min_n` rows.
+**Returns:** a list with one fit and one landscape per period, a `summary` table (n, mean fitness, trait means, the smooth's degrees of freedom, the position and height of the highest fitness and whether it sits at the edge of the data, the number of interior peaks for one trait, and the landscape optimum), the fitted values of every period stacked in `grid`, for one trait the fitness functions on a common grid in `heat` (blank where a period has no individuals), and the periods skipped for having fewer than `min_n` rows.
 
 Standardise the traits once, over all periods, before calling: the periods must share one trait axis, so nothing is restandardised per period. The number of peaks depends on the basis size `k` as any spline feature does; treat it as a description of the fitted curve, and test disruptive selection with the quadratic gradient on the birds between the peaks as Beausoleil et al. (2019) did.
 
 **Example:** medium ground finches at El Garrapatero, one row per bird per year it was seen, survival to the next year against beak size (first principal component of the three beak medians), from the public data of Beausoleil et al. (2019).
 ```{r, message=FALSE, warning=FALSE, results='hide'}
-finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "RforEvolution"))
+finch <- read.csv(system.file("extdata", "finch_yearly.csv", package = "Lande"))
 finch_prep <- prepare_selection_data(finch, "survived", "beak_pc1")
 years <- temporal_landscape(finch_prep, "survived", "beak_pc1", "year", simulation_n = 200)
 ```
@@ -941,6 +964,37 @@ plot_temporal_landscape(years, type = "heatmap")
 ```
 
 The spline finds more than one peak in 2005 and 2008 and a steep rise towards large beaks in 2009, the year with the strongest selection in Beausoleil et al. (2019). Peaks in a fitted curve are a description, not a test; their test was the quadratic gradient on the birds between the peaks, which is `analyze_disruptive_selection()` in section 5.6 run on that subset.
+
+### 5.17 `canonical_analysis()` and `plot_canonical_axes()`
+
+**Purpose:** Rotate the matrix of quadratic and correlational gradients to its canonical axes and read the curvature along each.
+
+```R
+canonical_analysis(
+  data, fitness_col, trait_cols,
+  fitness_type = "auto",
+  standardize = TRUE,
+  group = NULL,        # Standardise and relativise within groups, as the gradients do
+  bootstrap = FALSE,   # Percentile intervals for the eigenvalues
+  n_boot = 200,
+  conf = 0.95
+)
+```
+
+**Returns:** the gamma matrix, $\beta$, the loadings `M` with one column per axis, and an `axes` table with each eigenvalue $\lambda$, its standard error and p-value from the double regression of Bisgaard and Ankenman (1996), and the directional selection along the axis, $\theta = \mathbf{M}^\top\boldsymbol{\beta}$. The prepared data come back with the canonical scores `m1`, `m2`, ... added.
+
+```{r, message=FALSE, warning=FALSE}
+ca <- canonical_analysis(bumpus, "survival", c("total_length", "weight", "humerus"))
+ca
+```
+
+A negative $\lambda$ is curvature along that axis, consistent with stabilising selection, and a positive one with disruptive selection, exactly as for $\gamma_{ii}$. The tests treat the axes as known when they were estimated from the same data, so they are anticonservative (Reynolds et al., 2010). Sampling error in $\boldsymbol{\gamma}$ also spreads its eigenvalues, so the largest curvatures are overestimated, more so with many traits and few individuals (Morrissey, 2014). `bootstrap = TRUE` gives percentile intervals, with each resample's axes matched to the original ones, and `plot_canonical_axes()` draws the fitness surface along any two axes, or the fitness function along one, which is where to check whether a curved axis has a peak inside the data.
+
+```{r, message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.cap="Fitness surface along the first and last canonical axes"}
+plot_canonical_axes(ca, which = c(1, 3), grid_n = 30)
+```
+
+---
 
 ## 6. Interpretation Guide
 
@@ -986,7 +1040,7 @@ The classic example is Brodie (1992) on garter snakes: neither colour pattern no
 | 0.1 - 0.3 | Moderate selection |
 | > 0.3 | Strong selection |
 
-These bands are relative to the published record: across the studies collated by Kingsolver et al. (2001) the median $|\beta|$ was 0.16 and the median $|\gamma|$ was 0.10, so a gradient above 0.3 is stronger than most selection measured in the wild.
+These bands are relative to the published record: across the studies collated by Kingsolver et al. (2001) the median $|\beta|$ was 0.16 and the median $|\gamma|$ was 0.10, so a gradient above 0.3 is stronger than most selection measured in the wild. Gradients standardised by the trait mean instead of its standard deviation put traits with different variances on one scale, and Hereford et al. (2004) collate the record on that scale; the package reports variance-standardised gradients only.
 
 ### 6.4 Example Interpretations
 
@@ -1010,7 +1064,7 @@ Scenario 3: γ_size x beak = 0.32, p = 0.004
 
 ### 7.0 Check the Assumptions First
 
-`check_selection_assumptions()` puts the checks a Lande and Arnold analysis rests on in one table: Mardia's tests of multivariate normality of the traits, which is what lets the gradients be read as the slope and curvature of the fitness surface (they equal $\mathbf{P}^{-1}\mathbf{S}$ by least squares whatever the distribution), Shapiro-Wilk for each trait, the largest VIF, the individuals (for survival, the rarer outcome) per quadratic term, and for the gradient models residual normality and heteroscedasticity, separation, or the dispersion ratio. With the `performance` package installed it adds that package's heteroscedasticity and overdispersion tests and an R squared. Palacio et al. (2019) set out what to report; this table is meant to sit beside the gradients.
+`check_selection_assumptions()` puts the checks a Lande and Arnold analysis rests on in one table: Mardia's tests of multivariate normality of the traits, which is what lets the gradients be read as the slope and curvature of the fitness surface (Lande & Arnold, 1983; Morrissey & Sakrejda, 2013; they equal $\mathbf{P}^{-1}\mathbf{S}$ by least squares whatever the distribution), Shapiro-Wilk for each trait, the largest VIF, the individuals (for survival, the rarer outcome) per quadratic term, and for the gradient models residual normality and heteroscedasticity, separation, or the dispersion ratio. With the `performance` package installed it adds that package's heteroscedasticity and overdispersion tests and an R squared. Palacio et al. (2019) set out what to report; this table is meant to sit beside the gradients.
 
 ```{r, message=FALSE, warning=FALSE}
 check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
@@ -1090,6 +1144,15 @@ if (requireNamespace("car", quietly = TRUE)) {
 - Use ridge regression
 - Collect more data
 
+### 7.5 Reduced k Warning
+
+`univariate_spline()` warns "Reducing k from 10 to ..." when a trait has fewer distinct values than the basis asks for, which happens with small groups, single years or coarsely measured traits. The curve is then less flexible than the default. To set the basis size yourself, in the spline or the surface:
+
+```r
+uni <- univariate_spline(prepared, "survival", "size", k = 5)
+surface <- correlated_fitness_surface(prepared, "survival", c("size", "colour"), k = 15)
+```
+
 ---
 
 ## 8. References
@@ -1122,3 +1185,18 @@ if (requireNamespace("car", quietly = TRUE)) {
 
 14. Beausoleil, M.-O., Camacho, C., Rabadán-González, J., Richard, R., Lalla, K., Raeymaekers, J. A. M., Knutie, S. A., De León, L. F., Chaves, J. A., Clayton, D. H., Koop, J. A. H., Sharpe, D. M. T., Gotanda, K. M., Huber, S. K., Barrett, R. D. H., & Hendry, A. P. (2019). Temporally varying disruptive selection in the medium ground finch (*Geospiza fortis*). *Proceedings of the Royal Society B*, 286(1916), 20192290.
 
+15. Arnold, S. J., & Wade, M. J. (1984). On the measurement of natural and sexual selection: theory. *Evolution*, 38(4), 709-719.
+
+16. Hereford, J., Hansen, T. F., & Houle, D. (2004). Comparing strengths of directional selection: how strong is strong? *Evolution*, 58(10), 2133-2143.
+
+17. Morrissey, M. B., & Sakrejda, K. (2013). Unification of regression-based methods for the analysis of natural selection. *Evolution*, 67(7), 2094-2100.
+
+18. Phillips, P. C., & Arnold, S. J. (1989). Visualizing multivariate selection. *Evolution*, 43(6), 1209-1222.
+
+19. Blows, M. W., & Brooks, R. (2003). Measuring nonlinear selection. *The American Naturalist*, 162(6), 815-820.
+
+20. Bisgaard, S., & Ankenman, B. (1996). Standard errors for the eigenvalues in second-order response surface models. *Technometrics*, 38(3), 238-246.
+
+21. Reynolds, R. J., Childers, D. K., & Pajewski, N. M. (2010). The distribution and hypothesis testing of eigenvalues from the canonical analysis of the gamma matrix of quadratic and correlational selection gradients. *Evolution*, 64(4), 1076-1085.
+
+22. Morrissey, M. B. (2014). In search of the best methods for multivariate selection analysis. *Methods in Ecology and Evolution*, 5(10), 1095-1109.

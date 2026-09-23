@@ -36,9 +36,25 @@
 #' @param simulation_n Integer specifying the number of individuals to simulate per grid point. Default is 1000.
 #' @param grid_n Integer specifying the resolution of the population mean grid. Default is 50.
 #' @param custom_range Optional list specifying custom ranges for the traits.
+#' @param clamp Logical; if \code{TRUE} (the default) simulated fitness from a
+#'   thin-plate model is held inside the range of the fitness type before
+#'   averaging: 0 to 1 for survival, at least 0 for counts. Continuous fitness
+#'   is left alone, and a GAM is unaffected because its link already respects
+#'   the range. The run message says how many values were held.
+#' @param support_warn Share of the population simulated at the optimum that
+#'   may fall outside the data before the result says the optimum rests on
+#'   extrapolation. Default is 0.25.
 #' @details For a single trait the grid also carries \code{.ind_fit}, the
 #'   individual fitness function evaluated at each population mean, so the two
 #'   curves can be drawn together (see \code{plot_adaptive_landscape()}).
+#'
+#'   The simulated populations spread beyond the data, especially towards the
+#'   edge of the grid, and the fitness of those individuals is extrapolated.
+#'   The function counts how far this goes: \code{.outside} in the grid is the
+#'   share of each simulated population falling outside the convex hull of the
+#'   observed trait pairs, or outside the observed range for one trait, and the
+#'   result's \code{support} gives that share over the whole grid and at the
+#'   optimum.
 #' @return An object of class \code{"adaptive_landscape"}.
 #' @examples
 #' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
@@ -60,7 +76,9 @@ adaptive_landscape <- function(
   population_variance = NULL,
   simulation_n = 1000,
   grid_n = 50,
-  custom_range = NULL
+  custom_range = NULL,
+  clamp = TRUE,
+  support_warn = 0.25
 ) {
     # Input validation
     stopifnot(length(trait_cols) %in% c(1L, 2L))
@@ -154,6 +172,18 @@ adaptive_landscape <- function(
 
     mean_fitness <- numeric(nrow(population_grid))
 
+    # only the thin-plate model can predict outside the fitness range
+    do_clamp <- isTRUE(clamp) && inherits(fitness_model, "Tps")
+    ftype <- if (do_clamp) suppressWarnings(detect_family(as.numeric(fitness_model$y)))$type else NULL
+    clipped <- 0L
+
+    # how much of each simulated population leaves the data: outside the convex
+    # hull of the observed trait pairs, or outside the observed range for one trait
+    obs <- data[stats::complete.cases(data[, trait_cols, drop = FALSE]), trait_cols, drop = FALSE]
+    hull <- if (length(trait_cols) == 2L) .data_hull(obs[[1]], obs[[2]]) else NULL
+    obs_range <- range(obs[[1]])
+    outside <- numeric(nrow(population_grid))
+
     # A GAM fitted with a group term (correlated_fitness_surface(..., group =))
     # needs that variable to predict from. Hold every non-trait predictor at a
     # reference level taken from `data`, as the surface functions do.
@@ -185,6 +215,11 @@ adaptive_landscape <- function(
         )
 
         colnames(simulated) <- trait_cols
+        outside[i] <- if (is.null(hull)) {
+            mean(simulated[, 1] < obs_range[1] | simulated[, 1] > obs_range[2])
+        } else {
+            mean(!mgcv::in.out(hull, unname(simulated[, 1:2, drop = FALSE])))
+        }
         sim_df <- as.data.frame(simulated)
         for (v in names(extra_vars)) sim_df[[v]] <- extra_vars[[v]]
 
@@ -194,14 +229,25 @@ adaptive_landscape <- function(
         } else if (inherits(fitness_model, "Tps")) {
             ind_fitness <- predict(fitness_model, as.matrix(sim_df))
         }
+        if (do_clamp) {
+            held <- .clamp_fitness(ind_fitness, ftype)
+            clipped <- clipped + sum(held != ind_fitness, na.rm = TRUE)
+            ind_fitness <- held
+        }
 
         # Mean population fitness
         mean_fitness[i] <- mean(ind_fitness, na.rm = TRUE)
     }
 
 
+    if (do_clamp && clipped > 0) {
+        message("Held ", clipped, " of ", simulation_n * nrow(population_grid),
+                " simulated fitness values inside the range of ", ftype, " fitness")
+    }
+
     # Add mean fitness to grid
     population_grid$.mean_fit <- mean_fitness
+    population_grid$.outside <- outside
 
     # With one trait keep the individual fitness function at the same means,
     # so the landscape can be drawn against it.
@@ -213,12 +259,21 @@ adaptive_landscape <- function(
         } else {
             as.numeric(predict(fitness_model, as.matrix(ind_df)))
         }
+        if (do_clamp) population_grid$.ind_fit <- .clamp_fitness(population_grid$.ind_fit, ftype)
     }
 
     # Find optimum (maximum mean fitness)
     optimum <- population_grid[which.max(mean_fitness), ]
     .msg_table("Optimal population mean phenotype:", optimum[, trait_cols, drop = FALSE])
     message("Mean fitness at optimum: ", round(optimum$.mean_fit, 4))
+
+    support <- list(outside = mean(outside), at_optimum = optimum$.outside, warn = support_warn)
+    message(sprintf("%.0f%% of simulated individuals fell outside the data (%.0f%% at the optimum)",
+                    100 * support$outside, 100 * support$at_optimum))
+    if (support$at_optimum > support_warn) {
+        message("The optimum rests on extrapolation: more than ", 100 * support_warn,
+                "% of the population simulated there lies outside the data")
+    }
 
     # Calculate actual population means if group_col provided
     actual_means <- NULL
@@ -238,6 +293,9 @@ adaptive_landscape <- function(
         trait_cols = trait_cols,
         population_variance = population_variance,
         simulation_n = simulation_n,
+        clamp = do_clamp,
+        clipped = clipped,
+        support = support,
         optimum = optimum,
         actual_population_means = actual_means,
         fitness_model_class = class(fitness_model)[1],
@@ -290,6 +348,11 @@ print.adaptive_landscape <- function(x, ...) {
     cat("\nOptimal population mean phenotype:\n")
     print(x$optimum[, x$trait_cols, drop = FALSE])
     cat("Mean fitness at optimum:", round(x$optimum$.mean_fit, 4), "\n")
+    if (!is.null(x$support)) {
+        cat(sprintf("Simulated individuals outside the data: %.0f%% over the grid, %.0f%% at the optimum\n",
+                    100 * x$support$outside, 100 * x$support$at_optimum))
+        if (x$support$at_optimum > x$support$warn) cat("The optimum rests on extrapolation beyond the data\n")
+    }
 
     if (!is.null(x$actual_population_means)) {
         cat("\nActual population means:\n")
@@ -297,4 +360,12 @@ print.adaptive_landscape <- function(x, ...) {
     }
     cat("\n", x$note, "\n")
     invisible(x)
+}
+
+# hold predictions inside the range of the fitness type: 0 to 1 for survival,
+# at least 0 for counts; continuous fitness is left alone
+.clamp_fitness <- function(x, type) {
+    if (identical(type, "binary")) pmin(pmax(x, 0), 1)
+    else if (identical(type, "count")) pmax(x, 0)
+    else x
 }
