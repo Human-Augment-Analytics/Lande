@@ -43,6 +43,17 @@ extdata <- function(f) {
   hit[1]
 }
 
+# download names start with the dataset: a short name for the bundled ones,
+# the file name for an upload
+STEMS <- c("Bumpus sparrows" = "bumpus", "Crescent Pond pupfish" = "crescent_pond_pupfish",
+           "Little Lake pupfish" = "little_lake_pupfish", "Finch community (five groups)" = "finch_community")
+file_stem <- function(source) {
+  bundled <- sub(" \\(bundled\\)$", "", source)
+  if (bundled %in% names(STEMS)) return(STEMS[[bundled]])
+  stem <- gsub("^_+|_+$", "", tolower(gsub("[^A-Za-z0-9]+", "_", sub("\\.[^.]*$", "", basename(source)))))
+  if (nzchar(stem)) stem else "data"
+}
+
 # Martin analysed the high-density enclosures only
 high_density <- function(d) d[d$density == "H", ]
 
@@ -665,15 +676,17 @@ server <- function(input, output, session) {
     if (is.null(b)) "Error bars: ± 1.96 SE."
     else sprintf("Bootstrap: %d resamples, seed %d.", attr(b, "n_boot"), setup()$seed)
   })
+  dl_name <- function(...) paste(c(file_stem(setup()$source), ...), collapse = "_")
+
   output$dl_report <- downloadHandler(
-    filename = function() "selection_gradients.csv",
+    filename = function() paste0(dl_name("selection_gradients"), ".csv"),
     content = function(f) {
       s <- setup(); r <- s$report; b <- boot_val()
       if (!is.null(b)) { m <- match(paste(r$Term, r$Type), paste(b$Term, b$Type)); r$Boot_SE <- b$Boot_SE[m]; r$CI_lower <- b$CI_lower[m]; r$CI_upper <- b$CI_upper[m] }
       utils::write.csv(as.data.frame(r), f, row.names = FALSE)
     })
   output$dl_gradplot <- downloadHandler(
-    filename = function() "selection_gradients.png",
+    filename = function() paste0(dl_name("selection_gradients"), ".png"),
     content = function(f) ggsave(f, grad_plot_obj(), width = 7, height = 4.5, dpi = 200))
 
   # ---- Fitness functions tab ----
@@ -694,7 +707,7 @@ server <- function(input, output, session) {
   uni_plot_obj <- reactive(plot_univariate_fitness(uni_fit(), uni_choice(), classic_plot = input$classic))
   output$uni_plot <- renderPlot(uni_plot_obj())
   output$dl_uniplot <- downloadHandler(
-    filename = function() paste0("fitness_function_", uni_choice(), ".png"),
+    filename = function() paste0(dl_name("fitness_function", uni_choice()), ".png"),
     content = function(f) ggsave(f, uni_plot_obj(), width = 7, height = 5, dpi = 200))
   uni_land <- reactive({
     s <- setup(); u <- uni_fit()
@@ -759,7 +772,7 @@ server <- function(input, output, session) {
   })
   output$surf_plot <- renderPlot(surf_plot_obj())
   output$dl_surfplot <- downloadHandler(
-    filename = function() "fitness_surface.png",
+    filename = function() paste0(dl_name("fitness_surface", surf_traits()), ".png"),
     content = function(f) ggsave(f, surf_plot_obj(), width = 7.5, height = 6, dpi = 200))
 
   output$opt_txt <- renderText({
@@ -833,7 +846,7 @@ server <- function(input, output, session) {
         camera = list(eye = list(x = 1.6, y = -1.6, z = 0.9))))
   })
   output$dl_landplot <- downloadHandler(
-    filename = function() "adaptive_landscape.png",
+    filename = function() paste0(dl_name("adaptive_landscape", surfaces()$traits), ".png"),
     content = function(f) ggsave(f, land_plot_obj(), width = 7.5, height = 6, dpi = 200))
 
   # ---- Groups tab ----
@@ -887,7 +900,7 @@ server <- function(input, output, session) {
   })
   output$r_code <- renderText(paste(code_lines(), collapse = "\n"))
   output$dl_code <- downloadHandler(
-    filename = function() "selection_analysis.R",
+    filename = function() paste0(dl_name("selection_analysis"), ".R"),
     content = function(f) writeLines(code_lines(), f))
 
   output$settings <- renderText({
