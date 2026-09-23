@@ -21,5 +21,5 @@
 #' }
 #' @source Bumpus, H. C. (1899). The elimination of the unfit as illustrated by
 #'   the introduced sparrow, \emph{Passer domesticus}. \emph{Biological Lectures,
-#'   Marine Biology Laboratory, Woods Hole}, 209-226.
+#'   Marine Biological Laboratory, Woods Hole}, 209-226.
 "bumpus"
