@@ -809,8 +809,7 @@ server <- function(input, output, session) {
     sup <- sf$land$support
     beyond <- if (is.null(sup)) "" else sprintf(" %.0f%% of the population simulated there lies outside the data.", 100 * sup$at_optimum)
     if (any(on_edge)) {
-      dir <- paste(sprintf("%s %s", tr[on_edge], ifelse(opt[tr[on_edge]] > 0, "up", "down")), collapse = " and ")
-      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.%s", where, opt$.mean_fit, dir, beyond)
+      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f).%s", where, opt$.mean_fit, beyond)
     } else {
       sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).%s", where, sqrt(dx^2 + dy^2), opt$.mean_fit, beyond)
     }
