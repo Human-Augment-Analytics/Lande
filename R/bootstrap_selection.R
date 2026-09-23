@@ -97,9 +97,11 @@ bootstrap_selection <- function(data,
   }
 
   # Resample within groups when there are groups, so each resample keeps the
-  # original group sizes.
+  # original group sizes. Rows with no group label are their own group, as
+  # when the data are prepared; split() would drop them, even after addNA(),
+  # so it splits on the level codes.
   n <- nrow(data)
-  strata <- if (is.null(group)) rep(1L, n) else data[[group]]
+  strata <- if (is.null(group)) rep(1L, n) else as.integer(addNA(factor(data[[group]]), ifany = TRUE))
   strata_rows <- split(seq_len(n), strata, drop = TRUE)
   resample_rows <- function() {
     unlist(lapply(strata_rows, function(r) r[sample.int(length(r), length(r), replace = TRUE)]),
