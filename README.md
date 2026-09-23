@@ -1,4 +1,4 @@
-# Lande
+# Lande <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 Stroud lab's Lande-Arnold toolkit for measuring phenotypic selection.
 

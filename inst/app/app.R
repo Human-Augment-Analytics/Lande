@@ -280,6 +280,7 @@ ui <- fluidPage(
      details summary{cursor:pointer;font-weight:600;margin:10px 0}
      h4.sec{margin-top:18px}"
   ))),
+  tags$head(tags$link(rel = "icon", type = "image/png", href = "favicon.png")),
   # drop the connection after ten minutes without a click or keypress, so a tab
   # left open does not keep the server instance awake
   tags$head(tags$script(HTML("
@@ -299,7 +300,9 @@ ui <- fluidPage(
       reset();
     })();
   "))),
-  titlePanel("Lande"),
+  # in line with the sidebar contents, which sit 20px inside its border
+  titlePanel(tags$img(src = "logo.png", height = "110px", alt = "Lande", style = "margin-left: 20px"),
+             windowTitle = "Lande"),
   sidebarLayout(
     sidebarPanel(
       width = 3,
