@@ -306,6 +306,12 @@ library(Lande)
 | `shiny` | The app, `run_app()` |
 | `plotly` | The rotatable 3D landscape in the app |
 
+### 4.3 Example data and the app
+
+Five datasets come with the package, each with a help page giving its columns and source: `bumpus`, the house sparrows of Bumpus (1899); `crescent_pond_pupfish` and `little_lake_pupfish`, the pupfish of Martin (2016); `finch_yearly`, the medium ground finches of Beausoleil et al. (2019); and `finch_community`, the five finch groups of Beausoleil et al. (2023). Most examples below use simulated data; sections 5.16, 5.17 and 7.0 use `finch_yearly` and `bumpus`.
+
+`run_app()` runs the same workflow in a browser, on four of these datasets (all but `finch_yearly`) or an uploaded CSV, and writes out the R calls that repeat the analysis with its settings.
+
 ---
 
 ## 5. Detailed Function Reference
@@ -1212,3 +1218,7 @@ surface <- correlated_fitness_surface(prepared, "survival", c("size", "colour"),
 21. Reynolds, R. J., Childers, D. K., & Pajewski, N. M. (2010). The distribution and hypothesis testing of eigenvalues from the canonical analysis of the gamma matrix of quadratic and correlational selection gradients. *Evolution*, 64(4), 1076-1085.
 
 22. Morrissey, M. B. (2014). In search of the best methods for multivariate selection analysis. *Methods in Ecology and Evolution*, 5(10), 1095-1109.
+
+23. Bumpus, H. C. (1899). The elimination of the unfit as illustrated by the introduced sparrow, *Passer domesticus*. *Biological Lectures, Marine Biological Laboratory, Woods Hole*, 209-226.
+
+24. Martin, C. H. (2016). Context dependence in complex adaptive landscapes: frequency and trait-dependent selection surfaces within an adaptive radiation of Caribbean pupfishes. *Evolution*, 70(6), 1265-1282.
