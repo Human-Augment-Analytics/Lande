@@ -14,3 +14,7 @@
 ^data-raw$
 ^paper$
 ^cran-comments\.md$
+^_pkgdown\.yml$
+^pkgdown$
+^vignettes/articles$
+^\.github$

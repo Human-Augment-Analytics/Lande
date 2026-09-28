@@ -22,6 +22,7 @@ and finch data are also in \code{inst/extdata} as CSV files.
 Useful links:
 \itemize{
   \item \url{https://github.com/Human-Augment-Analytics/Lande}
+  \item \url{https://human-augment-analytics.github.io/Lande/}
   \item Report bugs at \url{https://github.com/Human-Augment-Analytics/Lande/issues}
 }
 
