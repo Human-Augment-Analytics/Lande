@@ -27,15 +27,17 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: James Stroud \email{stroud@gatech.edu} (affiliation: Georgia Institute of Technology)
+\strong{Maintainer}: James Stroud \email{stroud@gatech.edu} (affiliation: School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States)
 
 Authors:
 \itemize{
-  \item James Stroud \email{stroud@gatech.edu} (affiliation: Georgia Institute of Technology)
-  \item Vanessa Zhou (affiliation: Georgia Institute of Technology)
-  \item Sean Khan (affiliation: Georgia Institute of Technology)
-  \item Calvin Yu (affiliation: Georgia Institute of Technology)
-  \item Taylor Papke (affiliation: Georgia Institute of Technology)
+  \item James Stroud \email{stroud@gatech.edu} (affiliation: School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States)
+  \item Vanessa Zhou (affiliation: College of Computing, Georgia Institute of Technology, Atlanta, GA, United States)
+  \item Ali Sean Khan (affiliation: College of Computing, Georgia Institute of Technology, Atlanta, GA, United States)
+  \item Calvin Yu (affiliation: College of Computing, Georgia Institute of Technology, Atlanta, GA, United States)
+  \item Taylor Papke (affiliation: College of Computing, Georgia Institute of Technology, Atlanta, GA, United States)
+  \item Dima Nabhani (affiliation: College of Computing, Georgia Institute of Technology, Atlanta, GA, United States)
+  \item Guillermo Garcia-Costoya (affiliation: School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States)
 }
 
 }

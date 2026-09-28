@@ -4,21 +4,27 @@ Title: Tools for Evolutionary Selection Analysis
 Version: 0.1.0
 Authors@R: 
     c(
+        person("Vanessa", "Zhou",
+            role = c("aut"),
+            comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
+        person("Ali Sean", "Khan",
+            role = c("aut"),
+            comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
+        person("Calvin", "Yu",
+            role = c("aut"),
+            comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
+        person("Taylor", "Papke",
+            role = c("aut"),
+            comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
+        person("Dima", "Nabhani",
+            role = c("aut"),
+            comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
+        person("Guillermo", "Garcia-Costoya",
+            role = c("aut"),
+            comment = c(affiliation = "School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States")),
         person("James", "Stroud", email = "stroud@gatech.edu",
-            role = c("aut","cre"),
-            comment = c(affiliation = "Georgia Institute of Technology")),
-        person("Vanessa", "Zhou", 
-            role = c("aut"),
-            comment = c(affiliation = "Georgia Institute of Technology")),
-        person("Sean", "Khan", 
-            role = c("aut"),
-            comment = c(affiliation = "Georgia Institute of Technology")),
-        person("Calvin", "Yu", 
-            role = c("aut"),
-            comment = c(affiliation = "Georgia Institute of Technology")),
-        person("Taylor", "Papke", 
-            role = c("aut"),
-            comment = c(affiliation = "Georgia Institute of Technology"))
+            role = c("aut", "cre"),
+            comment = c(affiliation = "School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States"))
     )
 Description: Estimates selection differentials and linear, quadratic and
     correlational selection gradients on relative fitness following Lande and
