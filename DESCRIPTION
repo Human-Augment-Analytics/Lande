@@ -37,7 +37,8 @@ Description: Estimates selection differentials and linear, quadratic and
     for several groups on one surface. Includes bootstrap intervals, a
     combined results table and a Shiny app.
 License: MIT + file LICENSE
-URL: https://github.com/Human-Augment-Analytics/Lande
+URL: https://github.com/Human-Augment-Analytics/Lande,
+    https://human-augment-analytics.github.io/Lande/
 BugReports: https://github.com/Human-Augment-Analytics/Lande/issues
 Encoding: UTF-8
 LazyData: true

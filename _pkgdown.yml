@@ -1,0 +1,112 @@
+url: https://human-augment-analytics.github.io/Lande/
+
+template:
+  bootstrap: 5
+  bootswatch: litera
+
+toc:
+  depth: 3
+
+home:
+  title: Lande
+  description: Selection gradients, fitness surfaces and adaptive landscapes from one data frame.
+
+navbar:
+  structure:
+    left: [home, guide, casestudies, app, reference]
+    right: [search, github]
+  components:
+    home:
+      icon: fa-house fa-lg
+      href: index.html
+      aria-label: Home
+    guide:
+      text: Guide
+      href: articles/evolutionary-selection-analysis.html
+    casestudies:
+      text: Case studies
+      menu:
+      - text: Bumpus's sparrows
+        href: articles/bumpus-sparrows.html
+      - text: Pupfish in two lakes
+        href: articles/pupfish.html
+      - text: Five finch groups on one surface
+        href: articles/finch-community.html
+      - text: Finches year by year
+        href: articles/finches-year-by-year.html
+    app:
+      text: App
+      href: https://aliseankhan.github.io/lande/
+
+articles:
+- title: Guide
+  contents:
+  - evolutionary-selection-analysis
+- title: Case studies
+  contents:
+  - articles/bumpus-sparrows
+  - articles/pupfish
+  - articles/finch-community
+  - articles/finches-year-by-year
+
+reference:
+- title: Prepare
+  desc: Standardise the traits, relativise fitness and check the data
+  contents:
+  - prepare_selection_data
+  - detect_family
+  - check_selection_assumptions
+- title: Differentials and gradients
+  desc: Selection differentials, linear and quadratic gradients, their intervals and canonical axes
+  contents:
+  - selection_differential
+  - selection_coefficients
+  - analyze_linear_selection
+  - analyze_nonlinear_selection
+  - analyze_disruptive_selection
+  - extract_linear_coefficients
+  - extract_quadratic_coefficients
+  - extract_interaction_coefficients
+  - bootstrap_selection
+  - canonical_analysis
+  - plot_canonical_axes
+  - selection_report
+- title: Fitness functions and surfaces
+  desc: Spline fitness functions for one trait and fitness surfaces for two
+  contents:
+  - univariate_spline
+  - plot_univariate_fitness
+  - correlated_fitness_surface
+  - plot_correlated_fitness
+  - plot_correlated_fitness_enhanced
+  - peak_difference
+- title: Adaptive landscape
+  desc: Mean fitness against the population mean, and how it compares with the individual surface
+  contents:
+  - adaptive_landscape
+  - plot_adaptive_landscape
+  - plot_adaptive_landscape_3d
+  - compare_fitness_surfaces_data
+  - plot_fitness_surfaces_comparison
+- title: Over time
+  desc: One fitness function or surface per period
+  contents:
+  - temporal_landscape
+  - plot_temporal_landscape
+- title: App
+  desc: The whole workflow in a browser
+  contents:
+  - run_app
+  - Lande-package
+- title: Datasets
+  desc: Example datasets included with Lande
+  contents:
+  - bumpus
+  - crescent_pond_pupfish
+  - finch_yearly
+  - finch_community
+- title: Print methods
+  contents:
+  - print.selection_report
+  - print.adaptive_landscape
+  - print.selection_assumptions
