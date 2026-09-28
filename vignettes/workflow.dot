@@ -29,6 +29,8 @@ digraph workflow {
     extract   [label = <<B>extract_*_coefficients()</B><BR/><FONT POINT-SIZE="9.5">&#946;;&nbsp;&#947;&#7522;&#7522; = 2b (SE doubled);&nbsp;&#947;&#7522;&#11388; = b</FONT>>]
     diff      [label = <<B>selection_differential()</B><BR/><FONT POINT-SIZE="9.5">S = Cov(z, w)</FONT>>]
     check     [label = <<B>check_selection_assumptions()</B><BR/><FONT POINT-SIZE="9.5">normality, VIF, rows per term, residuals</FONT>>]
+    canon     [label = <<B>canonical_analysis()</B><BR/><FONT POINT-SIZE="9.5">&#947; rotated to its canonical axes, each &#955; tested</FONT>>]
+    canon_plot [label = <<B>plot_canonical_axes()</B><BR/><FONT POINT-SIZE="9.5">fitness along two axes</FONT>>]
   }
 
   subgraph cluster_surface {
@@ -40,6 +42,7 @@ digraph workflow {
     corr      [label = <<B>correlated_fitness_surface()</B><BR/><FONT POINT-SIZE="9.5">GAM (binomial, Poisson or Gaussian) or thin-plate spline; blank outside the data</FONT>>]
     uni_plot  [label = <<B>plot_univariate_fitness()</B><BR/><FONT POINT-SIZE="9.5">fit with 95% band</FONT>>]
     corr_plot [label = <<B>plot_correlated_fitness()</B><BR/><FONT POINT-SIZE="9.5">contours, optimum, group means and peaks</FONT>>]
+    peakdiff  [label = <<B>peak_difference()</B><BR/><FONT POINT-SIZE="9.5">one peak against another, and the valley between</FONT>>]
   }
 
   subgraph cluster_land {
@@ -75,6 +78,8 @@ digraph workflow {
   extract -> report [label = "gradients"]
   diff -> report [label = "differentials"]
   coeff -> boot [label = "refit on each resample", style = dashed]
+  coeff -> canon [label = "&#947; matrix"]
+  canon -> canon_plot
 
   # prepared data feeds the differential and the surfaces
   prep -> diff [color = "#2C7FB8", style = dashed, label = "prepared data"]
@@ -85,6 +90,7 @@ digraph workflow {
   # surfaces and landscape
   uni -> uni_plot
   corr -> corr_plot
+  corr -> peakdiff
   corr -> adapt [label = "fitted surface", color = "#C0392B", penwidth = 1.8]
   uni -> adapt [label = "single trait", color = "#C0392B", style = dashed]
   adapt -> adapt_plot

@@ -62,6 +62,10 @@ Each resample goes through the whole procedure again: with
   is discarded rather than fitted on a degenerate value. The point estimate
   is the ordinary \code{selection_coefficients()} fit on the full data and
   its warnings are reported as usual.
+
+  With strongly skewed traits the intervals for beta are too narrow, if less
+  so than the parametric ones (see \code{check_selection_assumptions()});
+  transform such traits before standardising.
 }
 \examples{
 set.seed(1)

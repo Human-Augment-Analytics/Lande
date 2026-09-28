@@ -30,17 +30,16 @@ with_seed <- function(seed, expr) {
   expr
 }
 
-# data files ship with the package; fall back to the source tree when run from a checkout
-extdata <- function(f) {
-  candidates <- c(
-    system.file("extdata", f, package = "Lande"),
-    file.path("..", "extdata", f),
-    file.path("inst", "extdata", f)
-  )
-  hit <- candidates[nzchar(candidates) & file.exists(candidates)]
-  validate(need(length(hit) > 0,
-    paste0("Dataset file '", f, "' not found; run the app from the package source tree.")))
-  hit[1]
+# run a fit and keep its warnings, to show beside the results. The VIF warning
+# is left out: it comes from the quadratic model, where squares and products
+# are collinear by construction, and the assumption table has the linear VIF.
+with_warnings <- function(expr) {
+  warned <- character()
+  value <- withCallingHandlers(suppressMessages(expr), warning = function(w) {
+    warned <<- c(warned, conditionMessage(w))
+    invokeRestart("muffleWarning")
+  })
+  list(value = value, warnings = grep("High multicollinearity", warned, value = TRUE, invert = TRUE))
 }
 
 # download names start with the dataset: a short name for the bundled ones,
@@ -59,20 +58,18 @@ high_density <- function(d) d[d$density == "H", ]
 
 load_dataset <- function(name) {
   switch(name,
-    "Bumpus sparrows" = {
-      utils::data("bumpus", package = "Lande")
-      list(data = get("bumpus"), fitness = "survival",
-           traits = c("weight", "total_length"), group = "sex")
-    },
+    "Bumpus sparrows" = list(
+      data = Lande::bumpus, fitness = "survival",
+      traits = c("weight", "total_length"), group = "sex"),
     "Crescent Pond pupfish" = list(
-      data = high_density(utils::read.csv(extdata("crescent_pond_pupfish.csv"))),
+      data = high_density(Lande::crescent_pond_pupfish),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     "Little Lake pupfish" = list(
-      data = high_density(utils::read.csv(extdata("little_lake_pupfish.csv"))),
+      data = high_density(Lande::little_lake_pupfish),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     # five groups on one surface: standardised together, blank far from any bird
     "Finch community (five groups)" = list(
-      data = utils::read.csv(extdata("finch_community.csv")),
+      data = Lande::finch_community,
       fitness = "recaptures", traits = c("beak_length", "beak_depth"), group = "species",
       within_group = FALSE, too_far = 0.15)
   )
@@ -193,11 +190,11 @@ r_call <- function(fn, ..., assign = NULL) {
 }
 DATA_CODE <- list(
   "Bumpus sparrows" = "dat <- bumpus",
-  "Crescent Pond pupfish" = c('dat <- read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande"))',
+  "Crescent Pond pupfish" = c("dat <- crescent_pond_pupfish",
                               'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
-  "Little Lake pupfish" = c('dat <- read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))',
+  "Little Lake pupfish" = c("dat <- little_lake_pupfish",
                             'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
-  "Finch community (five groups)" = 'dat <- read.csv(system.file("extdata", "finch_community.csv", package = "Lande"))'
+  "Finch community (five groups)" = "dat <- finch_community"
 )
 r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
   fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
@@ -283,6 +280,7 @@ interpret <- function(r, traits, ftype, n, group) {
 ui <- fluidPage(
   tags$head(tags$style(HTML(
     ".help-note{color:#555;font-size:13px;margin-top:6px}
+     .help-note.warn{color:#8a4b00}
      .interp{background:#f6f8fa;border-left:3px solid #2c7fb8;padding:10px 14px;margin:10px 0;font-size:14px}
      .interp .shiny-text-output{white-space:pre-wrap;padding:0;margin:0}
      .interp ul{margin:0;padding-left:20px}
@@ -370,6 +368,7 @@ ui <- fluidPage(
           h4(class = "sec", "Selection differentials and gradients"),
           tableOutput("grad_table"),
           uiOutput("corr_table_ui"),
+          uiOutput("fit_warnings"),
           uiOutput("canon_ui"),
           div(class = "help-note", "S total selection; β directional; γ quadratic (negative stabilising, positive disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
           h4(class = "sec", "Summary"),
@@ -510,20 +509,25 @@ server <- function(input, output, session) {
     grp_model <- if (within) grp else NULL
     prep <- suppressWarnings(suppressMessages(
       prepare_selection_data(d, fit, traits, standardize = TRUE, group = grp_model, add_relative = TRUE, na_action = "drop")))
-    report <- suppressWarnings(suppressMessages(
-      selection_report(d, fit, traits, fitness_type = resolved, standardize = TRUE, group = grp_model)))
+    fitted <- with_warnings(
+      selection_report(d, fit, traits, fitness_type = resolved, standardize = TRUE, group = grp_model))
+    report <- fitted$value
+    warned <- fitted$warnings
     grouped <- NULL
     if (!is.null(grp) && isTRUE(input$per_group)) {
-      grouped <- tryCatch(suppressWarnings(suppressMessages(
+      per <- tryCatch(with_warnings(
         selection_coefficients(d, fit, traits, fitness_type = resolved, standardize = TRUE,
-                               group = grp, return_grouped = TRUE))), error = function(e) NULL)
+                               group = grp, return_grouped = TRUE)),
+        error = function(e) list(value = NULL, warnings = paste("Per-group fits failed:", conditionMessage(e))))
+      grouped <- per$value
+      if (length(per$warnings)) warned <- c(warned, paste("Per group:", per$warnings))
     }
     keep_or <- function(x, default) if (isTRUE(x %in% traits)) x else default
     updateSelectInput(session, "uni_trait", choices = traits, selected = keep_or(input$uni_trait, traits[1]))
     updateSelectInput(session, "surf_x", choices = traits, selected = keep_or(input$surf_x, traits[1]))
     updateSelectInput(session, "surf_y", choices = traits, selected = keep_or(input$surf_y, traits[min(2, length(traits))]))
     list(d = d, prep = prep, fit = fit, traits = traits, group = grp, ftype = resolved,
-         report = report, grouped = grouped, source = current()$source,
+         report = report, grouped = grouped, warnings = unique(warned), source = current()$source,
          ftype_how = if (input$ftype == "auto") "detected" else "set by hand",
          per_group = isTRUE(input$per_group),
          seed = if (is.numeric(input$seed) && !is.na(input$seed)) round(input$seed) else 1,
@@ -617,6 +621,11 @@ server <- function(input, output, session) {
     tagList(h4(class = "sec", "Correlational selection"), tableOutput("corr_table"))
   })
   output$corr_table <- renderTable({ s <- setup(); correlational_table(s$report) }, align = "lrr")
+  output$fit_warnings <- renderUI({
+    w <- setup()$warnings
+    if (!length(w)) return(NULL)
+    div(class = "help-note warn", paste("Warnings from the fit:", paste(w, collapse = "; ")))
+  })
 
   # canonical axes of gamma, only when asked for in Advanced settings
   canon <- reactive({
@@ -785,8 +794,7 @@ server <- function(input, output, session) {
     sup <- sf$land$support
     beyond <- if (is.null(sup)) "" else sprintf(" %.0f%% of the population simulated there lies outside the data.", 100 * sup$at_optimum)
     if (any(on_edge)) {
-      dir <- paste(sprintf("%s %s", tr[on_edge], ifelse(opt[tr[on_edge]] > 0, "up", "down")), collapse = " and ")
-      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f). Selection pushes %s.%s", where, opt$.mean_fit, dir, beyond)
+      sprintf("No interior optimum: mean fitness keeps rising towards %s (highest %.3f).%s", where, opt$.mean_fit, beyond)
     } else {
       sprintf("Optimum at %s, %.2f SD from the current mean (mean fitness %.3f).%s", where, sqrt(dx^2 + dy^2), opt$.mean_fit, beyond)
     }

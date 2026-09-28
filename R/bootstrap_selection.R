@@ -31,6 +31,10 @@
 #'   is the ordinary \code{selection_coefficients()} fit on the full data and
 #'   its warnings are reported as usual.
 #'
+#'   With strongly skewed traits the intervals for beta are too narrow, if less
+#'   so than the parametric ones (see \code{check_selection_assumptions()});
+#'   transform such traits before standardising.
+#'
 #' @return A data frame with one row per coefficient and columns \code{Term},
 #'   \code{Type}, \code{Estimate} (point estimate on the full data),
 #'   \code{Boot_SE}, \code{CI_lower}, \code{CI_upper}, \code{P_Value}, and
@@ -97,9 +101,11 @@ bootstrap_selection <- function(data,
   }
 
   # Resample within groups when there are groups, so each resample keeps the
-  # original group sizes.
+  # original group sizes. Rows with no group label are their own group, as
+  # when the data are prepared; split() would drop them, even after addNA(),
+  # so it splits on the level codes.
   n <- nrow(data)
-  strata <- if (is.null(group)) rep(1L, n) else data[[group]]
+  strata <- if (is.null(group)) rep(1L, n) else as.integer(addNA(factor(data[[group]]), ifany = TRUE))
   strata_rows <- split(seq_len(n), strata, drop = TRUE)
   resample_rows <- function() {
     unlist(lapply(strata_rows, function(r) r[sample.int(length(r), length(r), replace = TRUE)]),

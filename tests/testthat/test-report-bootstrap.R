@@ -48,3 +48,18 @@ test_that("univariate_spline uses a cubic spline with a bootstrapped ribbon", {
   expect_true(all(c("fit", "lwr", "upr") %in% names(u$grid)))
   expect_true(all(u$grid$lwr <= u$grid$upr))
 })
+
+test_that("rows with no group label are resampled, as they are prepared", {
+  set.seed(11)
+  d <- data.frame(g = rep(c("a", "b", NA), c(60, 60, 20)), z1 = rnorm(140), z2 = rnorm(140))
+  d$w <- 1 + 0.4 * d$z1 + rnorm(140, 0, 0.3)
+  labelled <- d
+  labelled$g[is.na(labelled$g)] <- "z"
+  boot <- function(x) {
+    set.seed(3)
+    suppressWarnings(suppressMessages(bootstrap_selection(x, "w", c("z1", "z2"), group = "g", n_boot = 40)))
+  }
+  # a missing label behaves exactly like a third label that sorts last
+  expect_equal(boot(d)$Boot_SE, boot(labelled)$Boot_SE)
+  expect_equal(boot(d)$Estimate, boot(labelled)$Estimate)
+})

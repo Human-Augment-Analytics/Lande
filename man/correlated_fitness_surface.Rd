@@ -132,13 +132,10 @@ surf$grid[which.max(surf$grid$.fit), ]
 
 # two lakes of pupfish on one surface: cells far from any fish blank, each
 # lake's mean and local peak marked, the lake kept out of the model
-pup <- rbind(
-  read.csv(system.file("extdata", "crescent_pond_pupfish.csv", package = "Lande")),
-  read.csv(system.file("extdata", "little_lake_pupfish.csv", package = "Lande"))
-)
+pup <- rbind(crescent_pond_pupfish, little_lake_pupfish)
 pup <- pup[pup$density == "H", ]
-prep2 <- prepare_selection_data(pup, "survival", c("nasal", "SL"))
-surf2 <- correlated_fitness_surface(prep2, "survival", c("nasal", "SL"), grid_n = 30,
+prep2 <- prepare_selection_data(pup, "survival", c("nose", "noseangle"))
+surf2 <- correlated_fitness_surface(prep2, "survival", c("nose", "noseangle"), grid_n = 30,
                                     too_far = 0.15, group = "lake", group_effect = FALSE)
 surf2$groups
 }
