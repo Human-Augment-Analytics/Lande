@@ -1,0 +1,39 @@
+---
+title: "Finches year by year"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 9, fig.height = 5, dpi = 96)
+```
+
+Beausoleil et al. (2019) followed medium ground finches at El Garrapatero from 2004 to 2010 and fitted a separate fitness function to each year. The package has them as `finch_yearly`, one row per bird per year it was seen, with survival to the next year and beak size as the first principal component of three beak measures.
+
+```{r}
+library(Lande)
+finch <- finch_yearly
+table(finch$year)
+```
+
+## One fitness function per year
+
+Traits are standardised once, over all years, so the panels share one axis.
+
+```{r}
+prep <- prepare_selection_data(finch, "survived", "beak_pc1")
+years <- temporal_landscape(prep, "survived", "beak_pc1", "year", simulation_n = 200)
+years$summary[, c("time", "n", "mean_fitness", "edf", "optimum_beak_pc1", "peaks")]
+```
+
+```{r}
+plot_temporal_landscape(years, ncol = 4)
+```
+
+Survival rose steeply with beak size in 2009, the year in which Beausoleil et al. found the strongest selection; the 2006 and 2010 curves are straight lines with one degree of freedom; 2005 and 2008 have more than one peak. The band is the 95% interval of each year's spline, the dashed line the adaptive landscape, and the diamond the highest fitted survival in the year's range, which for 2006, 2009 and 2010 sits at the edge of the data rather than at an interior peak.
+
+## As a heat map
+
+```{r, fig.height = 4.5}
+plot_temporal_landscape(years, type = "heatmap")
+```
+
+The number of peaks in a fitted curve moves with the basis size, so the `peaks` column describes the fit rather than testing anything.

@@ -1,0 +1,52 @@
+---
+title: "Five finch groups on one surface"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 8, fig.height = 6, dpi = 96)
+```
+
+Beausoleil et al. (2023) fitted one fitness surface to 3428 ground finches at El Garrapatero on Santa Cruz: four species, with *Geospiza fortis* split into its small and large beak morphs, five groups in all. Fitness was the number of later years a bird was seen again, traits were beak length and depth in millimetres. The package has the data as `finch_community`, built from their archive (doi:10.5683/SP3/0YIWSE).
+
+```{r}
+library(Lande)
+finches <- finch_community
+table(finches$species)
+```
+
+## One pooled surface, the groups marked
+
+The traits stay in millimetres, the fitness type is detected as a count so the surface takes a Poisson family, cells farther than 0.15 of the axis range from any bird are blanked as in the paper, and the group is used only to mark each group's mean and the highest point of the surface within its own range.
+
+```{r}
+surface <- correlated_fitness_surface(finches, "recaptures", c("beak_length", "beak_depth"),
+                                      k = 27, too_far = 0.15,
+                                      group = "species", group_effect = FALSE)
+plot_correlated_fitness(surface, c("beak_length", "beak_depth"), show_points = TRUE, point_alpha = 0.25)
+```
+
+```{r}
+surface$groups
+```
+
+Each group's mean lies within about a millimetre of the highest fitted recapture rate in its range, 0.90 mm on average, which is the figure Beausoleil et al. report. The flags say whether that high point is a peak: four groups sit by a peak of their own, and for magnirostris the surface keeps rising past its 53 birds towards the edge of the data. Every maximum of the surface is listed in the result.
+
+```{r}
+surface$peaks
+```
+
+## The same surface on standardised traits
+
+The usual route in the package standardises the traits first. The peaks come back in millimetres by undoing the scaling.
+
+```{r}
+prep <- prepare_selection_data(finches, "recaptures", c("beak_length", "beak_depth"))
+surface_z <- correlated_fitness_surface(prep, "recaptures", c("beak_length", "beak_depth"),
+                                        k = 27, too_far = 0.15, group = "species", group_effect = FALSE)
+g <- surface_z$groups
+sds <- sapply(finches[, c("beak_length", "beak_depth")], sd)
+mus <- colMeans(finches[, c("beak_length", "beak_depth")])
+g$peak_length_mm <- g$peak_beak_length * sds[1] + mus[1]
+g$peak_depth_mm <- g$peak_beak_depth * sds[2] + mus[2]
+g[, c("group", "n", "peak_length_mm", "peak_depth_mm")]
+```

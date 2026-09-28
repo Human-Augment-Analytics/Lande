@@ -1,0 +1,51 @@
+---
+title: "Bumpus's sparrows"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 7, fig.height = 4.5, dpi = 96)
+```
+
+Bumpus (1899) measured 136 house sparrows brought in after a winter storm in Providence, Rhode Island, of which 72 survived. The data ship with the package as `bumpus`, with nine traits. Janzen and Stern (1998) reanalysed them by sex with logistic regression, and their tables are the reference the package is checked against.
+
+## Gradients on all nine traits
+
+```{r}
+library(Lande)
+traits <- c("total_length", "wingspread", "weight", "head_length", "humerus",
+            "femur", "tibiotarsus", "skull_width", "sternum")
+report <- selection_report(bumpus, "survival", traits, fitness_type = "binary")
+report[report$Type == "Linear", ]
+```
+
+Survival selected against total length and weight and for sternum length, with the other traits held constant. The p-values come from the logistic model; the coefficients and their standard errors from least squares on relative fitness, so they are on the Lande and Arnold scale.
+
+## Within each sex
+
+Standardising within sex and estimating separately gives the gradients Janzen and Stern report.
+
+```{r}
+by_sex <- selection_coefficients(bumpus, "survival", traits, fitness_type = "binary",
+                                 group = "sex", return_grouped = TRUE)
+by_sex[by_sex$Type == "Linear" & by_sex$Term %in% c("total_length", "weight"), ]
+```
+
+Males (87 birds) carry the selection against total length; females (49) the selection against weight, with wide standard errors.
+
+## The fitness function for total length
+
+```{r}
+prep <- prepare_selection_data(bumpus, "survival", "total_length")
+fit <- univariate_spline(prep, "survival", "total_length", bootstrap = TRUE, n_boot = 200)
+plot_univariate_fitness(fit, "total_length")
+```
+
+Survival is highest a little below average length and falls for longer birds. The band is a percentile bootstrap of the spline.
+
+## Checks
+
+```{r}
+check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
+```
+
+With nine traits the quadratic model has 54 terms for 64 deaths, so only the linear gradients in the report above are worth reading.
