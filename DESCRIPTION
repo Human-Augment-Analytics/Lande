@@ -16,7 +16,7 @@ Authors@R:
         person("Taylor", "Papke",
             role = c("aut"),
             comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
-        person("Dima", "Nabhani",
+        person("Dima", "Al Nabhani",
             role = c("aut"),
             comment = c(affiliation = "College of Computing, Georgia Institute of Technology, Atlanta, GA, United States")),
         person("Guillermo", "Garcia-Costoya",
