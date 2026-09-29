@@ -110,7 +110,7 @@ Traits MUST be standardized BEFORE calling this function.
 }
 \details{
 The family follows the fitness column: 0/1 fitness gets a binomial
-  family, non-negative whole numbers with more than two values (recapture
+  family, non-negative whole numbers with more than two values (lifespan in
   years, offspring) a Poisson family with a log link, and anything else a
   Gaussian family. With \code{method = "auto"} binary and count fitness use
   the GAM and continuous fitness the thin-plate spline.

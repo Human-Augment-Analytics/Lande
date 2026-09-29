@@ -198,7 +198,7 @@
 #'   group as a fixed effect or only marked on it (see \code{group_effect}).
 #'
 #' @details The family follows the fitness column: 0/1 fitness gets a binomial
-#'   family, non-negative whole numbers with more than two values (recapture
+#'   family, non-negative whole numbers with more than two values (lifespan in
 #'   years, offspring) a Poisson family with a log link, and anything else a
 #'   Gaussian family. With \code{method = "auto"} binary and count fitness use
 #'   the GAM and continuous fitness the thin-plate spline.
@@ -342,7 +342,7 @@ correlated_fitness_surface <- function(
   if (length(y) < 10) stop("Too few complete cases: ", length(y), " (<10)")
 
   # binary and count fitness by the same rule as the gradients and the spline;
-  # counts such as recapture years or offspring get a Poisson family
+  # counts such as lifespan in years or offspring get a Poisson family
   data_type <- suppressWarnings(detect_family(y))$type
   if (!data_type %in% c("binary", "count")) data_type <- "continuous"
   is_binary <- data_type == "binary"

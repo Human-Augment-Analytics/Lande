@@ -111,7 +111,7 @@ rotatable 3D landscape. The app lives in `inst/app`; see its README there.
 - `finch_yearly`: the yearly medium ground finch data of Beausoleil et al.
   (2019).
 - `finch_community`: the five-group finch community of Beausoleil et al.
-  (2023), with recapture years as fitness.
+  (2023), with apparent lifespan as fitness.
 
 Each has a help page with its columns and source. The pupfish and finch data
 are also in `inst/extdata` as CSV files.

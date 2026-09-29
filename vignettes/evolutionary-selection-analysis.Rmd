@@ -647,7 +647,7 @@ correlated_fitness_surface(
 **Method selection:**
 
 - `"tps"`: Uses `fields::Tps()` for continuous fitness (spline-based)
-- `"gam"`: Uses `mgcv::gam()` with a thin-plate smooth and REML smoothing (works for all three). The family follows the fitness column: binomial for 0/1, Poisson with a log link for counts such as recapture years or offspring, Gaussian otherwise. `bs` and `smoothing` swap in another basis or criterion to match a published analysis; with `"cr"` or `"ps"` the two traits enter as a tensor product.
+- `"gam"`: Uses `mgcv::gam()` with a thin-plate smooth and REML smoothing (works for all three). The family follows the fitness column: binomial for 0/1, Poisson with a log link for counts such as lifespan in years or offspring, Gaussian otherwise. `bs` and `smoothing` swap in another basis or criterion to match a published analysis; with `"cr"` or `"ps"` the two traits enter as a tensor product.
 - `"auto"`: Chooses based on fitness type (GAM for binary and count, TPS for continuous)
 
 **Basis dimension:** with `k = NULL` the GAM uses `min(30, max(10, floor(sqrt(n1 * n2))))`, where `n1` and `n2` are the numbers of distinct values of each trait, capped at one less than the number of observations. Pass an integer to override it.

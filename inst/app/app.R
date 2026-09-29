@@ -70,7 +70,7 @@ load_dataset <- function(name) {
     # five groups on one surface: standardised together, blank far from any bird
     "Finch community (five groups)" = list(
       data = Lande::finch_community,
-      fitness = "recaptures", traits = c("beak_length", "beak_depth"), group = "species",
+      fitness = "lifespan", traits = c("beak_length", "beak_depth"), group = "species",
       within_group = FALSE, too_far = 0.15)
   )
 }

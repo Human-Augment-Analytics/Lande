@@ -138,8 +138,9 @@
 #'
 #' Four ground finch species at El Garrapatero, Santa Cruz Island, Galapagos,
 #' with \emph{Geospiza fortis} split into its small and large beak morphs. One
-#' row per bird, with its mean beak measurements and the number of later years
-#' it was seen again, the fitness measure of Beausoleil et al. (2023). Built by
+#' row per bird, with its mean beak measurements and its apparent lifespan, the
+#' fitness measure of Beausoleil et al. (2023). Birds first caught late in the
+#' study had fewer years in which to be seen again. Built by
 #' \code{data-raw/finch_community.R} from the file in the authors' code
 #' repository (GPL-3).
 #'
@@ -153,7 +154,8 @@
 #'   \item{beak_length}{Mean beak length (mm).}
 #'   \item{beak_depth}{Mean beak depth (mm).}
 #'   \item{beak_width}{Mean beak width (mm).}
-#'   \item{recaptures}{Number of later years the bird was seen again.}
+#'   \item{lifespan}{Apparent lifespan in years: the last year the bird was
+#'     seen minus the first.}
 #' }
 #' @source Beausoleil, M.-O. et al. (2023) The fitness landscape of a
 #'   community of Darwin's finches. \emph{Evolution} 77, 2533-2546.
