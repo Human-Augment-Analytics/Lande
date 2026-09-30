@@ -38,7 +38,9 @@ Differences are on the scale of the link, log fitness for counts
   of the model's coefficients, corrected for smoothing parameter
   uncertainty when the fit was by REML or ML. The valley is picked as the
   lowest fitted point on the line, so its comparisons describe the fitted
-  surface and are not planned tests.
+  surface and are not planned tests. For overdispersed counts fit the
+  surface with \code{count_family = "quasipoisson"} first, since Poisson
+  standard errors are then too small.
 }
 \examples{
 prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))

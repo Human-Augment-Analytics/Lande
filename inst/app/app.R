@@ -71,7 +71,7 @@ load_dataset <- function(name) {
     "Finch community (five groups)" = list(
       data = Lande::finch_community,
       fitness = "lifespan", traits = c("beak_length", "beak_depth"), group = "species",
-      within_group = FALSE, too_far = 0.15)
+      within_group = FALSE, too_far = 0.15, count_family = "quasipoisson")
   )
 }
 
@@ -163,7 +163,7 @@ r_value <- function(x) {
 }
 # one call as text, wrapped at 80 characters under its bracket
 r_call <- function(fn, ..., assign = NULL) {
-  args <- list(...)
+  args <- Filter(Negate(is.null), list(...))
   nm <- names(args)
   if (is.null(nm)) nm <- rep("", length(args))
   vals <- vapply(args, function(a) as.character(a)[1], "")
@@ -198,6 +198,7 @@ DATA_CODE <- list(
 )
 r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
   fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
+  cf <- if (identical(s$ftype, "count")) r_value(s$count_family)
   load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else sprintf('dat <- read.csv("%s")', file_name %||% "your_file.csv")
   lines <- c(
     "library(Lande)", "", load,
@@ -213,7 +214,8 @@ r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_bo
     r_call("prepare_selection_data", "dat", fit, "traits", group = grp, na_action = '"drop"', assign = "prep"),
     sprintf("set.seed(%d)", s$seed),
     r_call("univariate_spline", "prep", fit, r_value(uni_trait), fitness_type = type, group = grp, k = spline_k,
-           bs = r_value(s$spline_bs), smoothing = r_value(s$spline_sm), bootstrap = "TRUE", n_boot = 200, assign = "uni"),
+           bs = r_value(s$spline_bs), smoothing = r_value(s$spline_sm), bootstrap = "TRUE", n_boot = 200,
+           count_family = cf, assign = "uni"),
     r_call("plot_univariate_fitness", "uni", r_value(uni_trait))
   )
   if (length(surf_traits) == 2 && surf_traits[1] != surf_traits[2]) {
@@ -222,7 +224,7 @@ r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_bo
       r_call("correlated_fitness_surface", "prep", fit, tr, method = r_value(s$surf_method), grid_n = s$surf_grid,
              mask = r_value(!s$surf_full), too_far = r_value(s$surf_far), group = r_value(s$group),
              group_effect = r_value(s$within_group), k = r_value(s$surf_k), bs = r_value(s$surf_bs),
-             smoothing = r_value(s$surf_sm), clamp = r_value(s$clamp), assign = "surf"),
+             smoothing = r_value(s$surf_sm), clamp = r_value(s$clamp), count_family = cf, assign = "surf"),
       r_call("plot_correlated_fitness", "surf", tr, uncertainty = r_value(uncertainty)),
       sprintf("set.seed(%d)", s$seed),
       r_call("adaptive_landscape", "prep", "surf$model", tr, group_col = grp, grid_n = s$grid_n,
@@ -352,9 +354,10 @@ ui <- fluidPage(
         checkboxInput("canonical", "Canonical analysis of γ on the gradients tab", FALSE),
         numericInput("surf_k", "Surface basis size k (blank: from the data)", NA, 5, 60, 1),
         selectInput("surf_bs", "Surface basis (GAM)", c("thin plate" = "tp", "cubic regression" = "cr", "P-spline" = "ps")),
-        selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV" = "GCV.Cp", "ML" = "ML")),
+        selectInput("surf_sm", "Surface smoothing (GAM)", c("REML" = "REML", "GCV / UBRE" = "GCV.Cp", "ML" = "ML")),
         selectInput("spline_bs", "Fitness function basis", c("cubic regression" = "cr", "thin plate" = "tp", "P-spline" = "ps")),
-        selectInput("spline_sm", "Fitness function smoothing", c("GCV" = "GCV.Cp", "REML" = "REML", "ML" = "ML"))
+        selectInput("spline_sm", "Fitness function smoothing", c("GCV / UBRE" = "GCV.Cp", "REML" = "REML", "ML" = "ML")),
+        selectInput("count_family", "Count fitness family (GAM)", c("Poisson" = "poisson", "quasi-Poisson" = "quasipoisson", "negative binomial" = "nb"))
       )
     ),
     mainPanel(
@@ -481,6 +484,7 @@ server <- function(input, output, session) {
     # dataset presets for the group handling and the distance rule
     updateCheckboxInput(session, "within_group", value = !isFALSE(d$within_group))
     updateNumericInput(session, "surf_far", value = d$too_far %||% NA)
+    updateSelectInput(session, "count_family", selected = d$count_family %||% "poisson")
   })
 
   output$fitness_hint <- renderText({
@@ -544,6 +548,7 @@ server <- function(input, output, session) {
          within_group = within, group_model = grp_model,
          surf_bs = input$surf_bs %||% "tp", surf_sm = input$surf_sm %||% "REML",
          spline_bs = input$spline_bs %||% "cr", spline_sm = input$spline_sm %||% "GCV.Cp",
+         count_family = input$count_family %||% "poisson",
          grid_n = input$grid_n, sim_n = input$sim_n)
   })
 
@@ -718,7 +723,7 @@ server <- function(input, output, session) {
     with_seed(s$seed, suppressWarnings(suppressMessages(
       univariate_spline(s$prep, s$fit, tr, fitness_type = s$ftype, group = s$group_model,
                         k = input$spline_k, bs = s$spline_bs, smoothing = s$spline_sm,
-                        bootstrap = TRUE, n_boot = 200))))
+                        bootstrap = TRUE, n_boot = 200, count_family = s$count_family))))
   })
   uni_plot_obj <- reactive(plot_univariate_fitness(uni_fit(), uni_choice(), classic_plot = input$classic))
   output$uni_plot <- renderPlot(uni_plot_obj())
@@ -763,7 +768,8 @@ server <- function(input, output, session) {
     surf <- suppressWarnings(suppressMessages(
       correlated_fitness_surface(s$prep, s$fit, tr, method = s$surf_method, grid_n = s$surf_grid, mask = !s$surf_full,
                                  too_far = s$surf_far, group = s$group, group_effect = s$within_group,
-                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm, clamp = s$clamp)))
+                                 k = s$surf_k, bs = s$surf_bs, smoothing = s$surf_sm, clamp = s$clamp,
+                                 count_family = s$count_family)))
     land <- with_seed(s$seed, suppressWarnings(suppressMessages(capture.output(
       out <- adaptive_landscape(s$prep, surf$model, tr, group_col = s$group_model,
                                 grid_n = s$grid_n, simulation_n = s$sim_n, clamp = s$clamp)))))
@@ -920,6 +926,13 @@ server <- function(input, output, session) {
 
   output$settings <- renderText({
     s <- setup(); b <- boot_val()
+    # mgcv turns GCV.Cp into UBRE for survival and Poisson counts and into REML
+    # for a negative binomial; the fitness function takes the app's fitness
+    # type, the surface finds the type in the data
+    crit <- function(sm, type) if (!identical(sm, "GCV.Cp")) sm else if (type == "binary") "UBRE" else
+      if (type == "count") switch(s$count_family, poisson = "UBRE", nb = "REML", "GCV") else "GCV"
+    surf_type <- suppressWarnings(detect_family(s$d[[s$fit]])$type)
+    surf_crit <- crit(s$surf_sm, surf_type)
     paste(
       sprintf("File: %s", s$source),
       sprintf("Fitness: %s (%s, %s)", s$fit, s$ftype, s$ftype_how),
@@ -930,11 +943,14 @@ server <- function(input, output, session) {
                   "one population, standardised together; group marks means and peaks on the surface",
                 if (s$per_group) "; selection also estimated per group" else ""),
       sprintf("Individuals with complete data: %d", nrow(s$d)),
-      sprintf("Fitness function: %s basis, %s smoothing, k = %d", s$spline_bs, sub("\\.Cp$", "", s$spline_sm), input$spline_k),
+      sprintf("Fitness function: %s basis, %s smoothing, k = %d%s", s$spline_bs,
+              crit(s$spline_sm, s$ftype), input$spline_k,
+              if (identical(s$ftype, "count")) paste0(", ", s$count_family, " family") else ""),
       sprintf("Fitness surface: %s, %d x %d grid, %s",
               if (s$surf_method == "tps") paste0("thin-plate spline", if (s$clamp) ", held within the fitness range" else "") else
-                sprintf("GAM with %s basis, %s smoothing, k %s", s$surf_bs, sub("\\.Cp$", "", s$surf_sm),
-                        if (is.null(s$surf_k)) "from the data" else paste("=", s$surf_k)),
+                sprintf("GAM with %s basis, %s smoothing, k %s%s", s$surf_bs, surf_crit,
+                        if (is.null(s$surf_k)) "from the data" else paste("=", s$surf_k),
+                        if (surf_type == "count") paste0(", ", s$count_family, " family") else ""),
               s$surf_grid, s$surf_grid, paste0(if (s$surf_full) "drawn over the full grid" else "blank outside the data",
                 if (!is.null(s$surf_far)) sprintf(", cells farther than %s of the range from any individual blank", s$surf_far) else "",
                 if (!is.null(s$group)) paste0(", group means and peaks marked", if (s$within_group) ", group as a fixed effect" else ", one surface for all groups") else "")),

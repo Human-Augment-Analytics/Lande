@@ -20,7 +20,8 @@ temporal_landscape(
   grid_n = 60,
   simulation_n = 300,
   mask = TRUE,
-  too_far = NULL
+  too_far = NULL,
+  count_family = c("poisson", "quasipoisson", "nb")
 )
 }
 \arguments{
@@ -57,6 +58,10 @@ period's fitness function.}
 
 \item{mask, too_far}{Passed to \code{correlated_fitness_surface()} for two
 traits.}
+
+\item{count_family}{Family for count fitness in every period's fit:
+\code{"poisson"} (the default), \code{"quasipoisson"} or \code{"nb"}, as
+in \code{univariate_spline()}.}
 }
 \value{
 An object of class \code{"temporal_landscape"}: \code{fits} and
@@ -73,9 +78,8 @@ An object of class \code{"temporal_landscape"}: \code{fits} and
 \description{
 Fits the fitness function (one trait) or fitness surface (two traits)
 separately for each level of a time column, usually year, and optionally
-the adaptive landscape for each, so that how selection changes over time
-can be seen. Beausoleil et al. (2019) did this for Darwin's finches, one
-year at a time.
+the adaptive landscape for each, to show how selection changes over time.
+Beausoleil et al. (2019) did this for Darwin's finches, one year at a time.
 }
 \examples{
 prep <- prepare_selection_data(finch_yearly, "survived", "beak_pc1")

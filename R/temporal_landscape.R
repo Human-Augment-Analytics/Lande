@@ -20,9 +20,8 @@
 #'
 #' Fits the fitness function (one trait) or fitness surface (two traits)
 #' separately for each level of a time column, usually year, and optionally
-#' the adaptive landscape for each, so that how selection changes over time
-#' can be seen. Beausoleil et al. (2019) did this for Darwin's finches, one
-#' year at a time.
+#' the adaptive landscape for each, to show how selection changes over time.
+#' Beausoleil et al. (2019) did this for Darwin's finches, one year at a time.
 #'
 #' @param data A data frame with fitness, trait and time columns. Standardise
 #'   the traits once, over all periods, with \code{prepare_selection_data()}
@@ -46,6 +45,9 @@
 #' @param simulation_n Simulated individuals per grid point in the landscapes.
 #' @param mask,too_far Passed to \code{correlated_fitness_surface()} for two
 #'   traits.
+#' @param count_family Family for count fitness in every period's fit:
+#'   \code{"poisson"} (the default), \code{"quasipoisson"} or \code{"nb"}, as
+#'   in \code{univariate_spline()}.
 #'
 #' @return An object of class \code{"temporal_landscape"}: \code{fits} and
 #'   \code{landscapes}, one per period; \code{summary}, one row per period
@@ -80,9 +82,11 @@ temporal_landscape <- function(
   grid_n = 60,
   simulation_n = 300,
   mask = TRUE,
-  too_far = NULL
+  too_far = NULL,
+  count_family = c("poisson", "quasipoisson", "nb")
 ) {
   fitness_type <- match.arg(fitness_type)
+  count_family <- match.arg(count_family)
   stopifnot(length(trait_cols) %in% c(1L, 2L))
   need <- c(fitness_col, trait_cols, time_col)
   absent <- setdiff(need, names(data))
@@ -128,11 +132,12 @@ temporal_landscape <- function(
     fit <- if (one) {
       quiet(univariate_spline(sub, fitness_col, trait_cols, fitness_type = fitness_type,
                               k = k %||% 10, bs = bs %||% "cr", smoothing = smoothing %||% "GCV.Cp",
-                              bootstrap = bootstrap, n_boot = n_boot))
+                              bootstrap = bootstrap, n_boot = n_boot, count_family = count_family))
     } else {
       quiet(correlated_fitness_surface(sub, fitness_col, trait_cols, method = "gam", grid_n = grid_n,
                                        k = k, mask = mask, too_far = too_far,
-                                       bs = bs %||% "tp", smoothing = smoothing %||% "REML"))
+                                       bs = bs %||% "tp", smoothing = smoothing %||% "REML",
+                                       count_family = count_family))
     }
     fits[[key]] <- fit
 

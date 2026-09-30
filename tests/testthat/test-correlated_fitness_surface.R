@@ -231,3 +231,20 @@ test_that("a count fitness with two values is still fitted as a count", {
   expect_equal(s$data_type, "count")
   expect_equal(detect_family(df$kids)$type, "count")
 })
+
+test_that("overdispersed counts warn, and quasi-Poisson widens the standard errors", {
+  set.seed(59)
+  df <- data.frame(z1 = as.numeric(scale(rnorm(300))), z2 = as.numeric(scale(rnorm(300))))
+  df$fledged <- rnbinom(300, mu = exp(0.3 + 0.4 * df$z1 - 0.3 * df$z2^2), size = 0.6)
+  expect_warning(pois <- suppressMessages(correlated_fitness_surface(df, "fledged", c("z1", "z2"), grid_n = 15)),
+                 "overdispersed")
+  expect_gt(pois$dispersion, 1.5)
+  quasi <- suppressMessages(correlated_fitness_surface(df, "fledged", c("z1", "z2"), grid_n = 15,
+                                                       count_family = "quasipoisson"))
+  expect_equal(quasi$count_family, "quasipoisson")
+  expect_gt(median(quasi$grid$.se, na.rm = TRUE), median(pois$grid$.se, na.rm = TRUE))
+  expect_warning(peak_difference(pois, c(-1, 0), c(1, 0)), "overdispersed")
+  expect_no_warning(peak_difference(quasi, c(-1, 0), c(1, 0)))
+  u <- suppressMessages(univariate_spline(df, "fledged", "z1", count_family = "quasipoisson"))
+  expect_equal(u$family, "quasipoisson(log)")
+})

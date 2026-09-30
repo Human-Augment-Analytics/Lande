@@ -8,6 +8,9 @@ First release.
 * Cubic spline fitness functions with a bootstrap band, two-trait fitness
   surfaces drawn only where there are data, and adaptive landscapes of mean
   fitness for one or two traits.
+* `count_family = "quasipoisson"` or `"nb"` in `univariate_spline()`,
+  `correlated_fitness_surface()` and `temporal_landscape()` for overdispersed
+  counts; the spline and the surface report the dispersion.
 * `by_group = TRUE` in the spline and the surface fits each group on its own
   and returns a list of fits.
 * Several groups on one surface, with each group's mean and highest point

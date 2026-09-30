@@ -25,7 +25,9 @@
 #'   of the model's coefficients, corrected for smoothing parameter
 #'   uncertainty when the fit was by REML or ML. The valley is picked as the
 #'   lowest fitted point on the line, so its comparisons describe the fitted
-#'   surface and are not planned tests.
+#'   surface and are not planned tests. For overdispersed counts fit the
+#'   surface with \code{count_family = "quasipoisson"} first, since Poisson
+#'   standard errors are then too small.
 #'
 #' @return A data frame with one row per comparison: the fitted fitness at the
 #'   two points (\code{fit_a}, \code{fit_b}), their difference on the link
@@ -43,6 +45,10 @@ peak_difference <- function(surface, from, to, valley = FALSE, n_path = 50) {
   model <- surface$model
   if (!inherits(model, "gam")) {
     stop("peak_difference() needs a surface fitted with method = \"gam\"")
+  }
+  if (identical(surface$count_family, "poisson") && isTRUE(surface$dispersion > 1.5)) {
+    warning("Counts are overdispersed (dispersion ", round(surface$dispersion, 2),
+            "); these Poisson standard errors are too small, and refitting with count_family = \"quasipoisson\" corrects them")
   }
   tr <- surface$trait_cols
 

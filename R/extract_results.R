@@ -73,6 +73,28 @@
 }
 
 #' @noRd
+# internal utility: the mgcv family for count fitness in the spline and the
+# surface.
+.count_family <- function(count_family) {
+  switch(count_family,
+         poisson = stats::poisson("log"),
+         quasipoisson = stats::quasipoisson("log"),
+         nb = mgcv::nb())
+}
+
+#' @noRd
+# internal utility: the Pearson dispersion of a count GAM. A Poisson fit warns
+# above 1.5, the rule the gradient p-values use.
+.check_dispersion <- function(fit, count_family) {
+  disp <- sum(stats::residuals(fit, type = "pearson")^2) / fit$df.residual
+  if (count_family == "poisson" && is.finite(disp) && disp > 1.5) {
+    warning("Counts are overdispersed (dispersion ", round(disp, 2),
+            "); the Poisson standard errors are too small, and count_family = \"quasipoisson\" corrects them")
+  }
+  disp
+}
+
+#' @noRd
 # internal utility: the group as a factor for the p-value GLM when there are
 # two or more; unlabelled rows count as one more group, as in the prepared
 # data.

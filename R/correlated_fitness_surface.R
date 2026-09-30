@@ -26,7 +26,7 @@
 
 #' @noRd
 # internal utility: distance from each grid point to the nearest individual,
-# with both scaled so the grid is the unit square. This is the distance
+# with both scaled so the grid is the unit square, the distance
 # mgcv::vis.gam uses for its too.far argument. Done in blocks of grid rows so
 # a fine grid over a large data set does not build one huge matrix.
 .grid_distance <- function(gx, gy, x, y) {
@@ -197,11 +197,20 @@
 #'   of \code{group} and return a named list of surfaces, each with its own
 #'   shape, grid and hull. The default \code{FALSE} fits one surface, with the
 #'   group as a fixed effect or only marked on it (see \code{group_effect}).
+#' @param count_family Family for count fitness in the GAM: \code{"poisson"}
+#'   (the default); \code{"quasipoisson"}, which estimates the dispersion, so
+#'   the standard errors and peak comparisons allow for overdispersed counts;
+#'   or \code{"nb"}, a negative binomial. The smoothing parameter is chosen
+#'   again with the dispersion estimated, so the fitted surface changes too,
+#'   usually becoming smoother, and can change a lot where there are few
+#'   individuals. The result's
+#'   \code{dispersion} is the Pearson dispersion of the fit, and a Poisson fit
+#'   warns when it is above 1.5 (a rule of thumb).
 #'
 #' @details The family follows the fitness column: 0/1 fitness gets a binomial
 #'   family, non-negative whole numbers with more than two values (lifespan in
-#'   years, offspring) a Poisson family with a log link, and anything else a
-#'   Gaussian family. With \code{method = "auto"} binary and count fitness use
+#'   years, offspring) a Poisson family with a log link or the one set by
+#'   \code{count_family}, and anything else a Gaussian family. With \code{method = "auto"} binary and count fitness use
 #'   the GAM and continuous fitness the thin-plate spline.
 #'   By default the GAM uses a thin-plate smooth with the smoothing
 #'   parameter chosen by REML; \code{bs} and \code{smoothing} are there to match
@@ -228,7 +237,9 @@
 #'   highest point of the surface within its own range, flagged
 #'   \code{peak_interior} when that point is an interior maximum of the
 #'   surface and \code{peak_edge} when it lies at the edge of the data; with
-#'   both \code{FALSE} the surface keeps rising past the group's range.
+#'   both \code{FALSE} the surface keeps rising past the group's range. For
+#'   count fitness \code{count_family} and \code{dispersion} record the family
+#'   used and the Pearson dispersion of the fit.
 #' @export
 #'
 #' @examples
@@ -260,11 +271,13 @@ correlated_fitness_surface <- function(
   smoothing = c("REML", "GCV.Cp", "ML"),
   clamp = TRUE,
   level = 0.95,
-  by_group = FALSE
+  by_group = FALSE,
+  count_family = c("poisson", "quasipoisson", "nb")
 ) {
   stopifnot(length(trait_cols) == 2L)
   bs <- match.arg(bs)
   smoothing <- match.arg(smoothing)
+  count_family <- match.arg(count_family)
   if (!is.null(too_far)) {
     if (!is.numeric(too_far) || length(too_far) != 1L || is.na(too_far) || too_far <= 0) {
       stop("too_far must be a single positive number (a fraction of the grid's range) or NULL")
@@ -274,7 +287,8 @@ correlated_fitness_surface <- function(
     surfaces <- .fit_by_group(data, group, function(rows) {
       correlated_fitness_surface(rows, fitness_col, trait_cols, grid_n = grid_n, method = method,
                                  group = NULL, k = k, mask = mask, too_far = too_far, bs = bs,
-                                 smoothing = smoothing, clamp = clamp, level = level)
+                                 smoothing = smoothing, clamp = clamp, level = level,
+                                 count_family = count_family)
     })
     return(surfaces)
   }
@@ -343,7 +357,8 @@ correlated_fitness_surface <- function(
   if (length(y) < 10) stop("Too few complete cases: ", length(y), " (<10)")
 
   # binary and count fitness by the same rule as the gradients and the spline;
-  # counts such as lifespan in years or offspring get a Poisson family
+  # counts such as lifespan in years or offspring get a Poisson family, or the
+  # one set by count_family
   data_type <- suppressWarnings(detect_family(y))$type
   if (!data_type %in% c("binary", "count")) data_type <- "continuous"
   is_binary <- data_type == "binary"
@@ -409,7 +424,7 @@ correlated_fitness_surface <- function(
       stop("mgcv package required. Please install.packages('mgcv')")
     }
 
-    fam <- if (is_binary) stats::binomial("logit") else if (is_count) stats::poisson("log") else stats::gaussian()
+    fam <- if (is_binary) stats::binomial("logit") else if (is_count) .count_family(count_family) else stats::gaussian()
 
     # Prepare data frame
     df_fit <- data.frame(
@@ -477,6 +492,7 @@ correlated_fitness_surface <- function(
     if (is.null(fit)) {
       stop("All GAM formula attempts failed")
     }
+    dispersion <- if (is_count) .check_dispersion(fit, count_family) else NULL
 
     # Predict on grid
     newdat <- grid_scaled[, trait_cols, drop = FALSE]
@@ -544,6 +560,8 @@ correlated_fitness_surface <- function(
       groups = if (!is.null(group)) .group_peaks(grid, trait_cols, x1, x2, grp, states) else NULL,
       group_effect = if (!is.null(group)) use_effect else NULL,
       data_type = data_type,
+      count_family = if (is_count) count_family else NULL,
+      dispersion = dispersion,
       trait_cols = trait_cols,
       fitness_col = fitness_col,
       group_used = group,
@@ -559,7 +577,7 @@ correlated_fitness_surface <- function(
   }
 
   if (is_binary || is_count) {
-    warning(data_type, " fitness detected but method='tps' chosen. Using Tps on ", data_type, " outcomes (not ideal).")
+    warning("method = 'tps' treats ", data_type, " fitness as continuous; 'gam' fits it with its own family")
   }
 
   Xs <- cbind(as.numeric(x1s), as.numeric(x2s))

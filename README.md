@@ -121,8 +121,9 @@ are also in `inst/extdata` as CSV files.
 `detect_family()` classifies fitness as binary, count or continuous and picks
 the model used for the p-values; the gradients themselves always come from OLS
 on relative fitness. The spline uses a cubic regression basis with the
-smoothing chosen by GCV and the surface a thin-plate basis chosen by REML;
-both can be changed with `bs` and `smoothing`.
+smoothing chosen by GCV (UBRE for survival and Poisson counts) and the
+surface a thin-plate basis chosen by REML; both can be changed with `bs` and
+`smoothing`.
 
 See `vignette("evolutionary-selection-analysis")` for the maths and worked
 examples.

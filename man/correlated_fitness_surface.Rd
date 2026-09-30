@@ -20,7 +20,8 @@ correlated_fitness_surface(
   smoothing = c("REML", "GCV.Cp", "ML"),
   clamp = TRUE,
   level = 0.95,
-  by_group = FALSE
+  by_group = FALSE,
+  count_family = c("poisson", "quasipoisson", "nb")
 )
 }
 \arguments{
@@ -87,6 +88,16 @@ does. The GAM respects the range through its link and is unaffected.}
 of \code{group} and return a named list of surfaces, each with its own
 shape, grid and hull. The default \code{FALSE} fits one surface, with the
 group as a fixed effect or only marked on it (see \code{group_effect}).}
+
+\item{count_family}{Family for count fitness in the GAM: \code{"poisson"}
+(the default); \code{"quasipoisson"}, which estimates the dispersion, so
+the standard errors and peak comparisons allow for overdispersed counts;
+or \code{"nb"}, a negative binomial. The smoothing parameter is chosen
+again with the dispersion estimated, so the fitted surface changes too,
+usually becoming smoother, and can change a lot where there are few
+individuals. The result's
+\code{dispersion} is the Pearson dispersion of the fit, and a Poisson fit
+warns when it is above 1.5 (a rule of thumb).}
 }
 \value{
 A list containing the fitted model, grid predictions, and metadata.
@@ -103,7 +114,9 @@ A list containing the fitted model, grid predictions, and metadata.
   highest point of the surface within its own range, flagged
   \code{peak_interior} when that point is an interior maximum of the
   surface and \code{peak_edge} when it lies at the edge of the data; with
-  both \code{FALSE} the surface keeps rising past the group's range.
+  both \code{FALSE} the surface keeps rising past the group's range. For
+  count fitness \code{count_family} and \code{dispersion} record the family
+  used and the Pearson dispersion of the fit.
 }
 \description{
 Fits a model for individual fitness based on multiple individual phenotypes (w ~ z1 + z2 + interactions).
@@ -112,8 +125,8 @@ Traits MUST be standardized BEFORE calling this function.
 \details{
 The family follows the fitness column: 0/1 fitness gets a binomial
   family, non-negative whole numbers with more than two values (lifespan in
-  years, offspring) a Poisson family with a log link, and anything else a
-  Gaussian family. With \code{method = "auto"} binary and count fitness use
+  years, offspring) a Poisson family with a log link or the one set by
+  \code{count_family}, and anything else a Gaussian family. With \code{method = "auto"} binary and count fitness use
   the GAM and continuous fitness the thin-plate spline.
   By default the GAM uses a thin-plate smooth with the smoothing
   parameter chosen by REML; \code{bs} and \code{smoothing} are there to match

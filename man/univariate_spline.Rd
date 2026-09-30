@@ -16,7 +16,8 @@ univariate_spline(
   smoothing = c("GCV.Cp", "REML", "ML"),
   bootstrap = FALSE,
   n_boot = 1000,
-  by_group = FALSE
+  by_group = FALSE,
+  count_family = c("poisson", "quasipoisson", "nb")
 )
 }
 \arguments{
@@ -28,7 +29,7 @@ univariate_spline(
 
 \item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.}
 
-\item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included; rows with no group label are one more level.}
+\item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included (none when it has only one level); rows with no group label are one more level.}
 
 \item{relative_col}{Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).}
 
@@ -38,9 +39,13 @@ univariate_spline(
 \code{"tp"} (thin plate) or \code{"ps"} (P-spline).}
 
 \item{smoothing}{How the smoothing parameter is chosen: \code{"GCV.Cp"}
-(generalised cross-validation, the default), \code{"REML"} or \code{"ML"}.}
+(generalised cross-validation, the default, which mgcv applies in its UBRE
+form to binary and Poisson fitness and as plain GCV to quasi-Poisson; a
+negative binomial fit uses REML in its place), \code{"REML"} or
+\code{"ML"}.
+The result's \code{spline_type} names the criterion mgcv used.}
 
-\item{bootstrap}{Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.}
+\item{bootstrap}{Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is fast; the bootstrap refits the spline \code{n_boot} times.}
 
 \item{n_boot}{Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.}
 
@@ -49,6 +54,12 @@ own rows and return a named list of fits, one per group.
 The default \code{FALSE} fits one curve with the group as a fixed
 effect. Prepare the data with the same \code{group} first, so that each
 group is standardised on its own.}
+
+\item{count_family}{Family for count fitness: \code{"poisson"} (the
+default), \code{"quasipoisson"} or \code{"nb"}, as in
+\code{correlated_fitness_surface()}; the smoothing parameter is chosen
+under whichever is used. The result's \code{dispersion} is the Pearson
+dispersion of the fit, and a Poisson fit warns when it is above 1.5.}
 }
 \value{
 A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
@@ -60,9 +71,11 @@ The formula is \code{w ~ f(z)}. Traits should be standardized BEFORE calling thi
 \details{
 By default the fitness function is a penalised cubic regression
   spline with the smoothing parameter chosen by generalised
-  cross-validation, following Schluter (1988). \code{bs} and \code{smoothing}
-  are there to match the smoother of another study; they do not change
-  how much the curve is smoothed, which is always chosen from the data.
+  cross-validation (UBRE for binary and Poisson fitness), following Schluter
+  (1988). \code{bs} and \code{smoothing}
+  set the family of curves and the criterion, to match the smoother of
+  another study; the amount of smoothing is still estimated from the data,
+  though the criterion can change it a good deal.
   If mgcv's check suggests the basis dimension was too small a warning
   says so. With \code{bootstrap = TRUE} the result depends on the random
   seed; call \code{set.seed()} first for a reproducible ribbon.

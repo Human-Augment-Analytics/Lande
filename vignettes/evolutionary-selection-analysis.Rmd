@@ -157,7 +157,7 @@ where $s(z)$ is a smooth function estimated from the data using penalised regres
 
 $$w = \alpha + f(z_1, z_2) + \varepsilon$$
 
-where $f(z_1, z_2)$ is a two-dimensional smooth surface showing how individual fitness varies across trait combinations. The univariate spline uses generalised cross-validation for its smoothing parameter (Schluter 1988); the surface uses REML. The surface is drawn only where there are data: grid points outside the convex hull of the observed trait pairs are blank, and a distance rule can also blank cells far from any individual, as Beausoleil et al. (2023) did for a community of Darwin's finches. With a grouping column such as species, each group's mean and the highest point of the surface within that group's own range are marked on the plot.
+where $f(z_1, z_2)$ is a two-dimensional smooth surface showing how individual fitness varies across trait combinations. The univariate spline chooses its smoothing parameter by generalised cross-validation (Schluter 1988), which for survival and Poisson counts mgcv applies in its UBRE form; the surface uses REML. The surface is drawn only where there are data: grid points outside the convex hull of the observed trait pairs are blank, and a distance rule can also blank cells far from any individual, as Beausoleil et al. (2023) did for a community of Darwin's finches. With a grouping column such as species, each group's mean and the highest point of the surface within that group's own range are marked on the plot.
 
 **GAM formulation:**
 $$
@@ -249,7 +249,7 @@ Selection is rarely constant. Beausoleil et al. (2019) fitted a separate fitness
 | `analyze_nonlinear_selection.R` | Quadratic gradients | $z^2$ + interactions | $w = \alpha + \boldsymbol{\beta}^T\mathbf{z} + \frac{1}{2}\mathbf{z}^T\boldsymbol{\gamma}\mathbf{z} + \varepsilon$ |
 | `analyze_disruptive_selection.R` | Single-trait quadratic | Stabilising/disruptive test | $\gamma_{ii} = 2\beta_{ii}$ |
 | `extract_results.R` | Result extraction | Coefficient parsing | $\beta$, $\gamma$ |
-| `univariate_spline.R` | 1D fitness | Cubic regression spline (GCV) | $w = \alpha + s(z) + \varepsilon$ |
+| `univariate_spline.R` | 1D fitness | Cubic regression spline (GCV, UBRE for 0/1 and Poisson counts) | $w = \alpha + s(z) + \varepsilon$ |
 | `correlated_fitness_surface.R` | 2D fitness | GAM / TPS | $w = \alpha + f(z_1, z_2) + \varepsilon$ |
 | `adaptive_landscape.R` | Adaptive landscape | Simulation | $\bar{W} = g(\bar{z}_1, \bar{z}_2)$ |
 | `compare_fitness_surfaces.R` | Comparison | Surface contrast | Individual vs population |
@@ -568,15 +568,16 @@ univariate_spline(
   relative_col = NULL, # pre-computed relative fitness column, if any
   k = 10,              # basis dimension
   bs = "cr",           # spline basis: "cr", "tp" or "ps"
-  smoothing = "GCV.Cp", # how the smoothing parameter is chosen: "GCV.Cp", "REML" or "ML"
+  smoothing = "GCV.Cp", # how the smoothing parameter is chosen: "GCV.Cp" (UBRE for 0/1 and Poisson counts), "REML" or "ML"
   bootstrap = FALSE,   # TRUE: percentile-bootstrap 95% ribbon (Schluter 1988)
-  n_boot = 1000
+  n_boot = 1000,
+  count_family = "poisson" # "quasipoisson" or "nb" for overdispersed counts
 )
 ```
 
 **Technical details:**
 
-- Penalised cubic regression spline (`bs = "cr"`) with the smoothing parameter chosen by generalised cross-validation, following Schluter (1988). `bs` and `smoothing` exist to match the smoother another study used; they change the family of curves, not how much the data are smoothed, which is always chosen from the data. A warning is given if mgcv's check suggests `k` left the curve too little room to bend.
+- Penalised cubic regression spline (`bs = "cr"`) with the smoothing parameter chosen by generalised cross-validation, following Schluter (1988); for survival and Poisson counts mgcv uses its UBRE form, and a negative binomial fit uses REML. `bs` sets the family of curves and `smoothing` the criterion, to match the smoother another study used; the amount of smoothing is still estimated from the data, though the criterion can change it a good deal. A warning is given if mgcv's check suggests `k` left the curve too little room to bend.
 - For binary fitness: binomial GAM with logit link on the raw 0/1 values; for counts: Poisson GAM with log link on the raw counts; for continuous fitness: Gaussian GAM on relative fitness
 - 95% band: parametric (Wald) by default, or a percentile bootstrap over individuals with `bootstrap = TRUE`
 
@@ -640,14 +641,15 @@ correlated_fitness_surface(
   smoothing = "REML", # GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"
   clamp = TRUE, # Hold thin-plate predictions within the range of the fitness type
   level = 0.95, # Confidence level of the band around a GAM surface
-  by_group = FALSE # TRUE: a separate surface for each group, returned as a named list
+  by_group = FALSE, # TRUE: a separate surface for each group, returned as a named list
+  count_family = "poisson" # "quasipoisson" or "nb" for overdispersed counts
 )
 ```
 
 **Method selection:**
 
 - `"tps"`: Uses `fields::Tps()` for continuous fitness (spline-based)
-- `"gam"`: Uses `mgcv::gam()` with a thin-plate smooth and REML smoothing (works for all three). The family follows the fitness column: binomial for 0/1, Poisson with a log link for counts such as lifespan in years or offspring, Gaussian otherwise. `bs` and `smoothing` swap in another basis or criterion to match a published analysis; with `"cr"` or `"ps"` the two traits enter as a tensor product.
+- `"gam"`: Uses `mgcv::gam()` with a thin-plate smooth and REML smoothing (works for all three). The family follows the fitness column: binomial for 0/1, Poisson with a log link for counts such as lifespan in years or offspring, Gaussian otherwise. Counts are often overdispersed. A Poisson fit warns when the dispersion is above 1.5, and `count_family = "quasipoisson"` then corrects the standard errors and peak comparisons. `bs` and `smoothing` swap in another basis or criterion to match a published analysis; with `"cr"` or `"ps"` the two traits enter as a tensor product.
 - `"auto"`: Chooses based on fitness type (GAM for binary and count, TPS for continuous)
 
 **Basis dimension:** with `k = NULL` the GAM uses `min(30, max(10, floor(sqrt(n1 * n2))))`, where `n1` and `n2` are the numbers of distinct values of each trait, capped at one less than the number of observations. Pass an integer to override it.
