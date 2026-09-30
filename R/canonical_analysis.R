@@ -70,7 +70,8 @@
 #'   from the same data, so they are anticonservative (Reynolds et al. 2010).
 #'   Sampling error in \eqn{\gamma} also spreads its eigenvalues, so the largest
 #'   curvatures are overestimated, especially with many traits and few
-#'   individuals (Morrissey 2014). Read the eigenvalues beside the fitness
+#'   individuals (Reynolds et al. 2010), and the estimated axes lean towards
+#'   directions of phenotype with little variance (Morrissey 2014). Read the eigenvalues beside the fitness
 #'   surface along the same axes, which \code{plot_canonical_axes()} draws,
 #'   and rely more on the bootstrap intervals. With the bootstrap,
 #'   each resample's axes are matched to the original ones by their largest
