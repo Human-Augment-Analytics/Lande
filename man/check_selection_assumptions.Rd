@@ -24,7 +24,10 @@ check_selection_assumptions(
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 
-\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
+\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.}
 }
 \value{
 A data frame of class \code{"selection_assumptions"} with one row
@@ -58,10 +61,13 @@ The regression gradients equal the covariance-adjusted
   gradient model. The rows-per-term check counts the individuals, or for
   binary fitness the rarer outcome, per term of the quadratic model, with
   ten as the working minimum. With more than 2000 individuals Mardia's
-  statistics use a random subsample of 2000. If the \code{performance}
-  package is installed its heteroscedasticity and overdispersion tests are
-  added beside the package's own, along with an R squared for the gradient
-  model.
+  statistics use a random subsample of 2000.
+  Like the gradient models, the logistic and count models fit an intercept
+  per group, with unlabelled rows as one more group. A group in which every
+  individual survived, or none did, is fitted at 0 or 1 by its intercept and
+  is left out of the separation check. If the \code{performance} package is
+  installed its heteroscedasticity and overdispersion tests are added next
+  to the package's own, along with an R squared for the gradient model.
 }
 \examples{
 check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))

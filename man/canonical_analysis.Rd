@@ -27,7 +27,10 @@ canonical_analysis(
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 
-\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
+\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.}
 
 \item{bootstrap}{Logical; add percentile intervals for the eigenvalues by
 resampling individuals, within groups when \code{group} is given. Default

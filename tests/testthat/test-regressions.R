@@ -134,6 +134,37 @@ test_that("univariate_spline detects continuous fitness by default", {
   expect_match(u$ci_method, "parametric")
 })
 
+test_that("the p-value GLM has an intercept for each group", {
+  set.seed(83)
+  d <- data.frame(z1 = rnorm(160), z2 = rnorm(160), colony = rep(c("east", "west"), each = 80))
+  d$alive <- rbinom(160, 1, plogis(ifelse(d$colony == "east", -1.2, 0.9) + 0.5 * d$z1))
+  res <- quiet(selection_coefficients(d, "alive", c("z1", "z2"), fitness_type = "binary", group = "colony"))
+  prep <- quiet(prepare_selection_data(d, "alive", c("z1", "z2"), group = "colony"))
+  ref <- summary(glm(alive ~ colony + z1 + z2, family = binomial, data = prep))$coefficients
+  lin <- res[res$Type == "Linear", ]
+  expect_equal(lin$P_Value[match(c("z1", "z2"), lin$Term)], unname(ref[c("z1", "z2"), 4]))
+})
+
+test_that("a group with one level is fitted without a group term", {
+  set.seed(41)
+  d <- data.frame(z1 = rnorm(90), z2 = rnorm(90), site = "north")
+  d$surv <- rbinom(90, 1, plogis(-0.5 + 0.8 * d$z1))
+  prep <- quiet(prepare_selection_data(d, "surv", c("z1", "z2"), group = "site"))
+  expect_message(sp <- suppressWarnings(univariate_spline(prep, "surv", "z1", group = "site")),
+                 "one level")
+  plain <- quiet(univariate_spline(prep, "surv", "z1"))
+  expect_equal(fitted(sp$model), fitted(plain$model))
+  expect_message(surf <- suppressWarnings(correlated_fitness_surface(prep, "surv", c("z1", "z2"), group = "site")),
+                 "one level")
+  expect_false(isTRUE(surf$group_effect))
+
+  # a second site whose birds all lack the trait leaves one level in the fit
+  south <- data.frame(z1 = NA_real_, z2 = rnorm(10), site = "south", surv = 1)
+  both <- rbind(prep[, c("z1", "z2", "site", "surv")], south)
+  expect_message(one <- suppressWarnings(univariate_spline(both, "surv", "z1", group = "site")), "one level")
+  expect_equal(fitted(one$model), fitted(plain$model))
+})
+
 test_that("adaptive_landscape can use a surface fitted with a group term", {
   df <- sim_data(n = 120)
   prep <- suppressWarnings(suppressMessages(prepare_selection_data(df, "w", c("z1", "z2"), group = "grp")))
@@ -184,6 +215,18 @@ test_that("selection_report differentials use the rows the gradients use", {
   expect_equal(rep$Estimate[rep$Type == "Differential" & rep$Term == "z1"], S_ref, tolerance = 1e-10)
 })
 
+test_that("selection_report treats missing group labels as the gradients do", {
+  df <- sim_data(n = 160, seed = 23)
+  df$site <- rep(c("east", "west"), 80)
+  df$site[c(3, 8, 20, 41, 77, 90, 101, 133)] <- NA
+  labelled <- df
+  labelled$site[is.na(labelled$site)] <- "none"
+  a <- suppressWarnings(suppressMessages(selection_report(df, "w", c("z1", "z2"), fitness_type = "continuous", group = "site")))
+  b <- suppressWarnings(suppressMessages(selection_report(labelled, "w", c("z1", "z2"), fitness_type = "continuous", group = "site")))
+  # S and beta both count the unlabelled rows as one more group
+  expect_equal(a$Estimate, b$Estimate)
+})
+
 test_that("selection_report labels the fitness type actually used", {
   d <- data.frame(surv = rbinom(80, 1, 0.5), z1 = rnorm(80), z2 = rnorm(80))
   rep <- suppressWarnings(suppressMessages(
@@ -205,4 +248,60 @@ test_that("bootstrap_selection validates n_boot and resamples within groups", {
   ref <- suppressWarnings(suppressMessages(
     selection_coefficients(df, "w", c("z1", "z2"), fitness_type = "continuous", group = "grp")))
   expect_equal(b$Estimate, ref$Beta_Coefficient)
+})
+
+test_that("the assumption checks take the group out, as the gradient models do", {
+  set.seed(83)
+  d <- data.frame(z1 = rnorm(300), z2 = rnorm(300), yr = rep(c("y1", "y2", "y3"), each = 100))
+  d$kids <- rpois(300, exp(c(y1 = -0.2, y2 = 1.2, y3 = 2.2)[d$yr] + 0.2 * d$z1 - 0.1 * d$z2^2))
+  chk <- suppressWarnings(check_selection_assumptions(d, "kids", c("z1", "z2"), group = "yr"))
+  # once each year has its own mean the counts are close to Poisson
+  expect_lt(chk$statistic[grepl("dispersion", chk$check)], 1.5)
+})
+
+test_that("a population where every bird lived is not taken for separation", {
+  set.seed(9)
+  d <- data.frame(z1 = rnorm(200), z2 = rnorm(200), pop = rep(c("p1", "p2"), c(170, 30)))
+  d$alive <- rbinom(200, 1, plogis(0.2 + 0.7 * d$z1))
+  d$alive[d$pop == "p2"] <- 1
+  seen <- character()
+  withCallingHandlers(suppressMessages(selection_coefficients(d, "alive", c("z1", "z2"), group = "pop")),
+                      warning = function(w) {
+                        seen <<- c(seen, conditionMessage(w))
+                        invokeRestart("muffleWarning")
+                      })
+  expect_false(any(grepl("separation", seen)))
+  # nor in the checks, where that population is fitted at 1 by its intercept
+  chk <- suppressWarnings(check_selection_assumptions(d, "alive", c("z1", "z2"), group = "pop"))
+  expect_equal(chk$note[grepl("separation", chk$check)], "no sign of separation")
+})
+
+test_that("the spline and surface keep unlabelled rows as one more group and fit a numeric group by level", {
+  set.seed(5)
+  g <- data.frame(z1 = rnorm(300), z2 = rnorm(300), site = rep(c("a", "b", NA), each = 100))
+  g$w <- 1 + 0.3 * g$z1 + ifelse(is.na(g$site), 0.5, 0) + rnorm(300, 0, 0.3)
+  sp <- suppressWarnings(suppressMessages(univariate_spline(g, "w", "z1", fitness_type = "continuous", group = "site")))
+  expect_equal(nrow(sp$model$model), 300)
+  expect_true("siteNA" %in% names(coef(sp$model)))
+  sf <- suppressWarnings(suppressMessages(correlated_fitness_surface(g, "w", c("z1", "z2"), method = "gam", group = "site")))
+  expect_equal(nrow(sf$model$model), 300)
+  expect_true("siteNA" %in% names(coef(sf$model)))
+  g$year <- rep(c(2001, 2002, 2003), 100)
+  sy <- suppressWarnings(suppressMessages(univariate_spline(g, "w", "z1", fitness_type = "continuous", group = "year")))
+  expect_equal(grep("^year", names(coef(sy$model)), value = TRUE), c("year2002", "year2003"))
+})
+
+test_that("the canonical bootstrap resamples unlabelled rows as one more group", {
+  set.seed(6)
+  d <- data.frame(z1 = rnorm(120), z2 = rnorm(120), g = rep(c("a", "b", NA), each = 40))
+  d$w <- 1 + 0.2 * d$z1 - 0.1 * d$z2^2 + rnorm(120, 0, 0.3)
+  real <- selection_coefficients
+  sizes <- integer()
+  local_mocked_bindings(selection_coefficients = function(data, ...) {
+    sizes <<- c(sizes, nrow(data))
+    real(data, ...)
+  })
+  quiet(canonical_analysis(d, "w", c("z1", "z2"), group = "g", bootstrap = TRUE, n_boot = 5))
+  expect_gt(length(sizes), 5)
+  expect_true(all(sizes == 120))
 })

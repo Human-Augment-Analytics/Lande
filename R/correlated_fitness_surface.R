@@ -161,7 +161,8 @@
 #'   own convex hull, and the plot functions draw both.
 #' @param group_effect Logical; with \code{TRUE} (the default) the GAM includes
 #'   \code{group} as a fixed effect and predicts the surface at the reference
-#'   level, as the gradient models do for year or site. With \code{FALSE} one
+#'   level, as the gradient models do for year or site; rows with no group
+#'   label are one more level. With \code{FALSE} one
 #'   surface is fitted to everyone and the group is only used for the
 #'   \code{groups} table and the overlay, which is what a community surface
 #'   of several species needs (Beausoleil et al. 2023).
@@ -370,11 +371,17 @@ correlated_fitness_surface <- function(
   }
 
   message("Data type: ", data_type, "; method: ", method, "; n = ", length(y), "; k = ", k)
+  use_effect <- !is.null(group) && isTRUE(group_effect)
+  # in the model the group is a factor; rows with no label are one more level
+  grp_fit <- if (use_effect) droplevels(addNA(factor(grp), ifany = TRUE))
+  if (use_effect && nlevels(grp_fit) < 2) {
+    message("No group term, as '", group, "' has only one level")
+    use_effect <- FALSE
+  }
   if (!is.null(group)) {
     message("Grouping variable: ", group, " (", length(unique(grp)), " groups); ",
-            if (group_effect) "group enters the model as a fixed effect" else "one surface for all groups, the group only marks means and peaks")
+            if (use_effect) "group enters the model as a fixed effect" else "one surface for all groups, the group only marks means and peaks")
   }
-  use_effect <- !is.null(group) && isTRUE(group_effect)
 
   x1s <- x1
   x2s <- x2
@@ -413,7 +420,7 @@ correlated_fitness_surface <- function(
     names(df_fit)[2:3] <- trait_cols
 
     if (use_effect) {
-      df_fit[[group]] <- grp
+      df_fit[[group]] <- grp_fit
     }
 
     df_fit <- df_fit[complete.cases(df_fit), ]

@@ -4,7 +4,7 @@
 # traits (the condition for reading the gradients as the slope and curvature
 # of the fitness surface),
 # collinearity, rows per term, and the residuals or dispersion of the
-# gradient models. Reported, not enforced.
+# gradient models. Nothing is enforced.
 # ======================================================
 
 #' @noRd
@@ -68,10 +68,13 @@
 #'   gradient model. The rows-per-term check counts the individuals, or for
 #'   binary fitness the rarer outcome, per term of the quadratic model, with
 #'   ten as the working minimum. With more than 2000 individuals Mardia's
-#'   statistics use a random subsample of 2000. If the \code{performance}
-#'   package is installed its heteroscedasticity and overdispersion tests are
-#'   added beside the package's own, along with an R squared for the gradient
-#'   model.
+#'   statistics use a random subsample of 2000.
+#'   Like the gradient models, the logistic and count models fit an intercept
+#'   per group, with unlabelled rows as one more group. A group in which every
+#'   individual survived, or none did, is fitted at 0 or 1 by its intercept and
+#'   is left out of the separation check. If the \code{performance} package is
+#'   installed its heteroscedasticity and overdispersion tests are added next
+#'   to the package's own, along with an R squared for the gradient model.
 #'
 #' @inheritParams selection_coefficients
 #' @return A data frame of class \code{"selection_assumptions"} with one row
@@ -100,9 +103,12 @@ check_selection_assumptions <- function(data,
   absent <- setdiff(need, names(data))
   if (length(absent)) stop("Missing columns: ", paste(absent, collapse = ", "))
 
+  # the rows the gradient models use: complete fitness and traits, with
+  # unlabelled rows as one more group
+  keep <- stats::complete.cases(data[, c(fitness_col, trait_cols), drop = FALSE])
   prep <- suppressWarnings(suppressMessages(prepare_selection_data(
-    data, fitness_col, trait_cols, standardize = standardize, group = group,
-    add_relative = TRUE, na_action = "drop", name_relative = ".w"
+    data[keep, , drop = FALSE], fitness_col, trait_cols, standardize = standardize, group = group,
+    add_relative = TRUE, na_action = "none", name_relative = ".w"
   )))
   if (fitness_type == "auto") fitness_type <- detect_family(prep[[fitness_col]])$type
   if (!fitness_type %in% c("binary", "count")) fitness_type <- "continuous"
@@ -162,6 +168,9 @@ check_selection_assumptions <- function(data,
   # the gradient models; the performance package adds its own tests and an R2 when installed
   has_perf <- requireNamespace("performance", quietly = TRUE)
   lin <- paste(trait_cols, collapse = " + ")
+  # the logistic and count models take an intercept per group, as the gradient models do
+  glm_data <- .add_glm_group(prep, group)
+  glm_rhs <- if (".group" %in% names(glm_data)) paste(".group +", lin) else lin
   if (fitness_type == "continuous") {
     fit <- stats::lm(stats::as.formula(paste(".w ~", lin)), data = prep)
     r <- stats::residuals(fit)
@@ -176,17 +185,26 @@ check_selection_assumptions <- function(data,
     if (has_perf) {
       ph <- tryCatch(as.numeric(performance::check_heteroscedasticity(fit)), error = function(e) NA_real_)
       add("Linear model residuals: heteroscedasticity (performance)", NA_real_, ph,
-          if (isTRUE(ph < 0.05)) "performance agrees the variance is not constant" else "")
+          if (isTRUE(ph < 0.05)) "performance's test also finds the variance is not constant" else "")
     }
   } else if (fitness_type == "binary") {
-    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", lin)), data = prep, family = stats::binomial()))
-    coefs <- stats::coef(fit)[-1]
+    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", glm_rhs)), data = glm_data, family = stats::binomial()))
+    coefs <- stats::coef(fit)[trait_cols]
     extreme <- max(abs(coefs), na.rm = TRUE)
-    fitted_edge <- mean(stats::fitted(fit) < 1e-6 | stats::fitted(fit) > 1 - 1e-6)
+    # a group in which everyone survived, or nobody did, is fitted at 0 or 1
+    # by its intercept; only groups whose outcome varies can show separation
+    y <- glm_data[[fitness_col]]
+    varies <- if (".group" %in% names(glm_data)) {
+      stats::ave(y, glm_data$.group, FUN = function(v) as.numeric(length(unique(v)) > 1)) == 1
+    } else {
+      rep(TRUE, length(y))
+    }
+    at_edge <- stats::fitted(fit) < 1e-6 | stats::fitted(fit) > 1 - 1e-6
+    fitted_edge <- if (any(varies)) mean(at_edge[varies]) else 0
     add("Logistic model: separation", extreme, NA_real_,
         if (extreme > 10 || fitted_edge > 0.05) "coefficients or fitted values at the edge; possible complete separation" else "no sign of separation")
   } else {
-    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", lin)), data = prep, family = stats::poisson()))
+    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", glm_rhs)), data = glm_data, family = stats::poisson()))
     disp <- sum(stats::residuals(fit, type = "pearson")^2) / stats::df.residual(fit)
     p_disp <- NA_real_
     if (has_perf) {

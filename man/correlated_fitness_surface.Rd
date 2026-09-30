@@ -43,7 +43,8 @@ own convex hull, and the plot functions draw both.}
 
 \item{group_effect}{Logical; with \code{TRUE} (the default) the GAM includes
 \code{group} as a fixed effect and predicts the surface at the reference
-level, as the gradient models do for year or site. With \code{FALSE} one
+level, as the gradient models do for year or site; rows with no group
+label are one more level. With \code{FALSE} one
 surface is fitted to everyone and the group is only used for the
 \code{groups} table and the overlay, which is what a community surface
 of several species needs (Beausoleil et al. 2023).}

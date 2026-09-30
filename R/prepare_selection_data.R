@@ -7,12 +7,11 @@
 #   3. Standardize trait variables (optionally within groups)
 #   4. Compute relative fitness (optionally within groups)
 #
-# IMPORTANT NOTE:
-#   For studies spanning multiple years, sites, or populations, traits should be
-#   standardized within each group (e.g., year, site) separately, not across all
-#   individuals pooled together. This ensures individuals are compared relative
-#   to their relevant context (same year, same environment). The same applies
-#   to relative fitness - it should be calculated within the same group.
+# Groups:
+#   For studies spanning several years, sites or populations, standardise the
+#   traits within each group (year, site) rather than over all individuals
+#   pooled, so each individual is compared with others in the same year and
+#   place. Relative fitness is computed within the same group.
 #
 #   This approach is equivalent to including group fixed effects in the
 #   regression models. However, it does NOT allow testing for group-by-trait
@@ -93,7 +92,7 @@ prepare_selection_data <- function(data,
     if (!group %in% names(df)) {
       stop("Group column '", group, "' not found in data")
     }
-    message("Standardizing and computing relative fitness within groups: '", group, "'")
+    message("Standardising and computing relative fitness within groups: '", group, "'")
   }
 
   # Handle missing values
@@ -126,7 +125,7 @@ prepare_selection_data <- function(data,
   # value would otherwise shift the trait mean/SD and the mean fitness and bias
   # every gradient (Lande & Arnold standardise within the sample under
   # selection). Rows whose group label is missing are kept and treated as their
-  # own group, as before; use na_action = "drop" to exclude them.
+  # own group; use na_action = "drop" to exclude them.
   # `stat_by_group()` returns each row's group statistic over the analysed rows.
   cc <- stats::complete.cases(df[, c(fitness_col, trait_cols), drop = FALSE])
   grp_key <- if (!is.null(group)) addNA(factor(df[[group]]), ifany = TRUE) else rep(1L, nrow(df))
@@ -137,7 +136,7 @@ prepare_selection_data <- function(data,
     paste(unique(as.character(grp_key[rows])), collapse = ", ")
   }
 
-  # Standardize traits, z = (x - mean(x)) / sd(x). A trait with no variance in
+  # Standardise traits, z = (x - mean(x)) / sd(x). A trait with no variance in
   # a group (constant, or a single observation) cannot be scaled there: it is
   # centred only, so those rows stay in the analysis with z = 0 rather than
   # becoming NaN, and the other groups are still scaled normally. A trait with
@@ -148,7 +147,7 @@ prepare_selection_data <- function(data,
       sdev <- stat_by_group(df[[t]], stats::sd)
       scalable <- is.finite(sdev) & sdev > 0
       if (!any(scalable[cc])) {
-        warning("Zero-variance trait left unstandardized: ", t)
+        warning("Zero-variance trait left unstandardised: ", t)
         next
       }
       if (any(!scalable[cc])) {
@@ -163,8 +162,8 @@ prepare_selection_data <- function(data,
 
   # Add relative fitness, w_i = W_i / mean(W), with mean(W) over the analysed
   # rows. A group whose mean fitness is zero (nobody survived) has no relative
-  # fitness: those rows are set to NA and named, so they drop out of the models
-  # visibly rather than silently.
+  # fitness: those rows are set to NA and named in a warning as they drop out
+  # of the models.
   if (add_relative) {
     mean_fit <- stat_by_group(df[[fitness_col]], mean)
     usable <- is.finite(mean_fit) & mean_fit != 0

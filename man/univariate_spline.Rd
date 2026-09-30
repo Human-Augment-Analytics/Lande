@@ -28,7 +28,7 @@ univariate_spline(
 
 \item{fitness_type}{A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.}
 
-\item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included.}
+\item{group}{Optional string specifying a grouping variable. If provided, group fixed effects are included; rows with no group label are one more level.}
 
 \item{relative_col}{Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).}
 

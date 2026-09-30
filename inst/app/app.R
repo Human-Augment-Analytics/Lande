@@ -39,7 +39,7 @@ with_warnings <- function(expr) {
     warned <<- c(warned, conditionMessage(w))
     invokeRestart("muffleWarning")
   })
-  list(value = value, warnings = grep("High multicollinearity", warned, value = TRUE, invert = TRUE))
+  list(value = value, warnings = grep("VIF above 5", warned, value = TRUE, invert = TRUE))
 }
 
 # download names start with the dataset: a short name for the bundled ones,
@@ -383,7 +383,7 @@ ui <- fluidPage(
           ),
           h4(class = "sec", "Assumption checks"),
           tableOutput("assump_table"),
-          div(class = "help-note", "Normality of the traits (Mardia, Shapiro-Wilk), the largest VIF, individuals per quadratic term, and the residuals or dispersion of the gradient model. Reported, not enforced. With the performance package installed its tests are added.")),
+          div(class = "help-note", "Normality of the traits (Mardia, Shapiro-Wilk), the largest VIF, individuals per quadratic term, and the residuals or dispersion of the gradient model. For reporting only. With the performance package installed its tests are added.")),
         tabPanel("Fitness functions",
           br(),
           fluidRow(
@@ -650,7 +650,8 @@ server <- function(input, output, session) {
     cbind(out, load)
   }, align = "l")
   output$interpretation <- renderUI({
-    s <- setup(); lines <- interpret(s$report, s$traits, s$ftype, nrow(s$d), s$group)
+    # pass the group only if it was in the model, so the summary says "within" only then
+    s <- setup(); lines <- interpret(s$report, s$traits, s$ftype, nrow(s$d), s$group_model)
     sep <- which(lines == "")[1]
     bullets <- lines[seq_len(sep - 1)]; foot <- lines[(sep + 1):length(lines)]
     items <- lapply(bullets, function(l) {

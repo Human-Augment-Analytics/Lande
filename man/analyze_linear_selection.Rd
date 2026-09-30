@@ -9,7 +9,8 @@ analyze_linear_selection(
   fitness_col,
   trait_cols,
   fitness_type,
-  binary_response_col = NULL
+  binary_response_col = NULL,
+  group = NULL
 )
 }
 \arguments{
@@ -22,6 +23,10 @@ analyze_linear_selection(
 \item{fitness_type}{A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.}
 
 \item{binary_response_col}{Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.}
+
+\item{group}{Optional grouping column. With two or more groups the GLM that
+supplies the p-values gets an intercept for each, to match the
+standardising within groups; the least-squares fit has no group term.}
 }
 \value{
 A list containing the fitted models, summaries, ANOVA tables, and VIFs.

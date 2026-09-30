@@ -11,7 +11,7 @@
 #   5. Extract and combine all coefficients
 #
 # IMPORTANT NOTE:
-#   - OLS is ALWAYS used to estimate selection gradients (beta, gamma, gamma_ij)
+#   - OLS is always used to estimate selection gradients (beta, gamma, gamma_ij)
 #   - For binary fitness: OLS gives gradients, logistic GLM gives p-values
 #   - For continuous fitness: OLS gives both gradients and valid p-values
 #   - Standardization and relative fitness can be done within groups (e.g., year)
@@ -49,6 +49,9 @@
 #' @param fitness_type A string indicating the fitness type: \code{"auto"}, \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness take their p-values from a GLM (logistic, or Poisson and negative binomial) on the raw values; the gradients always come from OLS on relative fitness.
 #' @param standardize Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.
 #' @param group Optional string specifying a grouping variable (e.g., "year", "site").
+#'   Traits and relative fitness are standardised within each group, and for
+#'   binary and count fitness the GLM that supplies the p-values gets a
+#'   separate intercept for each group.
 #' @param use_relative_for_fit Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.
 #' @param return_grouped Logical indicating whether to return results grouped if a \code{group} is specified.
 #'
@@ -138,12 +141,12 @@ selection_coefficients <- function(data,
 
   # Selection gradients come from OLS on relative fitness (or on absolute
   # fitness if use_relative_for_fit = FALSE). Binary and count fitness
-  # additionally use the raw column for the GLM that supplies p-values.
+  # also use the raw column for the GLM that supplies p-values.
   ols_response_col <- if (use_relative_for_fit) {
     if (!rel_col %in% names(df)) {
       stop(
-        "Relative fitness column '", rel_col, "' not found. ",
-        "Ensure prepare_selection_data(add_relative=TRUE) creates it."
+        "Relative fitness column '", rel_col, "' not found; ",
+        "prepare_selection_data(add_relative = TRUE) adds it."
       )
     }
     rel_col
@@ -159,7 +162,8 @@ selection_coefficients <- function(data,
     fitness_col         = ols_response_col,
     trait_cols          = trait_cols,
     fitness_type        = fitness_type,
-    binary_response_col = binary_response_col
+    binary_response_col = binary_response_col,
+    group               = group
   )
 
   nonlinear_result <- analyze_nonlinear_selection(
@@ -167,7 +171,8 @@ selection_coefficients <- function(data,
     fitness_col         = ols_response_col,
     trait_cols          = trait_cols,
     fitness_type        = fitness_type,
-    binary_response_col = binary_response_col
+    binary_response_col = binary_response_col,
+    group               = group
   )
 
   # Extract coefficients

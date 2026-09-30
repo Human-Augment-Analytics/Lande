@@ -50,7 +50,7 @@
 #' @param fitness_col A string specifying the name of the fitness column.
 #' @param trait_col A string specifying the name of the trait column (must be numeric and standardized).
 #' @param fitness_type A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.
-#' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
+#' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included; rows with no group label are one more level.
 #' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
 #' @param k Integer specifying the basis dimension for the smooth term. Default is 10.
 #' @param bs Spline basis: \code{"cr"} (cubic regression spline, the default),
@@ -170,8 +170,8 @@ univariate_spline <- function(data,
       # Compute relative fitness on the fly (warning: not group-specific)
       if (!is.null(group)) {
         warning(
-          "Group specified but no relative fitness column found. ",
-          "Consider using prepare_selection_data() first, or pass relative_col."
+          "A group is set but there is no relative fitness column; ",
+          "run prepare_selection_data() first or pass relative_col."
         )
       }
       y <- data[[fitness_col]] / mean(data[[fitness_col]], na.rm = TRUE)
@@ -236,6 +236,13 @@ univariate_spline <- function(data,
   # Default: cubic regression spline with GCV smoothing (Schluter 1988). bs = "cr"
   # gives a genuine cubic spline basis rather than mgcv's thin-plate default.
   smooth <- paste0("s(", trait_col, ", bs = '", bs, "', k = ", k, ")")
+  # the group enters as a factor; rows with no label are one more level
+  if (!is.null(group)) df[[group]] <- droplevels(addNA(factor(df[[group]]), ifany = TRUE))
+  # levels are counted on the rows the model will use
+  if (!is.null(group) && length(unique(df[[group]][complete.cases(df[[trait_col]], y, df[[group]])])) < 2) {
+    message("No group term, as '", group, "' has only one level")
+    group <- NULL
+  }
   if (!is.null(group)) {
     fml <- stats::as.formula(paste0(".y ~ ", group, " + ", smooth))
     message("Including group fixed effect: '", group, "'")

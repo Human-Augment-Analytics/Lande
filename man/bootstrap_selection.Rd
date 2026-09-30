@@ -27,7 +27,10 @@ bootstrap_selection(
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 
-\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
+\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.}
 
 \item{use_relative_for_fit}{Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.}
 

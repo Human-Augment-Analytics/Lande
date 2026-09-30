@@ -148,8 +148,10 @@ canonical_analysis <- function(data,
   sq <- paste0("I(", axis_names, "^2)")
   p_from <- est
   if (used_type %in% c("binary", "count")) {
+    prep <- .add_glm_group(prep, group)
+    glm_rhs <- if (".group" %in% names(prep)) paste(".group +", rhs) else rhs
     glm_fit <- tryCatch(
-      suppressWarnings(.fit_pvalue_glm(stats::as.formula(paste(fitness_col, "~", rhs)), prep, used_type)),
+      suppressWarnings(.fit_pvalue_glm(stats::as.formula(paste(fitness_col, "~", glm_rhs)), prep, used_type)),
       error = function(e) NULL
     )
     if (!is.null(glm_fit)) p_from <- summary(glm_fit)$coefficients
@@ -165,7 +167,7 @@ canonical_analysis <- function(data,
   )
 
   if (bootstrap) {
-    grp <- if (!is.null(group)) data[[group]] else NULL
+    grp <- if (!is.null(group)) addNA(factor(data[[group]]), ifany = TRUE) else NULL
     draws <- matrix(NA_real_, n_boot, length(axis_names))
     for (b in seq_len(n_boot)) {
       rows <- if (is.null(grp)) {

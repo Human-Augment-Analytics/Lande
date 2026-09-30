@@ -29,7 +29,7 @@
     }
   )
   if (!is.null(vif_vals) && any(vif_vals > 5)) {
-    warning("High multicollinearity detected (VIF > 5) - standard errors may be inflated")
+    warning("Collinear traits (VIF above 5) may inflate the standard errors")
   }
   vif_vals
 }
@@ -40,7 +40,7 @@
   if (n < n_params * 2) {
     warning(
       "Sample size (", n, ") may be too small for ", n_params,
-      " parameters - results may be unreliable"
+      " parameters"
     )
   }
 }
@@ -51,7 +51,7 @@
 # the observed levels; factor/character groups use the most common level.
 # Missing labels are ignored so a single NA cannot leave the choice empty.
 .reference_group <- function(x) {
-  x <- x[!is.na(x)]
+  x <- x[!is.na(as.character(x))]
   if (!length(x)) {
     stop("Group column has no non-missing values")
   }
@@ -70,6 +70,17 @@
     return(all(raw %in% c(0, 1)))
   }
   all(raw >= 0 & abs(raw - round(raw)) < 1e-8)
+}
+
+#' @noRd
+# internal utility: the group as a factor for the p-value GLM when there are
+# two or more; unlabelled rows count as one more group, as in the prepared
+# data.
+.add_glm_group <- function(data, group) {
+  if (is.null(group) || !group %in% names(data)) return(data)
+  g <- droplevels(addNA(factor(data[[group]]), ifany = TRUE))
+  if (nlevels(g) > 1) data$.group <- g
+  data
 }
 
 #' @noRd

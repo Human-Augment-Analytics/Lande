@@ -74,7 +74,13 @@ selection_report <- function(data,
       standardize = standardize, group = group, add_relative = TRUE,
       na_action = "none", name_relative = rel_col
     )))
-    prep <- prep[stats::complete.cases(prep[, c(fitness_col, trait_cols, group), drop = FALSE]), , drop = FALSE]
+    # unlabelled rows count as one more group
+    if (!is.null(group)) {
+      lab <- as.character(prep[[group]])
+      lab[is.na(lab)] <- "(no group)"
+      prep[[group]] <- lab
+    }
+    prep <- prep[stats::complete.cases(prep[, c(fitness_col, trait_cols), drop = FALSE]), , drop = FALSE]
     w_col <- if (use_relative_for_fit && rel_col %in% names(prep)) rel_col else fitness_col
     S <- vapply(trait_cols, function(t) {
       suppressWarnings(suppressMessages(

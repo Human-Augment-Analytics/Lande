@@ -4,7 +4,7 @@
 # Purpose: Estimate quadratic (gamma) and correlational (gamma_ij) selection gradients
 #
 # IMPORTANT NOTE:
-#   - Gradients are estimated by OLS on RELATIVE fitness (w = W / mean W).
+#   - Gradients are estimated by OLS on relative fitness (w = W / mean W).
 #   - For binary fitness: OLS on relative fitness gives the gradients; p-values
 #     come from a logistic GLM on the raw 0/1 outcome (Wald tests).
 #   - For count fitness: p-values from a Poisson GLM on the raw counts, or a
@@ -34,6 +34,9 @@
 #' @param trait_cols A character vector of trait column names.
 #' @param fitness_type A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.
 #' @param binary_response_col Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.
+#' @param group Optional grouping column, used as in
+#'   \code{analyze_linear_selection()}: a separate intercept for each group in
+#'   the GLM that supplies the p-values.
 #'
 #' @return A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs.
 #' @examples
@@ -43,13 +46,13 @@
 #' extract_interaction_coefficients(c("total_length", "weight"), fit)
 #' @export
 analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_type,
-                                        binary_response_col = NULL) {
+                                        binary_response_col = NULL, group = NULL) {
   if (length(trait_cols) < 1) {
     stop("Nonlinear selection requires at least one trait")
   }
 
   if (nrow(data) < 20) {
-    warning("Small sample size (n < 20) - nonlinear estimates may be unreliable")
+    warning("Fewer than 20 individuals, so the nonlinear gradients are poorly estimated")
   }
 
   # Quadratic terms: I(trait1^2), I(trait2^2), ...
@@ -93,17 +96,22 @@ analyze_nonlinear_selection <- function(data, fitness_col, trait_cols, fitness_t
     sm_ols <- summary(fit_ols)
     vif_vals <- .compute_vif(fit_ols)
 
+    fit_data <- .add_glm_group(fit_data, group)
+    glm_rhs <- if (".group" %in% names(fit_data)) paste(".group +", rhs) else rhs
     fit_glm <- tryCatch(
-      .fit_pvalue_glm(as.formula(paste(glm_col, "~", rhs)), fit_data, fitness_type),
+      .fit_pvalue_glm(as.formula(paste(glm_col, "~", glm_rhs)), fit_data, fitness_type),
       error = function(e) stop("Nonlinear GLM fitting failed: ", e$message)
     )
     sm_glm <- summary(fit_glm)
 
     if (isFALSE(fit_glm$converged)) {
-      warning("Nonlinear GLM did not converge - results may be unreliable")
+      warning("Quadratic GLM did not converge; its p-values may be off")
     }
-    if (fitness_type == "binary" && any(abs(coef(fit_glm)) > 10, na.rm = TRUE)) {
-      warning("Possible complete separation detected - large coefficients (>10)")
+    # only the trait terms count here; a group where everyone survived gets a
+    # huge intercept without any separation by the traits
+    slopes <- coef(fit_glm)[!grepl("^\\(Intercept\\)$|^\\.group", names(coef(fit_glm)))]
+    if (fitness_type == "binary" && any(abs(slopes) > 10, na.rm = TRUE)) {
+      warning("Possible complete separation, with a logistic slope above 10 in absolute value")
     }
 
     anova_bin <- NULL
