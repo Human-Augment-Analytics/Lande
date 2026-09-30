@@ -61,7 +61,7 @@ The regression gradients equal the covariance-adjusted
   gradient model. The rows-per-term check counts the individuals, or for
   binary fitness the rarer outcome, per term of the quadratic model, with
   ten as the working minimum. With more than 2000 individuals Mardia's
-  statistics use a random subsample of 2000.
+  statistics use a random subsample of 2000, drawn the same way every run.
   Like the gradient models, the logistic and count models fit an intercept
   per group, with unlabelled rows as one more group. A group in which every
   individual survived, or none did, is fitted at 0 or 1 by its intercept and

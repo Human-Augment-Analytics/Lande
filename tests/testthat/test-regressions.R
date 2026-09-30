@@ -326,3 +326,18 @@ test_that("the canonical bootstrap resamples unlabelled rows as one more group",
   expect_gt(length(sizes), 5)
   expect_true(all(sizes == 120))
 })
+
+test_that("Mardia's subsample is the same every run and leaves the random numbers alone", {
+  set.seed(1)
+  big <- data.frame(z1 = rnorm(2500), z2 = rexp(2500))
+  big$w <- big$z1 + rnorm(2500)
+  set.seed(42)
+  ref <- runif(1)
+  set.seed(42)
+  a <- suppressWarnings(check_selection_assumptions(big, "w", c("z1", "z2")))
+  expect_equal(runif(1), ref)
+  set.seed(7)
+  b <- suppressWarnings(check_selection_assumptions(big, "w", c("z1", "z2")))
+  expect_equal(a$statistic, b$statistic)
+  expect_match(a$note[1], "random 2000 of 2500 rows")
+})

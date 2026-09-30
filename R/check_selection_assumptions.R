@@ -10,11 +10,13 @@
 #' @noRd
 # Mardia's (1970) multivariate skewness and kurtosis, with the small-sample
 # factor for the skewness statistic. Rows are subsampled above `max_n`
-# because the statistics need an n by n matrix.
+# because the statistics need an n by n matrix; the subsample is drawn from
+# a fixed seed, so the table is the same every run, and the caller's random
+# numbers are left as they were.
 .mardia <- function(X, max_n = 2000) {
   X <- as.matrix(X)
   X <- X[stats::complete.cases(X), , drop = FALSE]
-  if (nrow(X) > max_n) X <- X[sample.int(nrow(X), max_n), , drop = FALSE]
+  if (nrow(X) > max_n) X <- X[.with_seed(1, sample.int(nrow(X), max_n)), , drop = FALSE]
   n <- nrow(X)
   p <- ncol(X)
   Xc <- scale(X, scale = FALSE)
@@ -30,6 +32,16 @@
   kurt <- (b2p - p * (p + 2)) / sqrt(8 * p * (p + 2) / n)
   p_kurt <- 2 * stats::pnorm(-abs(kurt))
   list(n = n, skewness = b1p, p_skewness = p_skew, kurtosis = b2p, p_kurtosis = p_kurt)
+}
+
+#' @noRd
+# evaluate `expr` from a given seed and put the global random number state back
+.with_seed <- function(seed, expr) {
+  env <- globalenv()
+  old <- if (exists(".Random.seed", envir = env, inherits = FALSE)) get(".Random.seed", envir = env) else NULL
+  on.exit(if (is.null(old)) rm(".Random.seed", envir = env) else assign(".Random.seed", old, envir = env))
+  set.seed(seed)
+  expr
 }
 
 #' @noRd
@@ -68,7 +80,7 @@
 #'   gradient model. The rows-per-term check counts the individuals, or for
 #'   binary fitness the rarer outcome, per term of the quadratic model, with
 #'   ten as the working minimum. With more than 2000 individuals Mardia's
-#'   statistics use a random subsample of 2000.
+#'   statistics use a random subsample of 2000, drawn the same way every run.
 #'   Like the gradient models, the logistic and count models fit an intercept
 #'   per group, with unlabelled rows as one more group. A group in which every
 #'   individual survived, or none did, is fitted at 0 or 1 by its intercept and
