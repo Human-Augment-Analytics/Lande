@@ -190,6 +190,8 @@ selection_coefficients <- function(data,
   attr(all_coefs, "fitness_type_detected") <- det$type
   attr(all_coefs, "fitness_type_used") <- fitness_type
   attr(all_coefs, "model_family_used") <- linear_result$glm_family %||% "gaussian"
+  # the quadratic model can switch to a negative binomial on its own
+  attr(all_coefs, "model_family_quadratic") <- nonlinear_result$glm_family %||% "gaussian"
   attr(all_coefs, "model_fitness_col") <- ols_response_col
   attr(all_coefs, "relative_available") <- rel_col %in% names(df)
   attr(all_coefs, "group_used") <- group

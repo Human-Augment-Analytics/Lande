@@ -1,24 +1,24 @@
 # ============================================================================
 # analyze_disruptive_selection
 #
-# Purpose: Detect disruptive or stabilizing selection on a single trait.
+# Purpose: detect disruptive or stabilising selection on a single trait.
 #
 # Model: w = alpha + betaz + gammaz^2 + epsilon
 #   beta  = linear (directional) selection gradient
-#   gamma = quadratic selection gradient (gamma > 0: disruptive; gamma < 0: stabilizing)
+#   gamma = quadratic selection gradient (gamma > 0: disruptive; gamma < 0: stabilising)
 #
-# This is the single-trait case of the standard analysis, so it defers to
-# selection_coefficients(). That keeps beta on the linear-only fit and the
-# doubled gamma on the full quadratic fit, so a trait analysed here and via
-# selection_coefficients() always agrees. See analyze_linear_selection() and
-# analyze_nonlinear_selection() for the underlying models.
+# The single-trait case of the standard analysis, computed by
+# selection_coefficients(): beta from the linear-only fit and the doubled
+# gamma from the full quadratic fit, so both functions give the same numbers
+# for a trait. The models are in analyze_linear_selection() and
+# analyze_nonlinear_selection().
 # ============================================================================
 
-#' Analyze disruptive/stabilizing selection
+#' Disruptive or stabilising selection on one trait
 #'
-#' Detects disruptive or stabilizing selection on a single trait by estimating its
-#' linear (beta) and quadratic (gamma) selection gradients. A positive gamma indicates
-#' disruptive selection; a negative gamma indicates stabilizing selection.
+#' Estimates the linear (beta) and quadratic (gamma) selection gradients of a
+#' single trait. Gamma is positive under disruptive selection and negative
+#' under stabilising selection.
 #'
 #' @param data A data frame containing fitness and trait measurements.
 #' @param fitness_col A string specifying the name of the fitness column.

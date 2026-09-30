@@ -16,7 +16,7 @@
 #
 # Where:
 #   - beta = linear selection gradients
-#   - gamma_ii = quadratic selection gradients (stabilizing/disruptive)
+#   - gamma_ii = quadratic selection gradients (stabilising or disruptive)
 #   - gamma_ij = correlational selection gradients (interactions)
 #
 # Returns:

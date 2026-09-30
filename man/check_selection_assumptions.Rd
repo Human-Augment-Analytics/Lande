@@ -65,7 +65,9 @@ The regression gradients equal the covariance-adjusted
   Like the gradient models, the logistic and count models fit an intercept
   per group, with unlabelled rows as one more group. A group in which every
   individual survived, or none did, is fitted at 0 or 1 by its intercept and
-  is left out of the separation check. If the \code{performance} package is
+  is left out of the separation check. For counts the note names the model
+  behind each set of p-values; the linear and quadratic models are checked
+  for overdispersion separately. If the \code{performance} package is
   installed its heteroscedasticity and overdispersion tests are added next
   to the package's own, along with an R squared for the gradient model.
 }

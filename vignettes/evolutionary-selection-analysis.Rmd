@@ -1044,7 +1044,7 @@ The p-values test whether each gradient differs from zero. Treat them as a guide
 |--------------------|----------------|----------------------|
 | Positive (+) | Selection favours positive correlation (both traits high or both low) | A ridge running from low-low to high-high; the two off-diagonal corners are valleys |
 | Negative (-) | Selection favours negative correlation (one high, one low) | A ridge running from high-low to low-high |
-| Zero (0) | Traits evolve independently | Contours are symmetric about both axes |
+| Zero (0) | No correlational selection on the pair | Contours are symmetric about both axes |
 
 In Brodie's (1992) garter snakes, neither colour pattern nor escape behaviour was under strong selection on its own, but striped snakes that fled in a straight line and unstriped snakes that reversed direction both survived better than the mismatched combinations. Selection was on the combination, which shows as a ridge across the fitness surface with no peak on either axis. The sign of $\gamma_{ij}$ depends on how the traits are scored. With stripes scored high and reversals counted, the favoured pairs are high-low and low-high, so the gradient is negative.
 
@@ -1068,8 +1068,8 @@ Scenario 1: β_size = 0.25, p = 0.001
    A one-standard-deviation increase in size increases relative fitness by 0.25 units."
 
 Scenario 2: γ_size = -0.15, p = 0.02
-→ "Body size shows significant stabilising selection.
-   Intermediate sizes have highest fitness; extremes are disadvantageous."
+→ "Fitness curves downwards with body size, which is consistent with
+   stabilising selection if the fitness function peaks inside the data."
 
 Scenario 3: γ_size x beak = 0.32, p = 0.004
 → "Significant positive correlational selection between size and beak depth.

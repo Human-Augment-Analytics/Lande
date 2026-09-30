@@ -215,7 +215,7 @@ print.canonical_analysis <- function(x, ...) {
   cat("Canonical analysis of gamma for", paste(x$trait_cols, collapse = ", "), "on", x$n, "individuals\n\n")
   cat("Loadings (columns are the canonical axes):\n")
   print(round(x$M, 3))
-  cat("\nCurvature along each axis (negative stabilising, positive disruptive):\n")
+  cat("\nCurvature along each axis (negative is consistent with stabilising selection, positive with disruptive):\n")
   print(x$axes, row.names = FALSE, digits = 3)
   cat("\nThe axes come from these data, so the tests are anticonservative.\n")
   invisible(x)

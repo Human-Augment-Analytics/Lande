@@ -140,7 +140,7 @@ gradient_table <- function(r, traits) {
     )
   })
   out <- do.call(rbind, rows)
-  names(out) <- c("Trait", "S", "β ± SE", "p (β)", "γ ± SE", "p (γ)")
+  names(out) <- c("Trait", "S", "β ± SE", "p (linear term)", "γ ± SE", "p (squared term)")
   out
 }
 
@@ -268,12 +268,18 @@ interpret <- function(r, traits, ftype, n, group) {
     lines <- c(lines, cl)
   }
   within <- if (is.null(group)) "" else sprintf(" within %s", group)
+  # name the count model that was fitted; the quadratic one can differ
+  plain <- function(f) c("poisson(log)" = "Poisson", "negative binomial" = "negative binomial")[f]
+  pm <- attr(r, "p_model")
+  count_model <- if (length(pm) == 2 && all(pm %in% c("poisson(log)", "negative binomial"))) {
+    if (pm[1] == pm[2]) sprintf("a %s model", plain(pm[1])) else sprintf("a %s model for β and a %s model for γ and γij", plain(pm[1]), plain(pm[2]))
+  } else "a Poisson or negative binomial model"
   basis <- switch(ftype,
-    binary = " Binary fitness: p-values from logistic regression.",
-    count = " Count fitness: p-values from a Poisson or negative binomial model.",
+    binary = " Binary fitness: p-values are for the terms of a logistic model, not β and γ themselves.",
+    count = sprintf(" Count fitness: p-values are for the terms of %s, not β and γ themselves.", count_model),
     ""
   )
-  c(lines, "", sprintf("n = %d. Traits in SD units, fitness relative to the mean%s.%s γ is curvature, not a peak; see the fitness function.", n, within, basis))
+  c(lines, "", sprintf("n = %d. Traits in SD units, fitness relative to the mean%s.%s γ is curvature; check the fitness function for a peak.", n, within, basis))
 }
 
 # --- UI ---------------------------------------------------------------------
@@ -370,7 +376,7 @@ ui <- fluidPage(
           uiOutput("corr_table_ui"),
           uiOutput("fit_warnings"),
           uiOutput("canon_ui"),
-          div(class = "help-note", "S total selection; β directional; γ quadratic (negative stabilising, positive disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
+          div(class = "help-note", "S total selection; β directional; γ quadratic curvature (negative is consistent with stabilising selection, positive with disruptive); γij correlational. * p < 0.05, ** < 0.01, *** < 0.001."),
           h4(class = "sec", "Summary"),
           uiOutput("interpretation"),
           h4(class = "sec", "Gradient plot"),
@@ -638,7 +644,7 @@ server <- function(input, output, session) {
   output$canon_ui <- renderUI({
     if (is.null(canon())) return(NULL)
     tagList(h4(class = "sec", "Canonical axes of γ"), tableOutput("canon_table"),
-            div(class = "help-note", "λ is the curvature along each axis (negative stabilising, positive disruptive), and θ the directional selection along it. The axes are estimated from these data, so the tests are anticonservative and the largest curvatures overestimated."))
+            div(class = "help-note", "λ is the curvature along each axis (negative is consistent with stabilising selection, positive with disruptive), and θ the directional selection along it. The axes are estimated from these data, so the tests are anticonservative and the most extreme curvatures inflated in size."))
   })
   output$canon_table <- renderTable({
     ca <- canon(); if (is.null(ca)) return(NULL)

@@ -257,6 +257,8 @@ test_that("the assumption checks take the group out, as the gradient models do",
   chk <- suppressWarnings(check_selection_assumptions(d, "kids", c("z1", "z2"), group = "yr"))
   # once each year has its own mean the counts are close to Poisson
   expect_lt(chk$statistic[grepl("dispersion", chk$check)], 1.5)
+  rep <- suppressWarnings(suppressMessages(selection_report(d, "kids", c("z1", "z2"), group = "yr")))
+  expect_equal(unname(attr(rep, "p_model")[1]), "poisson(log)")
 })
 
 test_that("a population where every bird lived is not taken for separation", {
@@ -274,6 +276,25 @@ test_that("a population where every bird lived is not taken for separation", {
   # nor in the checks, where that population is fitted at 1 by its intercept
   chk <- suppressWarnings(check_selection_assumptions(d, "alive", c("z1", "z2"), group = "pop"))
   expect_equal(chk$note[grepl("separation", chk$check)], "no sign of separation")
+})
+
+test_that("the dispersion note names the model each set of gradients uses", {
+  set.seed(5)
+  d <- data.frame(z1 = rnorm(400), z2 = rnorm(400))
+  d$kids <- rpois(400, exp(1.6 - 0.7 * d$z1^2 + 0.1 * d$z2))
+  chk <- suppressWarnings(check_selection_assumptions(d, "kids", c("z1", "z2")))
+  expect_match(chk$note[grepl("dispersion", chk$check)],
+               "linear p-values use a negative binomial model, the quadratic ones a Poisson model")
+  # unlabelled rows count as one more group
+  set.seed(3)
+  g <- data.frame(z1 = rnorm(360), z2 = rnorm(360), site = rep(c("a", "b", NA), each = 120))
+  mu <- exp(1 + 0.2 * g$z1)
+  g$kids <- ifelse(is.na(g$site), rnbinom(360, mu = mu, size = 0.8), rpois(360, mu))
+  chk <- suppressWarnings(check_selection_assumptions(g, "kids", c("z1", "z2"), group = "site"))
+  expect_equal(attr(chk, "n"), 360)
+  rep <- suppressWarnings(suppressMessages(selection_report(g, "kids", c("z1", "z2"), group = "site")))
+  expect_equal(unname(attr(rep, "p_model")), rep("negative binomial", 2))
+  expect_match(chk$note[grepl("dispersion", chk$check)], "the p-values use a negative binomial model")
 })
 
 test_that("the spline and surface keep unlabelled rows as one more group and fit a numeric group by level", {

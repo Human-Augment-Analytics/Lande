@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyze_disruptive_selection.R
 \name{analyze_disruptive_selection}
 \alias{analyze_disruptive_selection}
-\title{Analyze disruptive/stabilizing selection}
+\title{Disruptive or stabilising selection on one trait}
 \usage{
 analyze_disruptive_selection(
   data,
@@ -38,9 +38,9 @@ A data frame with one row per gradient (\code{Term}, \code{Type},
   \code{Beta_Coefficient}, \code{Standard_Error}, \code{P_Value}, \code{Variance}).
 }
 \description{
-Detects disruptive or stabilizing selection on a single trait by estimating its
-linear (beta) and quadratic (gamma) selection gradients. A positive gamma indicates
-disruptive selection; a negative gamma indicates stabilizing selection.
+Estimates the linear (beta) and quadratic (gamma) selection gradients of a
+single trait. Gamma is positive under disruptive selection and negative
+under stabilising selection.
 }
 \examples{
 analyze_disruptive_selection(bumpus, "survival", "total_length")

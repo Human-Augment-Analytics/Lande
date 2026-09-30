@@ -45,16 +45,15 @@ A data frame of class \code{"selection_report"} with columns
   \code{P_Value}.
 }
 \description{
-Runs the standard Lande-Arnold workflow and returns one tidy table combining
-selection differentials (S) and linear (beta), quadratic (gamma), and
-correlational (gamma_ij) gradients. All estimates use traits standardised to
-mean 0, SD 1 and relative fitness, so the table is directly comparable across
-studies.
+Runs a Lande-Arnold analysis and returns one table of selection
+differentials (S) and linear (beta), quadratic (gamma) and correlational
+(gamma_ij) gradients. All estimates use traits standardised to mean 0, SD 1
+and relative fitness, so tables from different studies can be compared.
 }
 \details{
 Differentials and gradients are computed on the same individuals
   (those with complete fitness and trait values) and on the same trait and
-  fitness scales, so the rows are directly comparable. S is the
+  fitness scales. S is the
   population covariance (divides by n) while the OLS gradient on
   sd-standardised traits corresponds to the sample covariance (n - 1), so
   for a single trait the Differential and Linear rows differ by the factor

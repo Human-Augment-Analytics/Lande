@@ -72,7 +72,9 @@
 #'   Like the gradient models, the logistic and count models fit an intercept
 #'   per group, with unlabelled rows as one more group. A group in which every
 #'   individual survived, or none did, is fitted at 0 or 1 by its intercept and
-#'   is left out of the separation check. If the \code{performance} package is
+#'   is left out of the separation check. For counts the note names the model
+#'   behind each set of p-values; the linear and quadratic models are checked
+#'   for overdispersion separately. If the \code{performance} package is
 #'   installed its heteroscedasticity and overdispersion tests are added next
 #'   to the package's own, along with an R squared for the gradient model.
 #'
@@ -211,8 +213,28 @@ check_selection_assumptions <- function(data,
       od <- tryCatch(performance::check_overdispersion(fit), error = function(e) NULL)
       if (!is.null(od)) p_disp <- as.numeric(od$p_value)
     }
-    add("Poisson model: dispersion ratio", disp, p_disp,
-        if (disp > 1.5) "overdispersed; the gradients use a negative binomial model" else "")
+    # the linear and quadratic gradient models each move to a negative binomial
+    # on their own dispersion, so name the model each set of gradients uses
+    quad <- paste(c(trait_cols, paste0("I(", trait_cols, "^2)"),
+                    if (p >= 2) utils::combn(trait_cols, 2, paste, collapse = ":")), collapse = " + ")
+    family_of <- function(rhs) {
+      rhs <- if (".group" %in% names(glm_data)) paste(".group +", rhs) else rhs
+      tryCatch(attr(suppressWarnings(.fit_pvalue_glm(stats::as.formula(paste(fitness_col, "~", rhs)), glm_data, "count")),
+                    "family_label"), error = function(e) NA_character_)
+    }
+    nb <- c(family_of(lin), family_of(quad)) %in% "negative binomial"
+    note <- if (all(nb)) {
+      "overdispersed; the p-values use a negative binomial model"
+    } else if (nb[1]) {
+      "overdispersed; the linear p-values use a negative binomial model, the quadratic ones a Poisson model"
+    } else if (nb[2]) {
+      "the quadratic model is overdispersed; its p-values use a negative binomial model, the linear ones a Poisson model"
+    } else if (disp > 1.5) {
+      "overdispersed, but the negative binomial fit failed; the p-values are from a Poisson model"
+    } else {
+      ""
+    }
+    add("Poisson model: dispersion ratio", disp, p_disp, note)
   }
   if (has_perf) {
     r2 <- tryCatch(performance::r2(fit), error = function(e) NULL)
