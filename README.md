@@ -96,7 +96,7 @@ plot_temporal_landscape(years, type = "heatmap")
 
 ## App
 
-`run_app()` opens the whole workflow in a browser: bundled or uploaded data,
+`run_app()` opens the analysis in a browser: bundled or uploaded data,
 gradients, fitness functions, surface, landscape and per-group results, with
 the fitting options in Advanced settings. Needs `shiny`; `plotly` adds the
 rotatable 3D landscape. The app lives in `inst/app`; see its README there.

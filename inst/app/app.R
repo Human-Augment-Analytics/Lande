@@ -196,13 +196,20 @@ DATA_CODE <- list(
                             'dat <- dat[dat$density == "H", ]  # the enclosures Martin analysed'),
   "Finch community (five groups)" = "dat <- finch_community"
 )
-r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical) {
+r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_boot, uncertainty, canonical,
+                   uni_land = FALSE) {
   fit <- r_value(s$fit); grp <- r_value(s$group_model); type <- r_value(s$ftype)
   cf <- if (identical(s$ftype, "count")) r_value(s$count_family)
-  load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else sprintf('dat <- read.csv("%s")', file_name %||% "your_file.csv")
+  # the surface finds counts in the data even when the fitness type is set otherwise,
+  # so it takes the app's count family in any case
+  cf_surf <- if (!identical(s$count_family, "poisson")) r_value(s$count_family)
+  load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else
+    sprintf('dat <- read.csv("%s", na.strings = c("NA", ""))', file_name %||% "your_file.csv")
   lines <- c(
     "library(Lande)", "", load,
     paste("traits <-", r_value(s$traits)),
+    # the app keeps only rows with fitness and every trait; unlabelled rows are one more group
+    sprintf("dat <- dat[complete.cases(dat[, c(%s, traits)]), ]", fit),
     "", "# differentials and gradients, with the checks to report beside them",
     r_call("selection_report", "dat", fit, "traits", fitness_type = type, group = grp),
     if (s$per_group) r_call("selection_coefficients", "dat", fit, "traits", fitness_type = type, group = r_value(s$group), return_grouped = "TRUE"),
@@ -211,12 +218,16 @@ r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_bo
     r_call("bootstrap_selection", "dat", fit, "traits", fitness_type = type, group = grp, n_boot = n_boot),
     if (canonical && length(s$traits) > 1) r_call("canonical_analysis", "dat", fit, "traits", fitness_type = type, group = grp),
     "", "# fitness function",
-    r_call("prepare_selection_data", "dat", fit, "traits", group = grp, na_action = '"drop"', assign = "prep"),
+    r_call("prepare_selection_data", "dat", fit, "traits", group = grp, na_action = '"none"', assign = "prep"),
     sprintf("set.seed(%d)", s$seed),
     r_call("univariate_spline", "prep", fit, r_value(uni_trait), fitness_type = type, group = grp, k = spline_k,
            bs = r_value(s$spline_bs), smoothing = r_value(s$spline_sm), bootstrap = "TRUE", n_boot = 200,
            count_family = cf, assign = "uni"),
-    r_call("plot_univariate_fitness", "uni", r_value(uni_trait))
+    r_call("plot_univariate_fitness", "uni", r_value(uni_trait)),
+    if (uni_land) c(sprintf("set.seed(%d)", s$seed),
+                    r_call("adaptive_landscape", "prep", "uni$model", r_value(uni_trait), group_col = grp, grid_n = s$grid_n,
+                           simulation_n = s$sim_n, clamp = r_value(s$clamp), assign = "land1"),
+                    r_call("plot_adaptive_landscape", "land1", r_value(uni_trait)))
   )
   if (length(surf_traits) == 2 && surf_traits[1] != surf_traits[2]) {
     tr <- r_value(surf_traits)
@@ -224,7 +235,7 @@ r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_bo
       r_call("correlated_fitness_surface", "prep", fit, tr, method = r_value(s$surf_method), grid_n = s$surf_grid,
              mask = r_value(!s$surf_full), too_far = r_value(s$surf_far), group = r_value(s$group),
              group_effect = r_value(s$within_group), k = r_value(s$surf_k), bs = r_value(s$surf_bs),
-             smoothing = r_value(s$surf_sm), clamp = r_value(s$clamp), count_family = cf, assign = "surf"),
+             smoothing = r_value(s$surf_sm), clamp = r_value(s$clamp), count_family = cf_surf, assign = "surf"),
       r_call("plot_correlated_fitness", "surf", tr, uncertainty = r_value(uncertainty)),
       sprintf("set.seed(%d)", s$seed),
       r_call("adaptive_landscape", "prep", "surf$model", tr, group_col = grp, grid_n = s$grid_n,
@@ -448,7 +459,8 @@ server <- function(input, output, session) {
   current <- reactive({
     if (input$dataset == "Upload CSV...") {
       req(input$file)
-      c(list(data = utils::read.csv(input$file$datapath), fitness = NULL, traits = NULL, group = NULL),
+      # a blank cell is missing, as a spreadsheet writes it, not a group named ""
+      c(list(data = utils::read.csv(input$file$datapath, na.strings = c("NA", "")), fitness = NULL, traits = NULL, group = NULL),
         source = input$file$name)
     } else c(load_dataset(input$dataset), source = paste(input$dataset, "(bundled)"))
   })
@@ -508,8 +520,8 @@ server <- function(input, output, session) {
       need(all(vapply(d[traits], function(x) length(unique(x[!is.na(x)])) > 2, logical(1))),
            "Each trait needs more than two distinct values; a 0/1 column cannot be a trait.")
     )
-    keep <- c(fit, traits, grp)
-    d <- d[stats::complete.cases(d[, keep]), ]
+    # rows need fitness and every trait; the package keeps unlabelled rows as one more group
+    d <- d[stats::complete.cases(d[, c(fit, traits)]), ]
     validate(need(nrow(d) >= 20, "Need at least 20 individuals with complete data."))
     resolved <- if (input$ftype == "auto") detect_family(d[[fit]])$type else input$ftype
     if (!resolved %in% c("binary", "count")) resolved <- "continuous"
@@ -518,7 +530,7 @@ server <- function(input, output, session) {
     within <- !is.null(grp) && !isFALSE(input$within_group)
     grp_model <- if (within) grp else NULL
     prep <- suppressWarnings(suppressMessages(
-      prepare_selection_data(d, fit, traits, standardize = TRUE, group = grp_model, add_relative = TRUE, na_action = "drop")))
+      prepare_selection_data(d, fit, traits, standardize = TRUE, group = grp_model, add_relative = TRUE, na_action = "none")))
     fitted <- with_warnings(
       selection_report(d, fit, traits, fitness_type = resolved, standardize = TRUE, group = grp_model))
     report <- fitted$value
@@ -538,6 +550,8 @@ server <- function(input, output, session) {
     updateSelectInput(session, "surf_y", choices = traits, selected = keep_or(input$surf_y, traits[min(2, length(traits))]))
     list(d = d, prep = prep, fit = fit, traits = traits, group = grp, ftype = resolved,
          report = report, grouped = grouped, warnings = unique(warned), source = current()$source,
+         # what was run, for the script, even if the inputs change afterwards
+         dataset = input$dataset, file_name = if (!is.null(input$file)) input$file$name,
          ftype_how = if (input$ftype == "auto") "detected" else "set by hand",
          per_group = isTRUE(input$per_group),
          seed = if (is.numeric(input$seed) && !is.na(input$seed)) round(input$seed) else 1,
@@ -579,6 +593,8 @@ server <- function(input, output, session) {
         bootstrap_selection(s$d, s$fit, s$traits, fitness_type = s$ftype, standardize = TRUE,
                             group = s$group_model, n_boot = round(input$n_boot)))))
     })
+    # the number drawn, for the script; attr(b, "n_boot") counts the usable ones
+    attr(b, "n_drawn") <- round(input$n_boot)
     boot_val(b)
   })
 
@@ -909,15 +925,16 @@ server <- function(input, output, session) {
 
   # ---- Settings used (Data tab) ----
   code_lines <- reactive({
-    s <- setup()
-    sx <- input$surf_x; sy <- input$surf_y
-    r_code(s, input$dataset, if (!is.null(input$file)) input$file$name else NULL,
-           uni_trait = if (isTRUE(input$uni_trait %in% s$traits)) input$uni_trait else s$traits[1],
+    # the settings of the results on screen: the data and traits of the last
+    # run, the pair the surface was drawn for, the resamples drawn
+    s <- setup(); b <- boot_val(); tr <- surf_choice()
+    r_code(s, s$dataset, s$file_name,
+           uni_trait = uni_choice() %||% s$traits[1],
            spline_k = input$spline_k %||% 10,
-           surf_traits = if (length(s$traits) >= 2 && isTRUE(sx %in% s$traits) && isTRUE(sy %in% s$traits)) c(sx, sy) else character(),
-           n_boot = if (is.numeric(input$n_boot) && !is.na(input$n_boot)) round(input$n_boot) else 500,
+           surf_traits = if (length(s$traits) >= 2 && length(tr) == 2 && !anyNA(tr) && tr[1] != tr[2]) tr else character(),
+           n_boot = if (!is.null(b)) attr(b, "n_drawn") else if (is.numeric(input$n_boot) && !is.na(input$n_boot)) round(input$n_boot) else 500,
            uncertainty = if (s$surf_method == "tps" || is.null(input$surf_unc)) "none" else input$surf_unc,
-           canonical = isTRUE(input$canonical))
+           canonical = isTRUE(input$canonical), uni_land = isTRUE(input$uni_land))
   })
   output$r_code <- renderText(paste(code_lines(), collapse = "\n"))
   output$dl_code <- downloadHandler(
