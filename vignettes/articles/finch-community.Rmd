@@ -6,7 +6,7 @@ title: "Five finch groups on one surface"
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 8, fig.height = 6, dpi = 96)
 ```
 
-Beausoleil et al. (2023) fitted one fitness surface to 3428 ground finches at El Garrapatero on Santa Cruz: four species, with *Geospiza fortis* split into its small and large beak morphs, five groups in all. Fitness was apparent lifespan, the last year a bird was seen minus the first, and the traits were beak length and depth in millimetres. The package has the data as `finch_community`, built from their archive (doi:10.5683/SP3/0YIWSE).
+Beausoleil et al. (2023) fitted one fitness surface to 3428 ground finches at El Garrapatero on Santa Cruz: four species, with *Geospiza fortis* split into its small and large beak morphs, five groups in all. Fitness was apparent lifespan, the last year a bird was seen minus the first, and the traits were beak length and depth in millimetres. Birds first caught late in the study had fewer years in which to be seen again. The package has the data as `finch_community`, built from their archive (doi:10.5683/SP3/0YIWSE).
 
 ```{r}
 library(Lande)
@@ -16,11 +16,11 @@ table(finches$species)
 
 ## One pooled surface, the groups marked
 
-The traits stay in millimetres, the fitness type is detected as a count so the surface takes a Poisson family, cells farther than 0.15 of the axis range from any bird are blanked as in the paper, and the group is used only to mark each group's mean and the highest point of the surface within its own range.
+The traits stay in millimetres, the fitness type is detected as a count so the surface takes a Poisson family as in their model, cells farther than 0.15 of the axis range from any bird are blanked as in the paper, and the group is used only to mark each group's mean and the highest point of the surface within its own range.
 
 ```{r}
 surface <- correlated_fitness_surface(finches, "lifespan", c("beak_length", "beak_depth"),
-                                      k = 27, too_far = 0.15,
+                                      k = 27, too_far = 0.15, grid_n = 100,
                                       group = "species", group_effect = FALSE)
 plot_correlated_fitness(surface, c("beak_length", "beak_depth"), show_points = TRUE, point_alpha = 0.25)
 ```
@@ -29,11 +29,27 @@ plot_correlated_fitness(surface, c("beak_length", "beak_depth"), show_points = T
 surface$groups
 ```
 
-Each group's mean lies within about a millimetre of the highest fitted lifespan in its range, 0.90 mm on average, which is the figure Beausoleil et al. report. The flags say whether that high point is a peak: four groups sit by a peak of their own, and for magnirostris the surface keeps rising past its 53 birds towards the edge of the data. Every maximum of the surface is listed in the result.
+Group means lie 0.64 to 1.38 mm from the highest fitted lifespan in their range. For fortis small, fortis large and scandens that is within 0.03 mm of the distances Beausoleil et al. report. For fuliginosa and magnirostris, whose peaks they found inside rectangles drawn by hand, it is about a quarter of a millimetre shorter and longer, so the average, 0.90 mm, is the same as theirs. The flags say whether that high point is a peak: four groups sit by a peak of their own, and for magnirostris the surface keeps rising past its 53 birds towards the edge of the data. Every maximum of the surface is listed in the result.
 
 ```{r}
 surface$peaks
 ```
+
+## Overdispersion and the peak comparisons
+
+The Poisson fit is close to theirs, but the lifespans are overdispersed and the fit warns. With a dispersion over three, Poisson standard errors are too small. `count_family = "quasipoisson"` estimates the dispersion, so `peak_difference()` gets standard errors that allow for it. The smoothness is chosen again under the new family, so the surface itself shifts a little too.
+
+```{r}
+surface$dispersion
+quasi <- correlated_fitness_surface(finches, "lifespan", c("beak_length", "beak_depth"),
+                                    k = 27, too_far = 0.15, grid_n = 100, group = "species",
+                                    group_effect = FALSE, count_family = "quasipoisson")
+peak_difference(quasi, "fortis small", "fortis large", valley = TRUE)
+peak_difference(quasi, "fortis large", "scandens", valley = TRUE)
+peak_difference(quasi, "fortis large", "scandens", valley = TRUE, route = "line")
+```
+
+The valley in each comparison is the pass, the lowest point on the highest route from one high point to the other. On this scale fortis small stands clearly above its passes to fortis large and to scandens, while fortis large and scandens stand only a little above theirs, and no two high points differ clearly in height. The straight line from fortis large to scandens crosses a low patch at about 13.6 by 11.6 mm. The route between them goes round it, past fortis small, so measuring the valley on the line, as `route = "line"` does, makes the two look far more separate than they are. The fuliginosa high point is not an interior peak on this fit. These comparisons are exploratory, as `?peak_difference` explains.
 
 ## The same surface on standardised traits
 

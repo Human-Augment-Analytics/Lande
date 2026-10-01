@@ -28,7 +28,8 @@ First release.
   `plot_canonical_axes()` draws fitness along them.
 * Standard errors and a band on the GAM fitness surface, drawn with the plots'
   `uncertainty` option, and `peak_difference()` to compare two points of a
-  surface, or each with the dip between them.
+  surface, or each with the pass between them (`route = "line"` for the
+  straight line).
 * The adaptive landscape reports how much of each simulated population falls
   outside the data, and the plot can mark where it does.
 * A `clamp` option on the landscape and the thin-plate surface holds predicted

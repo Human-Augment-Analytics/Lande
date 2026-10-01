@@ -71,7 +71,7 @@ highest point is filled for a peak and open otherwise.
 
 A GAM surface carries its standard error and a band. `uncertainty = "se"` or
 `"band"` in the plots draws them, and `peak_difference()` compares the fitted
-fitness at two points, or each with the dip between them.
+fitness at two points, or each with the pass between them.
 
 ## Adaptive landscapes
 

@@ -4,7 +4,14 @@
 \alias{peak_difference}
 \title{Compare the fitted fitness at two points of a surface}
 \usage{
-peak_difference(surface, from, to, valley = FALSE, n_path = 50)
+peak_difference(
+  surface,
+  from,
+  to,
+  valley = FALSE,
+  route = c("pass", "line"),
+  n_path = 50
+)
 }
 \arguments{
 \item{surface}{Output of \code{correlated_fitness_surface()} fitted with
@@ -13,34 +20,52 @@ peak_difference(surface, from, to, valley = FALSE, n_path = 50)
 \item{from, to}{A group name, standing for that group's highest point in
 \code{surface$groups}, or a numeric vector of the two trait values.}
 
-\item{valley}{Logical; also find the lowest fitted fitness on the straight
-line between the two points and compare each end with it. Default is
-\code{FALSE}.}
+\item{valley}{Logical; also find the valley between the two points and
+compare each end with it. Default is \code{FALSE}.}
 
-\item{n_path}{Number of points along that line. Default is 50.}
+\item{route}{How the valley is found: \code{"pass"} (the default), the
+pass over the kept cells of the surface's grid, or \code{"line"}, the
+lowest point on the straight line between the two points, which is how
+Beausoleil et al. (2023) measured valley depths. A straight line can
+cross a trough that a curving ridge goes round, so it can make two peaks
+look more separate than they are.}
+
+\item{n_path}{Number of points along the straight line with
+\code{route = "line"}. Default is 50.}
 }
 \value{
 A data frame with one row per comparison: the fitted fitness at the
   two points (\code{fit_a}, \code{fit_b}), their difference on the link
-  scale, its standard error, \code{z} and the two-sided \code{p_value}.
+  scale, its standard error, \code{z} and the two-sided \code{p_value}
+  (\code{NA} for the valley rows).
   With \code{valley = TRUE} the attribute \code{"valley"} holds the trait
-  values of the lowest point on the line.
+  values of the pass or of the lowest point on the line.
 }
 \description{
 Takes two points on a GAM surface, given as group names or trait values,
 and returns the difference in fitted fitness on the scale of the link,
 with its standard error. Two peaks are separate only if each is higher
-than the dip between them, which \code{valley = TRUE} checks.
+than the pass between them, the lowest point on the highest route from one
+to the other, which \code{valley = TRUE} compares.
 }
 \details{
 Differences are on the scale of the link, log fitness for counts
   and log odds for survival. The standard error comes from the covariance
   of the model's coefficients, corrected for smoothing parameter
-  uncertainty when the fit was by REML or ML. The valley is picked as the
-  lowest fitted point on the line, so its comparisons describe the fitted
-  surface and are not planned tests. For overdispersed counts fit the
-  surface with \code{count_family = "quasipoisson"} first, since Poisson
-  standard errors are then too small.
+  uncertainty when the fit was by REML or ML. The points are taken as
+  fixed, although the peaks and the valley were found on the same fitted
+  surface, so the comparisons describe the fitted surface and are not
+  planned tests. The valley is the lowest point on the route, so its
+  differences are biased upwards and their z values too large, which is why
+  the valley rows have no p-value. The pass is found cell by cell over the
+  grid, joining each kept cell to its eight neighbours, from the two kept
+  cells nearest the points in grid steps; its precision follows
+  \code{grid_n}, and a point far from any kept cell gets a message.
+  If the route never drops below the cell a point starts from, or the lower
+  point is no higher than the pass, there is no dip to compare. The
+  straight line ignores the mask. For overdispersed counts fit the surface with
+  \code{count_family = "quasipoisson"} first, since Poisson standard errors
+  are then too small.
 }
 \examples{
 prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))

@@ -262,7 +262,7 @@ Selection is rarely constant. Beausoleil et al. (2019) fitted a separate fitness
 | `bootstrap_selection.R` | Uncertainty | Resampling with replacement | Bootstrap SE, percentile CI |
 | `check_selection_assumptions.R` | Assumption checks | Normality, VIF, rows per term, residuals | Mardia's tests, Shapiro-Wilk, Breusch-Pagan |
 | `canonical_analysis.R` | Canonical analysis | Eigen-decomposition of $\boldsymbol{\gamma}$, double regression | $\boldsymbol{\gamma} = \mathbf{M}\boldsymbol{\Lambda}\mathbf{M}^T$ |
-| `peak_difference.R` | Peak comparison | Difference in fitted fitness between two points, lowest point on the line between | Link-scale difference, SE from the model's covariance |
+| `peak_difference.R` | Peak comparison | Difference in fitted fitness between two points, and between each and the pass between them | Link-scale difference, SE from the model's covariance |
 | `run_app.R` | Interactive app | The whole workflow in a browser | Same calculations as the functions above |
 
 ### 3.2 Function Dependencies
@@ -711,7 +711,7 @@ plot_correlated_fitness_enhanced(
 )
 ```
 
-**Uncertainty:** a GAM surface carries the standard error of its fitted fitness and a band around it, worked out on the scale of the link. `uncertainty = "se"` draws the standard error as dashed contour lines over the surface, and `uncertainty = "band"` draws the lower bound, the fit and the upper bound side by side on one fill scale. `peak_difference(surface, from, to, valley = TRUE)` gives the difference in fitted fitness between two points, given as group names or trait values, and between each of them and the lowest point on the line joining them, with standard errors from the covariance of the model's coefficients. The thin-plate spline gives no standard errors.
+**Uncertainty:** a GAM surface carries the standard error of its fitted fitness and a band around it, worked out on the scale of the link. `uncertainty = "se"` draws the standard error as dashed contour lines over the surface, and `uncertainty = "band"` draws the lower bound, the fit and the upper bound side by side on one fill scale. `peak_difference(surface, from, to, valley = TRUE)` gives the difference in fitted fitness between two points, given as group names or trait values, and between each of them and the pass between them, the lowest point on the highest route from one to the other, with standard errors from the covariance of the model's coefficients. `route = "line"` takes the lowest point on the straight line instead, as Beausoleil et al. (2023) measured valley depths; `?peak_difference` explains why the two can differ and why the comparisons are exploratory. The thin-plate spline gives no standard errors.
 
 **Example:**
 ```{r, message=FALSE, warning=FALSE, fig.width=8, fig.height=6, fig.cap="Correlated fitness surface for size and colour"}
