@@ -48,9 +48,10 @@ The surface is drawn only within the convex hull of the fish; the highest fitted
 ```{r}
 land <- adaptive_landscape(prep, surface$model, nasal, grid_n = 30, simulation_n = 200)
 plot_adaptive_landscape(land, nasal)
+land$optimum_edge
 ```
 
-Mean fitness keeps rising past that edge, so within the range of the data the landscape is a slope rather than a peak, and the package reports it as such.
+The highest mean fitness is on the edge of the grid, at the largest nasal protrusion and outside the data, so within the data the landscape has no peak.
 
 ## Curvature against Martin's Table 3
 

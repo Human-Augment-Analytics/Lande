@@ -130,7 +130,7 @@ test_that("groups that share a mean get one label", {
   expect_equal(labels, "f, m")
   land <- suppressMessages(adaptive_landscape(prep, s$model, c("z1", "z2"), group_col = "sex", simulation_n = 20, grid_n = 5))
   labels <- unlist(lapply(ggplot2::ggplot_build(plot_adaptive_landscape(land, c("z1", "z2"), group_col = "sex"))$data, function(d) d$label))
-  expect_equal(labels[labels != "Optimum"], "f, m")
+  expect_equal(labels[!labels %in% c("Optimum", "Highest point, at the grid edge")], "f, m")
 })
 
 test_that("a grouped surface reports each group's mean and local peak", {

@@ -44,11 +44,13 @@ is left alone, and a GAM is unaffected because its link already respects
 the range. The run message says how many values were held.}
 
 \item{support_warn}{Share of the population simulated at the optimum that
-may fall outside the data before the result says the optimum rests on
-extrapolation. Default is 0.25.}
+may fall outside the data before the optimum is flagged as
+extrapolated. Default is 0.25.}
 }
 \value{
-An object of class \code{"adaptive_landscape"}.
+An object of class \code{"adaptive_landscape"}. Its
+  \code{optimum_edge} is \code{TRUE} when the highest mean fitness lies on
+  the edge of the grid, where the landscape may keep rising beyond it.
 }
 \description{
 Computes the adaptive landscape (mean fitness as a function of population mean phenotype)
@@ -56,12 +58,12 @@ using a fitted individual-level fitness model.
 }
 \details{
 For a single trait the grid also carries \code{.ind_fit}, the
-  individual fitness function evaluated at each population mean, so the two
-  curves can be drawn together (see \code{plot_adaptive_landscape()}).
+  individual fitness function evaluated at each population mean, for
+  drawing the two curves together (see \code{plot_adaptive_landscape()}).
 
   The simulated populations spread beyond the data, especially towards the
   edge of the grid, and the fitness of those individuals is extrapolated.
-  The function counts how far this goes: \code{.outside} in the grid is the
+  \code{.outside} in the grid is the
   share of each simulated population falling outside the convex hull of the
   observed trait pairs, or outside the observed range for one trait, and the
   result's \code{support} gives that share over the whole grid and at the

@@ -31,6 +31,7 @@ First release.
   surface, or each with the pass between them (`route = "line"` for the
   straight line).
 * The adaptive landscape reports how much of each simulated population falls
-  outside the data, and the plot can mark where it does.
+  outside the data, and flags an optimum on the edge of the grid; the plot can
+  mark where the population leaves the data.
 * A `clamp` option on the landscape and the thin-plate surface holds predicted
   fitness inside the range of the fitness type; on by default.

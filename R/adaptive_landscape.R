@@ -42,20 +42,22 @@
 #'   is left alone, and a GAM is unaffected because its link already respects
 #'   the range. The run message says how many values were held.
 #' @param support_warn Share of the population simulated at the optimum that
-#'   may fall outside the data before the result says the optimum rests on
-#'   extrapolation. Default is 0.25.
+#'   may fall outside the data before the optimum is flagged as
+#'   extrapolated. Default is 0.25.
 #' @details For a single trait the grid also carries \code{.ind_fit}, the
-#'   individual fitness function evaluated at each population mean, so the two
-#'   curves can be drawn together (see \code{plot_adaptive_landscape()}).
+#'   individual fitness function evaluated at each population mean, for
+#'   drawing the two curves together (see \code{plot_adaptive_landscape()}).
 #'
 #'   The simulated populations spread beyond the data, especially towards the
 #'   edge of the grid, and the fitness of those individuals is extrapolated.
-#'   The function counts how far this goes: \code{.outside} in the grid is the
+#'   \code{.outside} in the grid is the
 #'   share of each simulated population falling outside the convex hull of the
 #'   observed trait pairs, or outside the observed range for one trait, and the
 #'   result's \code{support} gives that share over the whole grid and at the
 #'   optimum.
-#' @return An object of class \code{"adaptive_landscape"}.
+#' @return An object of class \code{"adaptive_landscape"}. Its
+#'   \code{optimum_edge} is \code{TRUE} when the highest mean fitness lies on
+#'   the edge of the grid, where the landscape may keep rising beyond it.
 #' @examples
 #' prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
 #' surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
@@ -161,7 +163,7 @@ adaptive_landscape <- function(
 
     # Ensure variance matrix is positive definite
     if (inherits(try(chol(population_variance), silent = TRUE), "try-error")) {
-        message("Variance matrix not positive definite. Applying correction...")
+        message("Making the variance matrix positive definite")
         if (requireNamespace("Matrix", quietly = TRUE)) {
             population_variance <- as.matrix(Matrix::nearPD(population_variance)$mat)
         } else {
@@ -266,6 +268,14 @@ adaptive_landscape <- function(
     optimum <- population_grid[which.max(mean_fitness), ]
     .msg_table("Optimal population mean phenotype:", optimum[, trait_cols, drop = FALSE])
     message("Mean fitness at optimum: ", round(optimum$.mean_fit, 4))
+    # a highest point on the edge of the grid may not be an optimum
+    optimum_edge <- any(vapply(trait_cols, function(t) {
+        v <- population_grid[[t]]
+        optimum[[t]] <= min(v) + 1e-9 || optimum[[t]] >= max(v) - 1e-9
+    }, logical(1)))
+    if (optimum_edge) {
+        message("The highest mean fitness is on the edge of the grid; the landscape may keep rising beyond it")
+    }
 
     support <- list(outside = mean(outside), at_optimum = optimum$.outside, warn = support_warn)
     message(sprintf("%.0f%% of simulated individuals fell outside the data (%.0f%% at the optimum)",
@@ -297,6 +307,7 @@ adaptive_landscape <- function(
         clipped = clipped,
         support = support,
         optimum = optimum,
+        optimum_edge = optimum_edge,
         actual_population_means = actual_means,
         fitness_model_class = class(fitness_model)[1],
         data_summary = list(
@@ -348,6 +359,7 @@ print.adaptive_landscape <- function(x, ...) {
     cat("\nOptimal population mean phenotype:\n")
     print(x$optimum[, x$trait_cols, drop = FALSE])
     cat("Mean fitness at optimum:", round(x$optimum$.mean_fit, 4), "\n")
+    if (isTRUE(x$optimum_edge)) cat("It lies on the edge of the grid; the landscape may keep rising beyond it\n")
     if (!is.null(x$support)) {
         cat(sprintf("Simulated individuals outside the data: %.0f%% over the grid, %.0f%% at the optimum\n",
                     100 * x$support$outside, 100 * x$support$at_optimum))

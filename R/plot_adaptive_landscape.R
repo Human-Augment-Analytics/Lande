@@ -22,7 +22,7 @@
 #' @param original_data Optional data frame of original data points. Default is \code{NULL}.
 #' @param group_col Optional character string specifying a grouping variable for labels.
 #' @param bins Integer specifying the number of contour bins. Default is 12.
-#' @param show_optimum Logical indicating whether to display the optimum point. Default is \code{TRUE}.
+#' @param show_optimum Logical indicating whether to display the optimum point, labelled as the highest point when it lies on the edge of the grid. Default is \code{TRUE}.
 #' @param show_actual_means Logical indicating whether to display actual population means. Default is \code{TRUE}.
 #' @param show_individual Logical; for a single trait, also draw the
 #'   individual fitness function (dashed). Default is \code{TRUE}.
@@ -208,7 +208,7 @@ plot_adaptive_landscape <- function(
                 "text",
                 x = opt_df[[trait_cols[1]]],
                 y = opt_df[[trait_cols[2]]],
-                label = "Optimum",
+                label = if (isTRUE(landscape$optimum_edge)) "Highest point, at the grid edge" else "Optimum",
                 vjust = -1,
                 size = 3,
                 color = "gray30"
@@ -307,7 +307,8 @@ plot_adaptive_landscape <- function(
             ggplot2::annotate(
                 "text",
                 x = opt[[trait]], y = opt$.mean_fit,
-                label = "Optimum", vjust = -1, size = 3, color = "gray30"
+                label = if (isTRUE(landscape$optimum_edge)) "Highest point, at the grid edge" else "Optimum",
+                vjust = -1, size = 3, color = "gray30"
             )
     }
 
@@ -326,7 +327,7 @@ plot_adaptive_landscape <- function(
 #' @param trait_cols Character vector of length 2 specifying the trait column names.
 #' @param theta Numeric azimuthal viewing angle. Default is -30.
 #' @param phi Numeric colatitude viewing angle. Default is 30.
-#' @param grid_n Integer specifying the resolution of the interpolation grid. Default is 200.
+#' @param grid_n Ignored; the landscape's own grid is used.
 #' @param color_palette Optional vector of colors for the surface. Defaults to viridis plasma.
 #' @param ... Additional arguments passed to \code{fields::drape.plot()}.
 #'
@@ -376,9 +377,8 @@ plot_adaptive_landscape_3d <- function(
 
     # adaptive_landscape() evaluates mean fitness on a regular grid, so the
     # surface can be reshaped directly into a matrix. Interpolating it again
-    # (as earlier versions did with akima) either overshoots at the edges or
-    # leaves the border undefined, and is not needed. `grid_n` is kept for
-    # backwards compatibility; the landscape's own resolution is used.
+    # overshoots at the edges or leaves the border undefined, and is not
+    # needed; `grid_n` is ignored and the landscape's own resolution is used.
     xu <- sort(unique(x))
     yu <- sort(unique(y))
     zmat <- matrix(NA_real_, nrow = length(xu), ncol = length(yu))
