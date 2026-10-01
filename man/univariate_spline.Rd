@@ -77,8 +77,10 @@ By default the fitness function is a penalised cubic regression
   another study; the amount of smoothing is still estimated from the data,
   though the criterion can change it a good deal.
   If mgcv's check suggests the basis dimension was too small a warning
-  says so. With \code{bootstrap = TRUE} the result depends on the random
-  seed; call \code{set.seed()} first for a reproducible ribbon.
+  says so; the check works on the residuals, which for survival carry too
+  little to test, so it is skipped there. With \code{bootstrap = TRUE} the
+  result depends on the random seed; call \code{set.seed()} first for a
+  reproducible ribbon.
 }
 \examples{
 prep <- prepare_selection_data(bumpus, "survival", "total_length")

@@ -577,7 +577,7 @@ univariate_spline(
 
 **Technical details:**
 
-- Penalised cubic regression spline (`bs = "cr"`) with the smoothing parameter chosen by generalised cross-validation, following Schluter (1988); for survival and Poisson counts mgcv uses its UBRE form, and a negative binomial fit uses REML. `bs` sets the family of curves and `smoothing` the criterion, to match the smoother another study used; the amount of smoothing is still estimated from the data, though the criterion can change it a good deal. A warning is given if mgcv's check suggests `k` left the curve too little room to bend.
+- Penalised cubic regression spline (`bs = "cr"`) with the smoothing parameter chosen by generalised cross-validation, following Schluter (1988); for survival and Poisson counts mgcv uses its UBRE form, and a negative binomial fit uses REML. `bs` sets the family of curves and `smoothing` the criterion, to match the smoother another study used; the amount of smoothing is still estimated from the data, though the criterion can change it a good deal. A warning is given if mgcv's check suggests `k` left the curve too little room to bend; the check is skipped for survival, whose residuals carry too little to test.
 - For binary fitness: binomial GAM with logit link on the raw 0/1 values; for counts: Poisson GAM with log link on the raw counts; for continuous fitness: Gaussian GAM on relative fitness
 - 95% band: parametric (Wald) by default, or a percentile bootstrap over individuals with `bootstrap = TRUE`
 

@@ -82,8 +82,10 @@
 #'   another study; the amount of smoothing is still estimated from the data,
 #'   though the criterion can change it a good deal.
 #'   If mgcv's check suggests the basis dimension was too small a warning
-#'   says so. With \code{bootstrap = TRUE} the result depends on the random
-#'   seed; call \code{set.seed()} first for a reproducible ribbon.
+#'   says so; the check works on the residuals, which for survival carry too
+#'   little to test, so it is skipped there. With \code{bootstrap = TRUE} the
+#'   result depends on the random seed; call \code{set.seed()} first for a
+#'   reproducible ribbon.
 #'
 #' @return A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
 #' @export
@@ -283,8 +285,10 @@ univariate_spline <- function(data,
   dispersion <- if (fitness_type == "count") .check_dispersion(fit, count_family) else NULL
 
   # mgcv's test of whether the basis had room to bend: a low k-index with a
-  # small p-value means the curve may look straighter than the data are
-  kc <- tryCatch(mgcv::k.check(fit), error = function(e) NULL)
+  # small p-value means the curve may look straighter than the data are. The
+  # test works on the residuals, which for 0/1 fitness carry very little to
+  # check (as mgcv's gam.check help says), so it is skipped for survival
+  kc <- if (fitness_type != "binary") tryCatch(mgcv::k.check(fit), error = function(e) NULL)
   if (!is.null(kc) && any(kc[, "k-index"] < 1 & kc[, "p-value"] < 0.05, na.rm = TRUE)) {
     warning("k = ", k, " may be too small for '", trait_col, "' (mgcv k-index ",
             round(min(kc[, "k-index"]), 2), "); try a larger k")
