@@ -109,9 +109,10 @@ rotatable 3D landscape. The app lives in `inst/app`; see its README there.
   fish of the three parental species. Martin's analyses use the high-density
   enclosures, `density == "H"`, and so do the examples and the app.
 - `finch_yearly`: the yearly medium ground finch data of Beausoleil et al.
-  (2019).
+  (2019), with survival as being seen again in any later year.
 - `finch_community`: the five-group finch community of Beausoleil et al.
-  (2023), with apparent lifespan as fitness.
+  (2023), with apparent lifespan as fitness and the year each bird was first
+  caught.
 
 Each has a help page with its columns and source. The pupfish and finch data
 are also in `inst/extdata` as CSV files.

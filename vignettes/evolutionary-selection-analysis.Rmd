@@ -231,7 +231,7 @@ The two surfaces are compared with `compare_fitness_surfaces_data()` (section 5.
 
 ### 2.8 Landscapes over Time
 
-Selection is rarely constant. Beausoleil et al. (2019) fitted a separate fitness function to each year of the finch data and found the shape changing from year to year, with two peaks in some years and a slope in others. The package does the same with `temporal_landscape()`: the fitness function (one trait) or surface (two traits) and, if asked, the adaptive landscape are fitted separately for each level of a time column, on traits standardised once over all periods so that the periods share one axis. The result is one row per period with the sample size, mean fitness, the degrees of freedom of the smooth, the position of the highest fitness and, for one trait, the number of interior peaks. `plot_temporal_landscape()` draws the periods side by side or, for one trait, as a heat map of fitness against trait and time.
+Beausoleil et al. (2019) fitted a separate fitness function to each year of the finch data and found disruptive selection throughout, stronger in some years than others and significant in three of the six year-to-year intervals they tested. The package does the same with `temporal_landscape()`: the fitness function (one trait) or surface (two traits) and, if asked, the adaptive landscape are fitted separately for each level of a time column, on traits standardised once over all periods so that the periods share one axis. The result is one row per period with the sample size, mean fitness, the degrees of freedom of the smooth, the position of the highest fitness and, for one trait, the number of interior peaks. `plot_temporal_landscape()` draws the periods side by side or, for one trait, as a heat map of fitness against trait and time.
 
 **File:** `temporal_landscape.R`
 
@@ -963,12 +963,12 @@ plot_temporal_landscape(
 
 **Returns:** a list with one fit and one landscape per period, a `summary` table (n, mean fitness, trait means, the smooth's degrees of freedom, the position and height of the highest fitness and whether it sits at the edge of the data, the number of interior peaks for one trait, and the landscape optimum), the fitted values of every period stacked in `grid`, for one trait the fitness functions on a common grid in `heat` (blank where a period has no individuals), and the periods skipped for having fewer than `min_n` rows.
 
-Standardise the traits once, over all periods, before calling: the periods must share one trait axis, so nothing is restandardised per period. The number of peaks depends on the basis size `k` as any spline feature does; treat it as a description of the fitted curve, and test disruptive selection with the quadratic gradient on the birds between the peaks as Beausoleil et al. (2019) did.
+Standardise the traits once over all periods before calling; nothing is restandardised per period, since the periods share one trait axis. The number of peaks depends on the basis size `k` and the smoothing criterion, as any spline feature does, so test disruptive selection with the quadratic gradient on the birds between the peaks, as Beausoleil et al. (2019) did.
 
-**Example:** medium ground finches at El Garrapatero, one row per bird per year it was seen, survival to the next year against beak size (first principal component of the three beak medians), from the public data of Beausoleil et al. (2019).
+**Example:** medium ground finches at El Garrapatero, one row per bird per year it was seen, survival (seen again in any later year) against beak size (first principal component of the three beak medians), from the public data of Beausoleil et al. (2019). The splines here use REML; the "Finches year by year" article compares it with UBRE.
 ```{r, message=FALSE, warning=FALSE, results='hide'}
 finch_prep <- prepare_selection_data(finch_yearly, "survived", "beak_pc1")
-years <- temporal_landscape(finch_prep, "survived", "beak_pc1", "year", simulation_n = 200)
+years <- temporal_landscape(finch_prep, "survived", "beak_pc1", "year", smoothing = "REML", simulation_n = 200)
 ```
 
 ```{r}
@@ -983,7 +983,7 @@ plot_temporal_landscape(years, ncol = 4)
 plot_temporal_landscape(years, type = "heatmap")
 ```
 
-The spline finds more than one peak in 2005 and 2008 and a steep rise towards large beaks in 2009, the year with the strongest selection in Beausoleil et al. (2019). Peaks in a fitted curve are a description, not a test; their test was the quadratic gradient on the birds between the peaks, which is `analyze_disruptive_selection()` in section 5.6 run on that subset.
+With REML the functions are close to straight lines on the logit scale in every year but 2009, when survival dips past a small bump for the small morph and then rises steeply towards large beaks; Beausoleil et al. (2019) found their deepest valley in the 2009 to 2010 interval. With the default UBRE criterion 2005, 2006 and 2008 each show two or three peaks instead. Their test was the quadratic gradient on the birds between the peaks, which is `analyze_disruptive_selection()` in section 5.6 run on that subset.
 
 ### 5.17 `canonical_analysis()` and `plot_canonical_axes()`
 

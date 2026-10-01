@@ -19,7 +19,9 @@ First release.
 * Bootstrap standard errors and percentile intervals for the gradients.
 * Assumption checks in one table: multivariate normality of the traits, VIF,
   rows per term, residuals or dispersion of the gradient model.
-* Bumpus's sparrows bundled as data; pupfish and finch data in `extdata`.
+* Bumpus's sparrows, Martin's pupfish and two sets of Galapagos finches
+  bundled as datasets, with CSV copies of the pupfish and finch data in
+  `extdata`.
 * A Shiny app that runs the analyses in a browser, opened with `run_app()`,
   which writes out the R calls that repeat an analysis with the current
   settings.

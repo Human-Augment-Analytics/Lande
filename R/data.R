@@ -112,15 +112,16 @@
 #'
 #' Medium ground finches (\emph{Geospiza fortis}) marked and recaptured at El
 #' Garrapatero, Santa Cruz Island, Galapagos. Each row is a bird in a year it
-#' was seen, from 2004 to 2010, with whether it was seen again the next year.
-#' Built by \code{data-raw/finch_yearly.R}.
+#' was seen, from 2004 to 2010, with whether it was seen again in any later
+#' year (apparent survival). Built by \code{data-raw/finch_yearly.R}.
 #'
 #' @format A data frame with 1087 rows and 7 variables:
 #' \describe{
 #'   \item{band}{Band code of the bird.}
 #'   \item{year}{Year the bird was seen.}
-#'   \item{survived}{\code{1} if the bird was seen again the next year,
-#'     \code{0} otherwise.}
+#'   \item{survived}{\code{1} if the bird was seen again in any later year
+#'     up to 2018, the last in the file, \code{0} otherwise. Death cannot be
+#'     told from emigration.}
 #'   \item{beak_pc1}{Beak size: the first principal component of the three
 #'     beak measurements over all the birds, signed so that larger beaks score
 #'     higher.}
@@ -144,7 +145,7 @@
 #' \code{data-raw/finch_community.R} from the file in the authors' code
 #' repository (GPL-3).
 #'
-#' @format A data frame with 3428 rows and 6 variables:
+#' @format A data frame with 3428 rows and 7 variables:
 #' \describe{
 #'   \item{band}{Band code of the bird.}
 #'   \item{species}{A factor: \code{"fortis small"} and \code{"fortis large"}
@@ -156,6 +157,7 @@
 #'   \item{beak_width}{Mean beak width (mm).}
 #'   \item{lifespan}{Apparent lifespan in years: the last year the bird was
 #'     seen minus the first.}
+#'   \item{first_year}{The year the bird was first caught.}
 #' }
 #' @source Beausoleil, M.-O. et al. (2023) The fitness landscape of a
 #'   community of Darwin's finches. \emph{Evolution} 77, 2533-2546.

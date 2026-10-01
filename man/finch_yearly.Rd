@@ -9,8 +9,9 @@ A data frame with 1087 rows and 7 variables:
 \describe{
   \item{band}{Band code of the bird.}
   \item{year}{Year the bird was seen.}
-  \item{survived}{\code{1} if the bird was seen again the next year,
-    \code{0} otherwise.}
+  \item{survived}{\code{1} if the bird was seen again in any later year
+    up to 2018, the last in the file, \code{0} otherwise. Death cannot be
+    told from emigration.}
   \item{beak_pc1}{Beak size: the first principal component of the three
     beak measurements over all the birds, signed so that larger beaks score
     higher.}
@@ -31,7 +32,7 @@ finch_yearly
 \description{
 Medium ground finches (\emph{Geospiza fortis}) marked and recaptured at El
 Garrapatero, Santa Cruz Island, Galapagos. Each row is a bird in a year it
-was seen, from 2004 to 2010, with whether it was seen again the next year.
-Built by \code{data-raw/finch_yearly.R}.
+was seen, from 2004 to 2010, with whether it was seen again in any later
+year (apparent survival). Built by \code{data-raw/finch_yearly.R}.
 }
 \keyword{datasets}

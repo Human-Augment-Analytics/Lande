@@ -5,7 +5,7 @@
 \alias{finch_community}
 \title{Darwin's finch community at El Garrapatero}
 \format{
-A data frame with 3428 rows and 6 variables:
+A data frame with 3428 rows and 7 variables:
 \describe{
   \item{band}{Band code of the bird.}
   \item{species}{A factor: \code{"fortis small"} and \code{"fortis large"}
@@ -17,6 +17,7 @@ A data frame with 3428 rows and 6 variables:
   \item{beak_width}{Mean beak width (mm).}
   \item{lifespan}{Apparent lifespan in years: the last year the bird was
     seen minus the first.}
+  \item{first_year}{The year the bird was first caught.}
 }
 }
 \source{

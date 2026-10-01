@@ -6,7 +6,7 @@ title: "Finches year by year"
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 9, fig.height = 5, dpi = 96)
 ```
 
-Beausoleil et al. (2019) followed medium ground finches at El Garrapatero from 2004 to 2010 and fitted a separate fitness function to each year. The package has them as `finch_yearly`, one row per bird per year it was seen, with survival to the next year and beak size as the first principal component of three beak measures.
+Beausoleil et al. (2019) followed medium ground finches at El Garrapatero and fitted a separate fitness function to each year. The package has the birds seen from 2004 to 2010 as `finch_yearly`, one row per bird per year it was seen, with beak size as the first principal component of three beak measures. A bird counts as surviving if it was seen again in any later year up to 2018, the last year in the file. Survival here is apparent survival; death cannot be told from emigration.
 
 ```{r}
 library(Lande)
@@ -16,11 +16,11 @@ table(finch$year)
 
 ## One fitness function per year
 
-Traits are standardised once, over all years, so the panels share one axis.
+Traits are standardised once, over all years, so the panels share one axis. The splines use REML, which is less prone than the default UBRE to settle on a wiggly curve.
 
 ```{r}
 prep <- prepare_selection_data(finch, "survived", "beak_pc1")
-years <- temporal_landscape(prep, "survived", "beak_pc1", "year", simulation_n = 200)
+years <- temporal_landscape(prep, "survived", "beak_pc1", "year", smoothing = "REML", simulation_n = 200)
 years$summary[, c("time", "n", "mean_fitness", "edf", "optimum_beak_pc1", "peaks")]
 ```
 
@@ -28,12 +28,19 @@ years$summary[, c("time", "n", "mean_fitness", "edf", "optimum_beak_pc1", "peaks
 plot_temporal_landscape(years, ncol = 4)
 ```
 
-Survival rose steeply with beak size in 2009, the year in which Beausoleil et al. found the strongest selection; the 2006 and 2010 curves are straight lines with one degree of freedom; 2005 and 2008 have more than one peak. The band is the 95% interval of each year's spline, the dashed line the adaptive landscape, and the diamond the highest fitted survival in the year's range, which for 2006, 2009 and 2010 sits at the edge of the data rather than at an interior peak.
+Most years are close to straight lines on the logit scale, usually sloping gently down towards large beaks, most steeply in 2008 and 2010. The exception is 2009, when survival dips past a small bump for the small morph and then rises steeply towards large beaks; Beausoleil et al. found their deepest valley in the 2009 to 2010 interval. The band is the 95% interval of each year's spline, the dashed line the adaptive landscape, and the marker the highest fitted survival in the year's range, open where it sits at the edge of the data.
+
+## How much the peaks depend on the smoothing
+
+```{r}
+ubre <- temporal_landscape(prep, "survived", "beak_pc1", "year", simulation_n = 200)
+data.frame(year = years$summary$time, REML = years$summary$peaks, UBRE = ubre$summary$peaks)
+```
+
+With the default UBRE criterion several years have two or three peaks, closer to the two peaks a year that Beausoleil et al. describe with a smoothing parameter they fixed themselves. The count moves with the smoothing and the basis size, so the `peaks` column is not a test; theirs was the quadratic gradient on the birds between the peaks.
 
 ## As a heat map
 
 ```{r, fig.height = 4.5}
 plot_temporal_landscape(years, type = "heatmap")
 ```
-
-The number of peaks in a fitted curve moves with the basis size, so the `peaks` column describes the fit rather than testing anything.
