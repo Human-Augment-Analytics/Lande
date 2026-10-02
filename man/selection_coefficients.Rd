@@ -12,7 +12,8 @@ selection_coefficients(
   standardize = TRUE,
   group = NULL,
   use_relative_for_fit = TRUE,
-  return_grouped = FALSE
+  return_grouped = FALSE,
+  se_type = c("ols", "hc3")
 )
 }
 \arguments{
@@ -34,9 +35,27 @@ separate intercept for each group.}
 \item{use_relative_for_fit}{Logical; if \code{TRUE} (default) the gradients are estimated on relative fitness \eqn{W / \bar{W}} for every fitness type, as in Lande & Arnold (1983). Set \code{FALSE} only to reproduce coefficients on the absolute fitness scale.}
 
 \item{return_grouped}{Logical indicating whether to return results grouped if a \code{group} is specified.}
+
+\item{se_type}{Standard errors of the gradients: \code{"ols"}, the usual
+least-squares ones (the default), or \code{"hc3"}, leave-one-out standard
+errors that allow for residual spread changing with the traits.
+Mitchell-Olds and Shaw (1987) suggested the jackknife for selection
+gradients when the residuals are not normal; HC3 (MacKinnon and White
+1985) gets much the same in closed form, from how far the estimates move
+when each individual is left out. In the package's simulation it recovered
+most of the coverage beta loses when the model leaves out curvature, from
+88 to 93\% with normal traits, 67 to 86\% with log-normal ones and 77 to
+91\% with heavy-tailed symmetric ones. It did nothing for the coverage lost
+to estimating a skewed trait's SD, and with survival and counts its
+intervals covered a little less, down to 91\% (see
+\code{check_selection_assumptions()}). For continuous fitness the p-values
+follow the chosen errors; for survival and counts they come from the GLM
+with either \code{se_type}.}
 }
 \value{
-A data frame containing selection coefficients (Term, Type, Beta_Coefficient, Standard_Error, P_Value, Variance).
+A data frame containing selection coefficients (Term, Type,
+  Beta_Coefficient, Standard_Error, P_Value, Variance), with the standard
+  errors used in the attribute \code{"se_type"}.
 }
 \description{
 Main wrapper function for selection analysis following Lande & Arnold (1983).
@@ -48,4 +67,12 @@ selection_coefficients(bumpus, "survival", c("total_length", "weight"), fitness_
 # one set of gradients per sex, each sex standardised on its own
 selection_coefficients(bumpus, "survival", c("total_length", "weight"),
                        group = "sex", return_grouped = TRUE)
+}
+\references{
+MacKinnon, J. G. and White, H. (1985) Some
+  heteroskedasticity-consistent covariance matrix estimators with improved
+  finite sample properties. Journal of Econometrics 29, 305-325.
+  Mitchell-Olds, T. and Shaw, R. G. (1987) Regression analysis of natural
+  selection: statistical inference and biological interpretation. Evolution
+  41, 1149-1161.
 }

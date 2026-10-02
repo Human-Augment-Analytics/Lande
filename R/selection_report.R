@@ -40,15 +40,18 @@ selection_report <- function(data,
                              group = NULL,
                              use_relative_for_fit = TRUE,
                              include_differentials = TRUE,
-                             digits = 4) {
+                             digits = 4,
+                             se_type = c("ols", "hc3")) {
   fitness_type <- match.arg(fitness_type)
+  se_type <- .se_type_arg(se_type)
 
   gradients <- suppressMessages(selection_coefficients(
     data, fitness_col, trait_cols,
     fitness_type = fitness_type,
     standardize = standardize,
     group = group,
-    use_relative_for_fit = use_relative_for_fit
+    use_relative_for_fit = use_relative_for_fit,
+    se_type = se_type
   ))
 
   tab <- data.frame(
@@ -103,6 +106,7 @@ selection_report <- function(data,
   attr(tab, "fitness_type") <- attr(gradients, "fitness_type_used")
   attr(tab, "p_model") <- c(linear = attr(gradients, "model_family_used"),
                             quadratic = attr(gradients, "model_family_quadratic"))
+  attr(tab, "se_type") <- se_type
   attr(tab, "scale") <- paste0(
     if (standardize) "standardised traits" else "unstandardised traits", ", ",
     if (use_relative_for_fit) "relative fitness" else "absolute fitness"
@@ -149,6 +153,9 @@ print.selection_report <- function(x, ...) {
     which_model <- if (length(unique(p_model)) == 1) paste("a", p_model[1], "model on the same terms") else
       paste("a", p_model[1], "model for the linear gradients and a", p_model[2], "model for the rest")
     cat("p-values are from ", which_model, "\n", sep = "")
+  }
+  if (identical(attr(x, "se_type"), "hc3")) {
+    cat("Standard errors: heteroscedasticity-consistent (HC3)\n")
   }
   cat("\n")
   print(out, row.names = FALSE)

@@ -851,7 +851,8 @@ selection_coefficients(
   standardize = TRUE,
   group = NULL,               # optional grouping column (e.g. year)
   use_relative_for_fit = TRUE,
-  return_grouped = FALSE      # TRUE: one set of gradients per group
+  return_grouped = FALSE,     # TRUE: one set of gradients per group
+  se_type = "ols"             # "hc3": leave-one-out standard errors
 )
 ```
 
@@ -868,9 +869,11 @@ selection_coefficients(
 - `Term`: Coefficient name (e.g., "size", "size²", "size×colour")
 - `Type`: "Linear", "Quadratic", or "Correlational"
 - `Beta_Coefficient`: Estimated selection gradient
-- `Standard_Error`: Standard error of estimate
+- `Standard_Error`: Standard error of estimate, least squares or HC3 (`se_type`)
 - `P_Value`: Statistical significance
 - `Variance`: Square of standard error
+
+`se_type = "hc3"` gives leave-one-out standard errors (MacKinnon & White, 1985; Mitchell-Olds & Shaw, 1987; see `?selection_coefficients`). They allow for residual spread that changes with the traits, as it does when the model leaves out curvature; in the package's simulation they recovered most of the coverage lost there, most of all with heavy-tailed traits. They did nothing for the coverage lost to estimating a skewed trait's SD, and with survival and counts they covered a little less. For continuous fitness the p-values follow them; for survival and counts the p-values come from the GLM with either `se_type`.
 
 **Example:**
 ```{r, message=FALSE, warning=FALSE}
@@ -1224,3 +1227,7 @@ surface <- correlated_fitness_surface(prepared, "survival", c("size", "colour"),
 23. Bumpus, H. C. (1899). The elimination of the unfit as illustrated by the introduced sparrow, *Passer domesticus*. *Biological Lectures, Marine Biological Laboratory, Woods Hole*, 209-226.
 
 24. Martin, C. H. (2016). Context dependence in complex adaptive landscapes: frequency and trait-dependent selection surfaces within an adaptive radiation of Caribbean pupfishes. *Evolution*, 70(6), 1265-1282.
+
+25. MacKinnon, J. G., & White, H. (1985). Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. *Journal of Econometrics*, 29(3), 305-325.
+
+26. Mitchell-Olds, T., & Shaw, R. G. (1987). Regression analysis of natural selection: statistical inference and biological interpretation. *Evolution*, 41(6), 1149-1161.

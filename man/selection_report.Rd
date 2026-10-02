@@ -13,7 +13,8 @@ selection_report(
   group = NULL,
   use_relative_for_fit = TRUE,
   include_differentials = TRUE,
-  digits = 4
+  digits = 4,
+  se_type = c("ols", "hc3")
 )
 }
 \arguments{
@@ -38,6 +39,22 @@ separate intercept for each group.}
 differentials S are included alongside the gradients.}
 
 \item{digits}{Integer number of digits used when printing. Default is 4.}
+
+\item{se_type}{Standard errors of the gradients: \code{"ols"}, the usual
+least-squares ones (the default), or \code{"hc3"}, leave-one-out standard
+errors that allow for residual spread changing with the traits.
+Mitchell-Olds and Shaw (1987) suggested the jackknife for selection
+gradients when the residuals are not normal; HC3 (MacKinnon and White
+1985) gets much the same in closed form, from how far the estimates move
+when each individual is left out. In the package's simulation it recovered
+most of the coverage beta loses when the model leaves out curvature, from
+88 to 93\% with normal traits, 67 to 86\% with log-normal ones and 77 to
+91\% with heavy-tailed symmetric ones. It did nothing for the coverage lost
+to estimating a skewed trait's SD, and with survival and counts its
+intervals covered a little less, down to 91\% (see
+\code{check_selection_assumptions()}). For continuous fitness the p-values
+follow the chosen errors; for survival and counts they come from the GLM
+with either \code{se_type}.}
 }
 \value{
 A data frame of class \code{"selection_report"} with columns

@@ -81,6 +81,17 @@ gradients <- function(z, w, hc3 = FALSE) {
   list(est = setNames(c(coef(lin)[c("z1", "z2")], 2 * coef(quad)[c("I(z1^2)", "I(z2^2)")], coef(quad)["z1:z2"]), terms),
        se = setNames(c(sl[c("z1", "z2")], 2 * sq[c("I(z1^2)", "I(z2^2)")], sq["z1:z2"]), terms))
 }
+# the HC3 errors above must be the package's own; checked on fixed data, so no
+# random numbers are drawn
+local({
+  i <- seq_len(n)
+  z <- data.frame(z1 = sin(i), z2 = cos(0.7 * i))
+  w <- 3 + z$z1 - 0.5 * z$z2^2 + 0.3 * z$z1 * z$z2 + sin(1.3 * i)
+  pk <- suppressWarnings(suppressMessages(
+    selection_coefficients(data.frame(z, W = w), "W", c("z1", "z2"), se_type = "hc3")))
+  stopifnot(isTRUE(all.equal(unname(gradients(as.data.frame(scale(z)), w, hc3 = TRUE)$se),
+                             pk$Standard_Error, tolerance = 1e-8)))
+})
 
 # the truth: regressions of expected relative fitness, averaged over ten draws
 # of two million individuals; truth_se is the standard error of that average

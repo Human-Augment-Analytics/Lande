@@ -106,6 +106,36 @@
 }
 
 #' @noRd
+# internal utility: the standard errors a selection model reports, "ols" or
+# "hc3", in either case
+.se_type_arg <- function(se_type) {
+  match.arg(tolower(se_type[1]), c("ols", "hc3"))
+}
+
+#' @noRd
+# internal utility: swap the least-squares standard errors in a summary.lm for
+# heteroscedasticity-consistent HC3 ones (MacKinnon and White 1985) and redo
+# the t tests on them, with the residual degrees of freedom. HC3 divides each
+# residual by one minus its leverage, so it is undefined at leverage 1.
+.hc3_summary <- function(fit, sm) {
+  keep <- !is.na(stats::coef(fit))
+  X <- stats::model.matrix(fit)[, keep, drop = FALSE]
+  h <- stats::hatvalues(fit)
+  if (any(h > 1 - 1e-8)) {
+    warning("HC3 standard errors are undefined when a row has leverage 1")
+  }
+  e <- stats::residuals(fit) / (1 - h)
+  B <- solve(crossprod(X))
+  se <- sqrt(diag(B %*% crossprod(X * e) %*% B))
+  cf <- sm$coefficients
+  cf[, "Std. Error"] <- se[rownames(cf)]
+  cf[, "t value"] <- cf[, "Estimate"] / cf[, "Std. Error"]
+  cf[, "Pr(>|t|)"] <- 2 * stats::pt(-abs(cf[, "t value"]), df = fit$df.residual)
+  sm$coefficients <- cf
+  sm
+}
+
+#' @noRd
 # internal utility: the GLM that supplies p-values when OLS residuals cannot
 # be trusted. Binary fitness gets a logistic model. Counts get a Poisson
 # model, swapped for a negative binomial when the Pearson dispersion is above

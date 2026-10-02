@@ -10,7 +10,8 @@ analyze_nonlinear_selection(
   trait_cols,
   fitness_type,
   binary_response_col = NULL,
-  group = NULL
+  group = NULL,
+  se_type = c("ols", "hc3")
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ analyze_nonlinear_selection(
 \item{group}{Optional grouping column, used as in
 \code{analyze_linear_selection()}: a separate intercept for each group in
 the GLM that supplies the p-values.}
+
+\item{se_type}{Standard errors of the least-squares gradients: \code{"ols"}
+(the default) or \code{"hc3"}, heteroscedasticity-consistent; see
+\code{selection_coefficients()}.}
 }
 \value{
 A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs.

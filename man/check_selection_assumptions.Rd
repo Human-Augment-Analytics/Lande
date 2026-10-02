@@ -58,12 +58,14 @@ The regression gradients equal the covariance-adjusted
   In the package's simulation (validation/simulation.R), on a curved
   fitness surface, nominal 95\% intervals for beta covered 88\% of the time
   with normal traits, 67\% with log-normal ones and 77\% with symmetric
-  heavy-tailed ones (92, 80 and 91\% by bootstrap), mostly because of the
-  curvature. Estimating the SD of a heavy-tailed trait lowers coverage too,
-  for gamma and, with skewed traits, for beta even on a straight surface
-  (90\%). Skew also biases beta a little. Refitting with a transformed
-  trait changes the scale selection is measured on, so report it with the
-  untransformed result.
+  heavy-tailed ones (92, 80 and 91\% by bootstrap). Most of that loss comes
+  from the curvature, and HC3 standard errors
+  (\code{selection_coefficients(se_type = "hc3")}) recover most of it.
+  Estimating the SD of a heavy-tailed trait lowers coverage too, for gamma
+  and, with skewed traits, for beta even on a straight surface (90\%), and
+  HC3 doesn't help there. Skew also biases beta a little. Refitting with a
+  transformed trait changes the scale selection is measured on, so report
+  it with the untransformed result.
   Collinearity is the largest variance inflation factor from the linear
   gradient model. The rows-per-term check counts the individuals, or for
   binary fitness the rarer outcome, per term of the quadratic model, with

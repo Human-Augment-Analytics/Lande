@@ -10,7 +10,8 @@ analyze_linear_selection(
   trait_cols,
   fitness_type,
   binary_response_col = NULL,
-  group = NULL
+  group = NULL,
+  se_type = c("ols", "hc3")
 )
 }
 \arguments{
@@ -27,6 +28,10 @@ analyze_linear_selection(
 \item{group}{Optional grouping column. With two or more groups the GLM that
 supplies the p-values gets an intercept for each, to match the
 standardising within groups; the least-squares fit has no group term.}
+
+\item{se_type}{Standard errors of the least-squares gradients: \code{"ols"}
+(the default) or \code{"hc3"}, heteroscedasticity-consistent; see
+\code{selection_coefficients()}.}
 }
 \value{
 A list containing the fitted models, summaries, ANOVA tables, and VIFs.

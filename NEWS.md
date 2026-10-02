@@ -16,7 +16,8 @@ First release.
 * Several groups on one surface, with each group's mean and highest point
   marked, and interior peaks told from maxima at the edge of the data.
 * Fitness functions and landscapes fitted period by period.
-* Bootstrap standard errors and percentile intervals for the gradients.
+* Bootstrap standard errors and percentile intervals for the gradients, and
+  leave-one-out (HC3) standard errors with `se_type = "hc3"`.
 * Assumption checks in one table: multivariate normality of the traits, VIF,
   rows per term, residuals or dispersion of the gradient model.
 * Bumpus's sparrows, Martin's pupfish and two sets of Galapagos finches
