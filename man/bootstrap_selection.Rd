@@ -66,9 +66,14 @@ Each resample goes through the whole procedure again: with
   is the ordinary \code{selection_coefficients()} fit on the full data and
   its warnings are reported as usual.
 
-  With strongly skewed traits the intervals for beta are too narrow, if less
-  so than the parametric ones (see \code{check_selection_assumptions()});
-  transform such traits before standardising.
+  With continuous fitness the intervals for beta can be too narrow when the
+  traits have heavy tails (skewed or not) and the linear model leaves out
+  curvature, though less so than the parametric ones (see
+  \code{check_selection_assumptions()}). For survival and counts in the
+  package's simulation they covered a little less than the parametric
+  ones, 92 to 93\% for beta. Refitting
+  on a transformed trait changes the scale of the gradients and is only a
+  check.
 }
 \examples{
 set.seed(1)
