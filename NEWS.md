@@ -27,8 +27,9 @@ First release.
   which writes out the R calls that repeat an analysis with the current
   settings.
 * `canonical_analysis()` rotates the gamma matrix to its canonical axes, with
-  double-regression standard errors and an optional bootstrap, and
-  `plot_canonical_axes()` draws fitness along them.
+  double-regression standard errors, permutation p-values (Reynolds et al.
+  2010) and an optional bootstrap, and `plot_canonical_axes()` draws fitness
+  along them.
 * Standard errors and a band on the GAM fitness surface, drawn with the plots'
   `uncertainty` option, and `peak_difference()` to compare two points of a
   surface, or each with the pass between them (`route = "line"` for the

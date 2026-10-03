@@ -261,7 +261,7 @@ Beausoleil et al. (2019) fitted a separate fitness function to each year of the 
 | `selection_report.R` | Results table | $S$, $\beta$, $\gamma$, $\gamma_{ij}$ together | Same individuals, same scale |
 | `bootstrap_selection.R` | Uncertainty | Resampling with replacement | Bootstrap SE, percentile CI |
 | `check_selection_assumptions.R` | Assumption checks | Normality, VIF, rows per term, residuals | Mardia's tests, Shapiro-Wilk, Breusch-Pagan |
-| `canonical_analysis.R` | Canonical analysis | Eigen-decomposition of $\boldsymbol{\gamma}$, double regression | $\boldsymbol{\gamma} = \mathbf{M}\boldsymbol{\Lambda}\mathbf{M}^T$ |
+| `canonical_analysis.R` | Canonical analysis | Eigen-decomposition of $\boldsymbol{\gamma}$, double regression, permutation test | $\boldsymbol{\gamma} = \mathbf{M}\boldsymbol{\Lambda}\mathbf{M}^T$ |
 | `peak_difference.R` | Peak comparison | Difference in fitted fitness between two points, and between each and the pass between them | Link-scale difference, SE from the model's covariance |
 | `run_app.R` | Interactive app | The whole workflow in a browser | Same calculations as the functions above |
 
@@ -1000,18 +1000,21 @@ canonical_analysis(
   group = NULL,        # Standardise and relativise within groups, as the gradients do
   bootstrap = FALSE,   # Percentile intervals for the eigenvalues
   n_boot = 200,
-  conf = 0.95
+  conf = 0.95,
+  test = "permutation", # p-values by shuffling fitness (Reynolds et al. 2010); "double_regression" for the double-regression tests
+  n_perm = 999
 )
 ```
 
-**Returns:** the gamma matrix, $\beta$, the loadings `M` with one column per axis, and an `axes` table with each eigenvalue $\lambda$, its standard error and p-value from the double regression of Bisgaard and Ankenman (1996), and the directional selection along the axis, $\theta = \mathbf{M}^\top\boldsymbol{\beta}$. The prepared data come back with the canonical scores `m1`, `m2`, ... added.
+**Returns:** the gamma matrix, $\beta$, the loadings `M` with one column per axis, and an `axes` table with each eigenvalue $\lambda$, its standard error from the double regression of Bisgaard and Ankenman (1996), a p-value from the permutation test of Reynolds et al. (2010), and the directional selection along the axis, $\theta = \mathbf{M}^\top\boldsymbol{\beta}$. The prepared data come back with the canonical scores `m1`, `m2`, ... added.
 
 ```{r, message=FALSE, warning=FALSE}
+set.seed(1)
 ca <- canonical_analysis(bumpus, "survival", c("total_length", "weight", "humerus"))
 ca
 ```
 
-A negative $\lambda$ is curvature along that axis, consistent with stabilising selection, and a positive one with disruptive selection, exactly as for $\gamma_{ii}$. The tests treat the axes as known when they were estimated from the same data, so they are anticonservative (Reynolds et al., 2010). Sampling error in $\boldsymbol{\gamma}$ also spreads its eigenvalues, so the largest curvatures are overestimated, more so with many traits and few individuals (Reynolds et al., 2010), and the estimated axes lean towards directions of phenotype with little variance (Morrissey, 2014). `bootstrap = TRUE` gives percentile intervals, with each resample's axes matched to the original ones, and `plot_canonical_axes()` draws the fitness surface along any two axes, or the fitness function along one, which is where to check whether a curved axis has a peak inside the data.
+A negative $\lambda$ is curvature along that axis, consistent with stabilising selection, and a positive one with disruptive selection, exactly as for $\gamma_{ii}$. The double-regression tests treat the axes as known when they were estimated from the same data, which makes them much too liberal (Reynolds et al., 2010). The p-values come from shuffling fitness among individuals and repeating the analysis each time; set a seed first to get the same p-values again. Sampling error in $\boldsymbol{\gamma}$ also spreads its eigenvalues, so the largest curvatures are overestimated, more so with many traits and few individuals (Reynolds et al., 2010), and the estimated axes lean towards directions of phenotype with little variance (Morrissey, 2014). `bootstrap = TRUE` gives percentile intervals, with each resample's axes matched to the original ones, and `plot_canonical_axes()` draws the fitness surface along any two axes, or the fitness function along one, which is where to check whether a curved axis has a peak inside the data.
 
 ```{r, message=FALSE, warning=FALSE, fig.width=7, fig.height=5, fig.cap="Fitness surface along the first and last canonical axes"}
 plot_canonical_axes(ca, which = c(1, 3), grid_n = 30)

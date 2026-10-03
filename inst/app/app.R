@@ -216,7 +216,8 @@ r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_bo
     r_call("check_selection_assumptions", "dat", fit, "traits", fitness_type = type, group = grp),
     sprintf("set.seed(%d)", s$seed),
     r_call("bootstrap_selection", "dat", fit, "traits", fitness_type = type, group = grp, n_boot = n_boot),
-    if (canonical && length(s$traits) > 1) r_call("canonical_analysis", "dat", fit, "traits", fitness_type = type, group = grp),
+    if (canonical && length(s$traits) > 1) c(sprintf("set.seed(%d)", s$seed),
+                                             r_call("canonical_analysis", "dat", fit, "traits", fitness_type = type, group = grp)),
     "", "# fitness function",
     r_call("prepare_selection_data", "dat", fit, "traits", group = grp, na_action = '"none"', assign = "prep"),
     sprintf("set.seed(%d)", s$seed),
@@ -658,14 +659,15 @@ server <- function(input, output, session) {
   canon <- reactive({
     s <- setup()
     if (!isTRUE(input$canonical) || length(s$traits) < 2) return(NULL)
-    tryCatch(suppressWarnings(suppressMessages(
-      canonical_analysis(s$d, s$fit, s$traits, fitness_type = s$ftype, standardize = TRUE, group = s$group_model))),
+    # the p-values come from shuffling fitness, so from the stored seed
+    tryCatch(with_seed(s$seed, suppressWarnings(suppressMessages(
+      canonical_analysis(s$d, s$fit, s$traits, fitness_type = s$ftype, standardize = TRUE, group = s$group_model)))),
       error = function(e) NULL)
   })
   output$canon_ui <- renderUI({
     if (is.null(canon())) return(NULL)
     tagList(h4(class = "sec", "Canonical axes of γ"), tableOutput("canon_table"),
-            div(class = "help-note", "λ is the curvature along each axis (negative is consistent with stabilising selection, positive with disruptive), and θ the directional selection along it. The axes are estimated from these data, so the tests are anticonservative and the most extreme curvatures inflated in size."))
+            div(class = "help-note", "λ is the curvature along each axis (negative is consistent with stabilising selection, positive with disruptive), and θ the directional selection along it. The p-values come from 999 shuffles of fitness among individuals (Reynolds et al. 2010), which allow for the axes being estimated from these data. The largest curvatures are still overestimated, and the SE treats the axes as known."))
   })
   output$canon_table <- renderTable({
     ca <- canon(); if (is.null(ca)) return(NULL)
