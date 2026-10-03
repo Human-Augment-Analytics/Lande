@@ -65,7 +65,7 @@ $$w_i = \frac{W_i}{\bar{W}}$$
 
 where $W_i$ is the absolute fitness of individual $i$ (an offspring count, or survival coded 0/1), $\bar{W} = \frac{1}{n}\sum_{i=1}^n W_i$ is the mean fitness of the population, and $w_i$ is the relative fitness of individual $i$.
 
-**Why relative fitness?** Selection operates on relative, not absolute, differences in fitness. This standardisation ensures that selection gradients are comparable across studies. Brodie and Janzen (1996) showed that regressing absolute survival puts the gradients on the wrong scale, which is why the package always relativises fitness before fitting.
+Fitness is made relative because selection acts on differences in fitness relative to the mean, and dividing by mean fitness puts gradients from different studies on one scale. Brodie and Janzen (1996) showed that regressing absolute survival puts the gradients on the wrong scale, which is why the package always relativises fitness before fitting.
 **File:** `prepare_selection_data.R`
 
 ### 2.2 Trait Standardisation
@@ -80,7 +80,7 @@ where $x_i$ is the original trait value, $\bar{x}$ and $s_x$ are the sample mean
 
 Scale traits and relative fitness within the population and time period in question. With data from several years or sites, pass the column to `group` and both steps are done separately within each level before the data are stacked. For the linear gradients scaling within groups is the same as fitting a fixed effect for the group, and for the quadratic ones close to it, so the pooled gradients gain power from the extra individuals without mixing the groups' scales, but the pooled model cannot test whether selection differs between groups (a year by trait interaction); fit the groups separately with `return_grouped = TRUE` for that.
 
-**Do not standardise twice.** The gradients are the raw partial regression coefficients from the models fitted to these standardised traits. Do not wrap the traits in `scale()` inside a model formula, and do not use a modelling option that standardises predictors; either would scale the coefficients a second time.
+The gradients are the raw partial regression coefficients from models fitted to these standardised traits, so don't wrap the traits in `scale()` in a model formula or use a modelling option that standardises predictors; either would scale the coefficients a second time.
 **File:** `prepare_selection_data.R`
 
 ### 2.3 Selection Differential
@@ -116,7 +116,7 @@ $$w = \alpha + \beta_1 z_1 + \beta_2 z_2 + \varepsilon$$
 
 **Interpretation:** $\beta_i$ is the partial regression coefficient: the change in relative fitness for a one-standard-deviation increase in trait $i$, holding all other traits constant.
 
-**Tests.** The gradients always come from this least-squares fit on relative fitness. Its t-tests are only valid when the residuals are roughly normal, which holds for continuous fitness but not for survival or offspring counts. For binary fitness the p-values therefore come from a logistic regression of the raw 0/1 outcome on the same terms, and for counts from a Poisson regression of the raw counts, replaced by a negative binomial one when the counts are overdispersed. The coefficients reported are still the least-squares gradients in every case.
+**Tests.** The gradients always come from this least-squares fit on relative fitness. Its t-tests are only valid when the residuals are roughly normal, which holds for continuous fitness but not for survival or offspring counts. For binary fitness the p-values therefore come from a logistic regression of the raw 0/1 outcome on the same terms, and for counts from a Poisson regression of the raw counts, replaced by a negative binomial one when the counts are overdispersed.
 **File:** `analyze_linear_selection.R`
 
 ### 2.5 Nonlinear Selection Gradients
@@ -145,7 +145,7 @@ $$w = \alpha + \beta_1 z_1 + \beta_2 z_2 + \frac{1}{2}\gamma_{11} z_1^2 + \frac{
 
 ### 2.6 Nonparametric Fitness Functions and Surfaces
 
-Traditional quadratic models impose a fixed shape on the fitness function. Nonparametric methods allow the data to reveal unexpected patterns. These are still individual-level fitness functions; the population-level adaptive landscape is a separate construction (section 2.7). Cubic splines for one trait and thin-plate splines for two follow Schluter (1988) and Schluter and Nychka (1994); Brodie et al. (1995) is the guide to reading the surfaces.
+Quadratic regression fixes the shape of the fitness function in advance, while a spline takes its shape from the data and can show, for example, two peaks that a quadratic would average away. These are still individual-level fitness functions; the population-level adaptive landscape is a separate construction (section 2.7). Cubic splines for one trait and thin-plate splines for two follow Schluter (1988) and Schluter and Nychka (1994); Brodie et al. (1995) is the guide to reading the surfaces.
 
 **Univariate spline model:**
 
@@ -180,7 +180,7 @@ where:
 - $\bar{W}$ = mean fitness of the population  
 - $\bar{z}_1, \bar{z}_2$ = population mean phenotypes  
 
-Unlike correlated fitness surfaces (which use individual data), adaptive landscapes require simulation because they represent a theoretical construct: the expected mean fitness for a population with a given mean phenotype.
+A fitness surface is fitted to individuals. The adaptive landscape is the mean fitness a population would have at a given mean phenotype, so it is computed by simulating such populations.
 
 **Calculation procedure:**
 
@@ -225,7 +225,7 @@ is the **adaptive landscape**.
 
 **File:** `adaptive_landscape.R`
 
-The two surfaces are compared with `compare_fitness_surfaces_data()` (section 5.15): the correlated fitness surface describes the selection acting on individuals now, and the adaptive landscape describes where that selection would move a population's mean. The same construction works for a single trait, where the landscape is a curve of mean fitness against the population mean, drawn alongside the fitness function it was averaged from.
+The two surfaces are compared with `compare_fitness_surfaces_data()` (section 5.15). The same construction works for a single trait, where the landscape is a curve of mean fitness against the population mean, drawn alongside the fitness function it was averaged from.
 
 ---
 
@@ -440,7 +440,7 @@ cat("Colour:", round(S_colour, 4), "\n")
 
 ### 5.4 `analyze_linear_selection()`
 
-**Purpose:** Estimates linear selection gradients ($\boldsymbol{\beta}$) with comprehensive diagnostics.
+**Purpose:** Estimates linear selection gradients ($\boldsymbol{\beta}$), with variance inflation factors and Type III tests.
 
 ```R
 analyze_linear_selection(
@@ -762,7 +762,7 @@ adaptive_landscape(
 3. Simulate individuals around each population mean: $\mathbf{z} \sim \mathrm{N}(\bar{\mathbf{z}}, \mathbf{P})$
 4. Predict fitness for each simulated individual using the fitted model
 5. Calculate mean fitness $\bar{W} = \frac{1}{N}\sum \hat{w}_{\text{ind}}$
-6. Find optimum - the population mean that maximises $\bar{W}$
+6. Find the optimum, the population mean that maximises $\bar{W}$
 
 The simulated populations spread beyond the data, more so towards the edge of the grid, and the fitness of those individuals is extrapolated. The function reports how far this goes, as the share of each simulated population falling outside the convex hull of the observed traits, and says so when the optimum rests on it.
 
@@ -895,11 +895,10 @@ the trait names and the model object from `analyze_linear_selection()` or
 estimates and skips any term the model does not have. They are only needed if you fit
 the models yourself and want the same table.
 
-### 5.14 One-call wrappers
+### 5.14 `selection_report()`
 
-The full workflow is available in one call through `selection_coefficients()`
-(the coefficient table) and `selection_report()` (differentials and gradients in
-a single standardised table):
+`selection_coefficients()` gives the coefficient table and `selection_report()`
+the differentials and gradients in one standardised table:
 
 ```{r, message=FALSE, warning=FALSE}
 selection_report(prepared, "survival", c("size", "colour"), fitness_type = "binary")
@@ -1088,9 +1087,9 @@ Scenario 3: γ_size x beak = 0.32, p = 0.004
 
 ## 7. Troubleshooting and Common Issues
 
-### 7.0 Check the Assumptions First
+### 7.0 Assumption Checks
 
-`check_selection_assumptions()` puts the checks a Lande and Arnold analysis rests on in one table: Mardia's tests of multivariate normality of the traits, which is what lets the gradients be read as the slope and curvature of the fitness surface (Lande & Arnold, 1983; Morrissey & Sakrejda, 2013; they equal $\mathbf{P}^{-1}\mathbf{S}$ by least squares whatever the distribution), Shapiro-Wilk for each trait, the largest VIF, the individuals (for survival, the rarer outcome) per quadratic term, and for the gradient models residual normality and heteroscedasticity, separation, or the dispersion ratio. With the `performance` package installed it adds that package's heteroscedasticity and overdispersion tests and an R squared. Palacio et al. (2019) set out what to report; this table is meant to sit beside the gradients.
+`check_selection_assumptions()` puts the checks behind a Lande and Arnold analysis in one table: Mardia's tests of multivariate normality of the traits, which is what lets the gradients be read as the slope and curvature of the fitness surface (Lande & Arnold, 1983; Morrissey & Sakrejda, 2013; they equal $\mathbf{P}^{-1}\mathbf{S}$ by least squares whatever the distribution), Shapiro-Wilk for each trait, the largest VIF, the individuals (for survival, the rarer outcome) per quadratic term, and for the gradient models residual normality and heteroscedasticity, separation, or the dispersion ratio. With the `performance` package installed it adds that package's heteroscedasticity and overdispersion tests and an R squared. Report the table with the gradients, as Palacio et al. (2019) ask.
 
 ```{r, message=FALSE, warning=FALSE}
 check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
@@ -1105,7 +1104,7 @@ check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "hum
 | Nonlinear selection | 20 | > 100 |
 | Bivariate TPS | 30 | > 200 |
 
-The nonlinear model grows quickly with the number of traits: $m$ traits give $m$ linear, $m$ quadratic and $m(m-1)/2$ correlational terms, so nine traits mean 54 terms. Allow about ten individuals per term, and for binary fitness about ten survivors (or deaths, whichever is rarer) per term; below that the quadratic and correlational estimates are noise with p-values attached. Choose fewer traits on biological grounds rather than fitting them all.
+The nonlinear model grows quickly with the number of traits: $m$ traits give $m$ linear, $m$ quadratic and $m(m-1)/2$ correlational terms, so nine traits mean 54 terms. Allow about ten individuals per term, and for binary fitness about ten survivors (or deaths, whichever is rarer) per term; below that the quadratic and correlational estimates are mostly noise, even when their p-values are small. Choose fewer traits on biological grounds rather than fitting them all.
 
 ### 7.2 Convergence Issues in Binary Models
 
@@ -1140,7 +1139,7 @@ removes incomplete rows up front and prints how many went, which keeps the sampl
 explicit and is the better choice when the same data go on to the splines and surfaces.
 
 ```R
-# Where are the gaps, and how many rows do they cost?
+# Missing values per column, and incomplete rows
 colSums(is.na(data[, c(fitness_col, trait_cols)]))
 sum(!complete.cases(data[, c(fitness_col, trait_cols)]))
 
