@@ -132,7 +132,7 @@ univariate_spline <- function(data,
     stop("`trait_col` not found in `data`.")
   }
   if (!is.numeric(data[[trait_col]])) {
-    stop("`trait_col` must be numeric (standardize upstream if needed).")
+    stop("`trait_col` must be numeric")
   }
   if (!fitness_col %in% names(data)) {
     stop("Fitness column '", fitness_col, "' not found in data")
@@ -148,23 +148,16 @@ univariate_spline <- function(data,
     stop("Group column '", group, "' not found in data")
   }
 
-  # CHECK FOR DOUBLE STANDARDIZATION
-  # Warn users not to use scale() within this function
-  message("IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).")
-  message("           Do NOT apply scale() again within this function.")
-
-  # Check if trait appears to be standardized
+  # the trait comes in standardised; warn when it does not look it
   z_mean <- mean(data[[trait_col]], na.rm = TRUE)
   z_sd <- sd(data[[trait_col]], na.rm = TRUE)
 
   if (abs(z_mean) > 0.1 || abs(z_sd - 1) > 0.1) {
     warning(
-      "Trait '", trait_col, "' does not appear standardized ",
-      "(mean = ", round(z_mean, 3), ", SD = ", round(z_sd, 3), "). ",
-      "Consider using prepare_selection_data() first."
+      "Trait '", trait_col, "' does not look standardised ",
+      "(mean ", round(z_mean, 3), ", SD ", round(z_sd, 3), "), so it is used in its own units; ",
+      "prepare_selection_data() standardises it"
     )
-  } else {
-    message("Trait appears standardized (mean ~ 0, SD ~ 1)")
   }
 
   if (fitness_type == "continuous") {

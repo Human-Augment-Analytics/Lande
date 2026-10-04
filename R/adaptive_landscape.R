@@ -86,21 +86,16 @@ adaptive_landscape <- function(
     stopifnot(length(trait_cols) %in% c(1L, 2L))
     stopifnot(inherits(fitness_model, "gam") || inherits(fitness_model, "Tps"))
 
-    # DOUBLE STANDARDIZATION WARNING
-    message("IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).")
-    message("           Use prepare_selection_data() before calling this function.")
-    message("           Do NOT standardize again within this function.")
-
-    # Check if traits appear standardized
+    # the traits come in standardised; warn when one does not look it
     for (t in trait_cols) {
         if (t %in% names(data)) {
             z_mean <- mean(data[[t]], na.rm = TRUE)
             z_sd <- sd(data[[t]], na.rm = TRUE)
             if (abs(z_mean) > 0.1 || abs(z_sd - 1) > 0.1) {
                 warning(
-                    "Trait '", t, "' does not appear standardized ",
-                    "(mean = ", round(z_mean, 3), ", SD = ", round(z_sd, 3), "). ",
-                    "Consider using prepare_selection_data() first."
+                    "Trait '", t, "' does not look standardised ",
+                    "(mean ", round(z_mean, 3), ", SD ", round(z_sd, 3), "), so it is used in its own units; ",
+                    "prepare_selection_data() standardises it"
                 )
             }
         }
@@ -350,9 +345,9 @@ print.adaptive_landscape <- function(x, ...) {
     # Check if traits were standardized
     if (!is.null(x$data_summary$traits_standardized)) {
         if (x$data_summary$traits_standardized) {
-            cat("Traits: standardized (mean ~ 0, SD ~ 1)\n")
+            cat("Traits: standardised (mean ~ 0, SD ~ 1)\n")
         } else {
-            cat("WARNING: Traits may not be standardized!\n")
+            cat("Traits: may not be standardised\n")
         }
     }
 

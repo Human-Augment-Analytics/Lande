@@ -304,28 +304,22 @@ correlated_fitness_surface <- function(
     stop("Group column '", group, "' not found in data")
   }
 
-  # DOUBLE STANDARDIZATION WARNING
+  # the traits come in standardised, so scale_traits is ignored
   if (scale_traits) {
-    warning(
-      "scale_traits = TRUE is deprecated. ",
-      "Traits should be standardized using prepare_selection_data() ",
-      "before calling this function. Setting scale_traits = FALSE."
-    )
+    warning("scale_traits = TRUE is deprecated and ignored; standardise the traits with ",
+            "prepare_selection_data() first")
     scale_traits <- FALSE
   }
 
-  message("IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).")
-  message("           Do NOT apply scale() again within this function.")
-
-  # Check if traits appear standardized
+  # warn when a trait does not look standardised
   for (t in trait_cols) {
     z_mean <- mean(data[[t]], na.rm = TRUE)
     z_sd <- sd(data[[t]], na.rm = TRUE)
     if (abs(z_mean) > 0.1 || abs(z_sd - 1) > 0.1) {
       warning(
-        "Trait '", t, "' does not appear standardized ",
-        "(mean = ", round(z_mean, 3), ", SD = ", round(z_sd, 3), "). ",
-        "Consider using prepare_selection_data() first."
+        "Trait '", t, "' does not look standardised ",
+        "(mean ", round(z_mean, 3), ", SD ", round(z_sd, 3), "), so it is used in its own units; ",
+        "prepare_selection_data() standardises it"
       )
     }
   }

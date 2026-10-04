@@ -45,12 +45,6 @@ compare_fitness_surfaces_data <- function(
         stop("adaptive_landscape must have a 'grid' element")
     }
 
-    # DOUBLE STANDARDIZATION WARNING
-    message("IMPORTANT: Both surfaces should be based on standardized traits.")
-    message("           Use prepare_selection_data() before creating surfaces.")
-    message("           Do NOT standardize again within this function.")
-
-
     cor_df <- correlated_surface$grid
 
     # Check if required columns exist (trait columns should already be named)
