@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Lande: interactive selection analysis
+# lande: interactive selection analysis
 #
 # Run locally:   shiny::runApp("app")
 # Static export (GitHub Pages): shinylive::export("app", "docs"); serve docs/
@@ -10,7 +10,7 @@
 # ---------------------------------------------------------------------------
 
 library(shiny)
-library(Lande)
+library(lande)
 library(ggplot2)
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
@@ -59,17 +59,17 @@ high_density <- function(d) d[d$density == "H", ]
 load_dataset <- function(name) {
   switch(name,
     "Bumpus sparrows" = list(
-      data = Lande::bumpus, fitness = "survival",
+      data = lande::bumpus, fitness = "survival",
       traits = c("weight", "total_length"), group = "sex"),
     "Crescent Pond pupfish" = list(
-      data = high_density(Lande::crescent_pond_pupfish),
+      data = high_density(lande::crescent_pond_pupfish),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     "Little Lake pupfish" = list(
-      data = high_density(Lande::little_lake_pupfish),
+      data = high_density(lande::little_lake_pupfish),
       fitness = "survival", traits = c("jaw", "body"), group = NULL),
     # five groups on one surface: standardised together, blank far from any bird
     "Finch community (five groups)" = list(
-      data = Lande::finch_community,
+      data = lande::finch_community,
       fitness = "lifespan", traits = c("beak_length", "beak_depth"), group = "species",
       within_group = FALSE, too_far = 0.15, count_family = "quasipoisson")
   )
@@ -206,7 +206,7 @@ r_code <- function(s, dataset, file_name, uni_trait, spline_k, surf_traits, n_bo
   load <- if (dataset %in% names(DATA_CODE)) DATA_CODE[[dataset]] else
     sprintf('dat <- read.csv("%s", na.strings = c("NA", ""))', file_name %||% "your_file.csv")
   lines <- c(
-    "library(Lande)", "", load,
+    "library(lande)", "", load,
     paste("traits <-", r_value(s$traits)),
     # the app keeps only rows with fitness and every trait; unlabelled rows are one more group
     sprintf("dat <- dat[complete.cases(dat[, c(%s, traits)]), ]", fit),
@@ -330,8 +330,8 @@ ui <- fluidPage(
     })();
   "))),
   # in line with the sidebar contents, which sit 20px inside its border
-  titlePanel(tags$img(src = "logo.png", height = "110px", alt = "Lande", style = "margin-left: 20px"),
-             windowTitle = "Lande"),
+  titlePanel(tags$img(src = "logo.png", height = "110px", alt = "lande", style = "margin-left: 20px"),
+             windowTitle = "lande"),
   sidebarLayout(
     sidebarPanel(
       width = 3,
@@ -976,7 +976,7 @@ server <- function(input, output, session) {
       sprintf("Adaptive landscape: %d x %d grid, %d simulated individuals per point", s$grid_n, s$grid_n, s$sim_n),
       if (is.null(b)) "Bootstrap: not run" else sprintf("Bootstrap: %d resamples", attr(b, "n_boot")),
       sprintf("Random seed: %d", s$seed),
-      sprintf("Lande %s, R %s.%s", as.character(utils::packageVersion("Lande")), R.version$major, R.version$minor),
+      sprintf("lande %s, R %s.%s", as.character(utils::packageVersion("lande")), R.version$major, R.version$minor),
       sep = "\n")
   })
 }

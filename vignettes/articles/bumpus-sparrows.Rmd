@@ -11,7 +11,7 @@ Bumpus (1899) measured 136 house sparrows brought in after a winter storm in Pro
 ## Gradients on all nine traits
 
 ```{r}
-library(Lande)
+library(lande)
 traits <- c("total_length", "wingspread", "weight", "head_length", "humerus",
             "femur", "tibiotarsus", "skull_width", "sternum")
 report <- selection_report(bumpus, "survival", traits, fitness_type = "binary")

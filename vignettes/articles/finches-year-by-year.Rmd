@@ -9,7 +9,7 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 9, fig.heigh
 Beausoleil et al. (2019) followed medium ground finches at El Garrapatero and fitted a separate fitness function to each year. The package has the birds seen from 2004 to 2010 as `finch_yearly`, one row per bird per year it was seen, with beak size as the first principal component of three beak measures. A bird counts as surviving if it was seen again in any later year up to 2018, the last year in the file. Survival here is apparent survival; death cannot be told from emigration.
 
 ```{r}
-library(Lande)
+library(lande)
 finch <- finch_yearly
 table(finch$year)
 ```

@@ -9,7 +9,7 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 8, fig.heigh
 Beausoleil et al. (2023) fitted one fitness surface to 3428 ground finches at El Garrapatero on Santa Cruz: four species, with *Geospiza fortis* split into its small and large beak morphs, five groups in all. Fitness was apparent lifespan, the last year a bird was seen minus the first, and the traits were beak length and depth in millimetres. `finch_community` holds the data, with the year each bird was first caught, built from their archive (doi:10.5683/SP3/0YIWSE). The 172 birds first caught in 2020, the last year of the archive, could not be seen again and have a lifespan of 0; they are among the 3428, so they stay in, except in the comparison with capture year below.
 
 ```{r}
-library(Lande)
+library(lande)
 finches <- finch_community
 table(finches$species)
 ```
