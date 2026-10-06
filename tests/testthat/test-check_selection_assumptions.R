@@ -7,13 +7,18 @@ test_that("the assumption checks cover traits, collinearity, sample size and the
   expect_true(any(grepl("Mardia skewness", chk$check)))
   expect_true(any(grepl("Mardia kurtosis", chk$check)))
   expect_equal(sum(grepl("Shapiro-Wilk", chk$check)), 3)
-  expect_true(any(grepl("largest VIF", chk$check)))
   expect_true(any(grepl("Rarer outcome per quadratic term", chk$check)))
   expect_true(any(grepl("separation", chk$check)))
   p <- chk$p_value[!is.na(chk$p_value)]
   expect_true(all(p >= 0 & p <= 1))
   expect_equal(attr(chk, "fitness_type"), "binary")
   expect_output(print(chk), "Assumption checks")
+})
+
+test_that("the largest VIF is reported when car is installed", {
+  skip_if_not_installed("car")
+  chk <- check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))
+  expect_true(any(grepl("largest VIF", chk$check)))
 })
 
 test_that("continuous fitness gets residual checks and heteroscedasticity is picked up", {
