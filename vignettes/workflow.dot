@@ -42,7 +42,7 @@ digraph workflow {
     corr      [label = <<B>correlated_fitness_surface()</B><BR/><FONT POINT-SIZE="9.5">GAM (binomial, Poisson or Gaussian) or thin-plate spline; blank outside the data</FONT>>]
     uni_plot  [label = <<B>plot_univariate_fitness()</B><BR/><FONT POINT-SIZE="9.5">fit with 95% band</FONT>>]
     corr_plot [label = <<B>plot_correlated_fitness()</B><BR/><FONT POINT-SIZE="9.5">contours, optimum, group means and peaks</FONT>>]
-    peakdiff  [label = <<B>peak_difference()</B><BR/><FONT POINT-SIZE="9.5">one peak against another, and the valley between</FONT>>]
+    peakdiff  [label = <<B>peak_difference()</B><BR/><FONT POINT-SIZE="9.5">one peak against another, and the pass between</FONT>>]
   }
 
   subgraph cluster_land {

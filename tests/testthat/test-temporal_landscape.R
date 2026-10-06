@@ -62,3 +62,12 @@ test_that("two traits give a surface per period", {
   expect_gt(length(b$data), 2)
   expect_error(plot_temporal_landscape(tl, type = "heatmap"), "one trait")
 })
+
+test_that("count_family reaches every period's fit", {
+  set.seed(8)
+  d <- data.frame(z = rnorm(240), year = rep(1:3, each = 80))
+  d$kids <- rnbinom(240, mu = exp(0.5 + 0.3 * d$z), size = 1)
+  tl <- suppressWarnings(suppressMessages(temporal_landscape(d, "kids", "z", "year", landscape = FALSE,
+                                                             count_family = "quasipoisson")))
+  expect_equal(unname(vapply(tl$fits, function(f) f$model$family$family, "")), rep("quasipoisson", 3))
+})

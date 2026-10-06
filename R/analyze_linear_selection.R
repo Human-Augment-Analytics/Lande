@@ -4,7 +4,7 @@
 # Purpose: Estimate linear selection gradients (beta) using Lande & Arnold (1983)
 #
 # IMPORTANT NOTE:
-#   - Gradients are estimated by OLS on RELATIVE fitness (w = W / mean W).
+#   - Gradients are estimated by OLS on relative fitness (w = W / mean W).
 #     The caller (selection_coefficients) supplies relative fitness as
 #     `fitness_col`; a direct caller may pass a raw fitness column, which is
 #     relativised internally for binary data.
@@ -36,6 +36,12 @@
 #' @param trait_cols A character vector of trait column names.
 #' @param fitness_type A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.
 #' @param binary_response_col Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.
+#' @param group Optional grouping column. With two or more groups the GLM that
+#'   supplies the p-values gets an intercept for each, to match the
+#'   standardising within groups; the least-squares fit has no group term.
+#' @param se_type Standard errors of the least-squares gradients: \code{"ols"}
+#'   (the default) or \code{"hc3"}, heteroscedasticity-consistent; see
+#'   \code{selection_coefficients()}.
 #'
 #' @return A list containing the fitted models, summaries, ANOVA tables, and VIFs.
 #' @examples
@@ -44,10 +50,12 @@
 #' extract_linear_coefficients(c("total_length", "weight"), fit)
 #' @export
 analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type,
-                                     binary_response_col = NULL) {
+                                     binary_response_col = NULL, group = NULL,
+                                     se_type = c("ols", "hc3")) {
+  se_type <- .se_type_arg(se_type)
   # Check sample size
   if (nrow(data) < 10) {
-    warning("Small sample size (n < 10) - results may be unreliable")
+    warning("Fewer than 10 individuals, so the gradients are poorly estimated")
   }
 
   # Build fitness ~ trait1 + trait2 + trait3
@@ -77,17 +85,23 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
 
     fit_ols <- lm(as.formula(paste(ols_resp, "~", rhs)), data = fit_data)
     sm_ols <- summary(fit_ols)
+    if (se_type == "hc3") sm_ols <- .hc3_summary(fit_ols, sm_ols)
 
-    fit_glm <- .fit_pvalue_glm(as.formula(paste(glm_col, "~", rhs)), fit_data, fitness_type)
+    fit_data <- .add_glm_group(fit_data, group)
+    glm_rhs <- if (".group" %in% names(fit_data)) paste(".group +", rhs) else rhs
+    fit_glm <- .fit_pvalue_glm(as.formula(paste(glm_col, "~", glm_rhs)), fit_data, fitness_type)
     sm_glm <- summary(fit_glm)
 
     # Convergence: If the GLM algorithm fails to converge, results are unreliable
     if (isFALSE(fit_glm$converged)) {
-      warning("GLM did not converge - results may be unreliable")
+      warning("GLM did not converge; its p-values may be off")
     }
 
-    if (fitness_type == "binary" && any(abs(coef(fit_glm)) > 10, na.rm = TRUE)) {
-      warning("Possible complete separation detected - large coefficients (>10)")
+    # separation is about the traits: a group in which every bird survived has
+    # a large intercept of its own, which is not the traits separating the outcome
+    slopes <- coef(fit_glm)[!grepl("^\\(Intercept\\)$|^\\.group", names(coef(fit_glm)))]
+    if (fitness_type == "binary" && any(abs(slopes) > 10, na.rm = TRUE)) {
+      warning("Possible complete separation, with a logistic slope above 10 in absolute value")
     }
 
     # Type III ANOVA
@@ -101,7 +115,7 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
         }
       )
     } else {
-      warning("Package 'car' not installed - skipping Type III ANOVA")
+      warning("No Type III ANOVA without the car package")
     }
 
     # Variance Inflation Factor (VIF) check, computed on the OLS fit
@@ -132,19 +146,20 @@ analyze_linear_selection <- function(data, fitness_col, trait_cols, fitness_type
     fit_data <- data[complete.cases(data[, c(fitness_col, trait_cols)]), ]
     fit_ols <- lm(as.formula(paste(fitness_col, "~", rhs)), data = fit_data)
     sm_ols <- summary(fit_ols)
+    if (se_type == "hc3") sm_ols <- .hc3_summary(fit_ols, sm_ols)
 
     # Type III ANOVA gives the partial regression coefficients (beta) and their significance.
     anova_cont <- NULL
     if (requireNamespace("car", quietly = TRUE)) {
       anova_cont <- tryCatch(
-        car::Anova(fit_ols, type = "III"),
+        if (se_type == "hc3") car::Anova(fit_ols, type = "III", white.adjust = "hc3") else car::Anova(fit_ols, type = "III"),
         error = function(e) {
           warning("Type III ANOVA failed: ", e$message)
           NULL
         }
       )
     } else {
-      warning("Package 'car' not installed - skipping Type III ANOVA")
+      warning("No Type III ANOVA without the car package")
     }
 
     vif_vals <- .compute_vif(fit_ols)

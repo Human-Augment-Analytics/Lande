@@ -34,8 +34,8 @@ test_that("two bumps give two interior peaks", {
 
 test_that("the finch community has three interior peaks and an edge maximum", {
   tr <- c("beak_length", "beak_depth")
-  prep <- quiet(prepare_selection_data(finch_community, "recaptures", tr))
-  s <- quiet(correlated_fitness_surface(prep, "recaptures", tr, grid_n = 50, too_far = 0.15,
+  prep <- quiet(prepare_selection_data(finch_community, "lifespan", tr))
+  s <- quiet(correlated_fitness_surface(prep, "lifespan", tr, grid_n = 50, too_far = 0.15,
                                         group = "species", group_effect = FALSE))
   g <- s$groups
   # fuliginosa's shallow high comes and goes with the grid, so it is not asserted
@@ -44,7 +44,7 @@ test_that("the finch community has three interior peaks and an edge maximum", {
   expect_gte(sum(s$peaks$interior), 3)
   # magnirostris: the highest cell is not among its birds
   expect_true(any(!s$peaks$interior))
-  expect_s3_class(plot_correlated_fitness_enhanced(s, tr, original_data = prep, fitness_col = "recaptures"), "ggplot")
+  expect_s3_class(plot_correlated_fitness_enhanced(s, tr, original_data = prep, fitness_col = "lifespan"), "ggplot")
 })
 
 test_that("temporal summaries say when the highest fitness sits at the edge", {

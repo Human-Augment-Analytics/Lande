@@ -42,8 +42,8 @@ shiny::runApp("inst/app")         # from a checkout, after devtools::load_all()
 
 Bundled datasets: Bumpus sparrows, Crescent Pond and Little Lake pupfish (the
 high-density enclosures Martin analysed), and the finch community of Beausoleil
-et al. (2023), five groups with recapture years as fitness, which opens with one
-surface for all groups and the 0.15 distance rule set. Each is a package
+et al. (2023), five groups with apparent lifespan as fitness, which opens with one
+surface for all groups, quasi-Poisson counts and the 0.15 distance rule set. Each is a package
 dataset with its own help page. Uploaded CSVs need numeric fitness and trait
 columns.
 

@@ -13,7 +13,9 @@ canonical_analysis(
   group = NULL,
   bootstrap = FALSE,
   n_boot = 200,
-  conf = 0.95
+  conf = 0.95,
+  test = c("permutation", "double_regression"),
+  n_perm = 999
 )
 }
 \arguments{
@@ -27,7 +29,10 @@ canonical_analysis(
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 
-\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
+\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.}
 
 \item{bootstrap}{Logical; add percentile intervals for the eigenvalues by
 resampling individuals, within groups when \code{group} is given. Default
@@ -36,6 +41,13 @@ is \code{FALSE}.}
 \item{n_boot}{Number of bootstrap resamples. Default is 200.}
 
 \item{conf}{Confidence level of the bootstrap interval. Default is 0.95.}
+
+\item{test}{Where the p-values come from: \code{"permutation"} (the
+default), Reynolds et al.'s (2010) permutation test, or
+\code{"double_regression"}, the double-regression tests, which are far too
+liberal.}
+
+\item{n_perm}{Number of permutations. Default is 999.}
 }
 \value{
 An object of class \code{"canonical_analysis"}: \code{gamma}, the
@@ -43,8 +55,8 @@ An object of class \code{"canonical_analysis"}: \code{gamma}, the
   axis; \code{axes}, a data frame with \code{lambda}, its standard error and
   p-value, \code{theta}, and with the bootstrap \code{CI_lower},
   \code{CI_upper} and \code{N_Boot}; \code{scores}, the prepared data with
-  the canonical scores \code{m1}, \code{m2}, ... added; the fitness type and
-  \code{n}.
+  the canonical scores \code{m1}, \code{m2}, ... added; the fitness type,
+  \code{n}, \code{test} and \code{n_perm}.
 }
 \description{
 Rotates the matrix of quadratic and correlational selection gradients to
@@ -60,22 +72,38 @@ The gamma matrix \eqn{\gamma} comes from
   the correlational gradients as they stand. Its eigenvectors are the
   columns of \code{M} and its eigenvalues the curvatures \eqn{\lambda};
   directional selection along the axes is \eqn{\theta = M^T \beta}.
-  Standard errors and p-values come from the double regression of Bisgaard
-  and Ankenman (1996): fitness is refitted on the canonical scores and their
-  squares, without cross-products, and twice the coefficient of a squared
-  score is that axis's \eqn{\lambda}. For survival and counts the p-values
-  come from the logistic or count model on the same terms, as they do for
-  the gradients.
+  Standard errors come from the double regression of Bisgaard and Ankenman
+  (1996): fitness is refitted on the canonical scores and their squares,
+  without cross-products, and twice the coefficient of a squared score is
+  that axis's \eqn{\lambda}.
 
-  The tests treat the axes as known when they were estimated
-  from the same data, so they are anticonservative (Reynolds et al. 2010).
+  The double-regression tests treat the axes as known when they were
+  estimated from the same data. With 136 individuals and fitness unrelated
+  to five traits, the largest eigenvalue came out significant in about three
+  samples in four, so by default
+  the p-values come from the permutation test of Reynolds et al. (2010):
+  fitness is shuffled among individuals, within groups when \code{group} is
+  given, the canonical analysis and the double regression are repeated, and
+  each axis's p-value is the share of shuffles, counting the data as one,
+  whose F for the eigenvalue of the same rank is at least the observed one.
+  It tests whether an axis curves more than it would with fitness unrelated
+  to the traits; once one axis is strongly curved, the tests of the others
+  are only rough. Every fitness type uses least squares on relative fitness,
+  and the result depends on the random seed; call \code{set.seed()} first. With
+  \code{test = "double_regression"} the p-values come from the double
+  regression itself, for survival and counts from the logistic or count
+  model on the same terms. The standard errors treat the axes as known
+  either way.
+
   Sampling error in \eqn{\gamma} also spreads its eigenvalues, so the largest
   curvatures are overestimated, especially with many traits and few
-  individuals (Morrissey 2014). Read the eigenvalues beside the fitness
-  surface along the same axes, which \code{plot_canonical_axes()} draws,
-  and rely more on the bootstrap intervals. With the bootstrap,
-  each resample's axes are matched to the original ones by their largest
-  absolute cosine, since order and sign change between resamples.
+  individuals (Reynolds et al. 2010), and the estimated axes lean towards
+  directions of phenotype with little variance (Morrissey 2014). Read the
+  eigenvalues together with the fitness surface along the same axes, which
+  \code{plot_canonical_axes()} draws, and with the bootstrap intervals. With
+  the bootstrap, each resample's axes are matched to the original ones by
+  their largest absolute cosine, since order and sign change between
+  resamples.
 }
 \examples{
 ca <- canonical_analysis(bumpus, "survival", c("total_length", "weight", "humerus"))

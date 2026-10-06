@@ -1,18 +1,16 @@
 # ============================================================================
 # selection_report
 #
-# Assemble a single standardised results table (selection differentials and
-# linear/quadratic/correlational gradients) with identical columns across
-# analyses, so results are directly comparable between studies.
+# One table of selection differentials and linear, quadratic and
+# correlational gradients, with the same columns in every analysis.
 # ============================================================================
 
 #' Standardised selection analysis report
 #'
-#' Runs the standard Lande-Arnold workflow and returns one tidy table combining
-#' selection differentials (S) and linear (beta), quadratic (gamma), and
-#' correlational (gamma_ij) gradients. All estimates use traits standardised to
-#' mean 0, SD 1 and relative fitness, so the table is directly comparable across
-#' studies.
+#' Runs a Lande-Arnold analysis and returns one table of selection
+#' differentials (S) and linear (beta), quadratic (gamma) and correlational
+#' (gamma_ij) gradients. All estimates use traits standardised to mean 0, SD 1
+#' and relative fitness, so tables from different studies can be compared.
 #'
 #' @inheritParams selection_coefficients
 #' @param include_differentials Logical; if \code{TRUE} (default) selection
@@ -21,7 +19,7 @@
 #'
 #' @details Differentials and gradients are computed on the same individuals
 #'   (those with complete fitness and trait values) and on the same trait and
-#'   fitness scales, so the rows are directly comparable. S is the
+#'   fitness scales. S is the
 #'   population covariance (divides by n) while the OLS gradient on
 #'   sd-standardised traits corresponds to the sample covariance (n - 1), so
 #'   for a single trait the Differential and Linear rows differ by the factor
@@ -42,15 +40,18 @@ selection_report <- function(data,
                              group = NULL,
                              use_relative_for_fit = TRUE,
                              include_differentials = TRUE,
-                             digits = 4) {
+                             digits = 4,
+                             se_type = c("ols", "hc3")) {
   fitness_type <- match.arg(fitness_type)
+  se_type <- .se_type_arg(se_type)
 
   gradients <- suppressMessages(selection_coefficients(
     data, fitness_col, trait_cols,
     fitness_type = fitness_type,
     standardize = standardize,
     group = group,
-    use_relative_for_fit = use_relative_for_fit
+    use_relative_for_fit = use_relative_for_fit,
+    se_type = se_type
   ))
 
   tab <- data.frame(
@@ -74,7 +75,13 @@ selection_report <- function(data,
       standardize = standardize, group = group, add_relative = TRUE,
       na_action = "none", name_relative = rel_col
     )))
-    prep <- prep[stats::complete.cases(prep[, c(fitness_col, trait_cols, group), drop = FALSE]), , drop = FALSE]
+    # unlabelled rows count as one more group
+    if (!is.null(group)) {
+      lab <- as.character(prep[[group]])
+      lab[is.na(lab)] <- "(no group)"
+      prep[[group]] <- lab
+    }
+    prep <- prep[stats::complete.cases(prep[, c(fitness_col, trait_cols), drop = FALSE]), , drop = FALSE]
     w_col <- if (use_relative_for_fit && rel_col %in% names(prep)) rel_col else fitness_col
     S <- vapply(trait_cols, function(t) {
       suppressWarnings(suppressMessages(
@@ -97,6 +104,9 @@ selection_report <- function(data,
   rownames(tab) <- NULL
   attr(tab, "digits") <- digits
   attr(tab, "fitness_type") <- attr(gradients, "fitness_type_used")
+  attr(tab, "p_model") <- c(linear = attr(gradients, "model_family_used"),
+                            quadratic = attr(gradients, "model_family_quadratic"))
+  attr(tab, "se_type") <- se_type
   attr(tab, "scale") <- paste0(
     if (standardize) "standardised traits" else "unstandardised traits", ", ",
     if (use_relative_for_fit) "relative fitness" else "absolute fitness"
@@ -135,6 +145,17 @@ print.selection_report <- function(x, ...) {
   cat("Selection analysis (", attr(x, "scale") %||% "standardised traits, relative fitness", ")\n", sep = "")
   if (!is.null(attr(x, "fitness_type"))) {
     cat("Fitness type:", attr(x, "fitness_type"), "\n")
+  }
+  p_model <- attr(x, "p_model")
+  if (!is.null(p_model) && any(p_model != "gaussian")) {
+    names_of <- c("binomial(logit)" = "logistic", "poisson(log)" = "Poisson", "negative binomial" = "negative binomial")
+    p_model <- ifelse(p_model %in% names(names_of), names_of[p_model], p_model)
+    which_model <- if (length(unique(p_model)) == 1) paste("a", p_model[1], "model on the same terms") else
+      paste("a", p_model[1], "model for the linear gradients and a", p_model[2], "model for the rest")
+    cat("p-values are from ", which_model, "\n", sep = "")
+  }
+  if (identical(attr(x, "se_type"), "hc3")) {
+    cat("Standard errors: heteroscedasticity-consistent (HC3)\n")
   }
   cat("\n")
   print(out, row.names = FALSE)

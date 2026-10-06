@@ -50,29 +50,42 @@
 #' @param fitness_col A string specifying the name of the fitness column.
 #' @param trait_col A string specifying the name of the trait column (must be numeric and standardized).
 #' @param fitness_type A string indicating the fitness type: \code{"auto"} (detect from the data, the default), \code{"binary"}, \code{"count"}, or \code{"continuous"}. Binary and count fitness are fitted on the raw values with a binomial or Poisson family; continuous fitness on relative fitness with a Gaussian one.
-#' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included.
+#' @param group Optional string specifying a grouping variable. If provided, group fixed effects are included (none when it has only one level); rows with no group label are one more level.
 #' @param relative_col Optional string naming a pre-computed relative fitness column to use for continuous fitness (e.g. one produced within groups by \code{prepare_selection_data}).
 #' @param k Integer specifying the basis dimension for the smooth term. Default is 10.
 #' @param bs Spline basis: \code{"cr"} (cubic regression spline, the default),
 #'   \code{"tp"} (thin plate) or \code{"ps"} (P-spline).
 #' @param smoothing How the smoothing parameter is chosen: \code{"GCV.Cp"}
-#'   (generalised cross-validation, the default), \code{"REML"} or \code{"ML"}.
-#' @param bootstrap Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is instant; the bootstrap refits the spline \code{n_boot} times.
+#'   (generalised cross-validation, the default, which mgcv applies in its UBRE
+#'   form to binary and Poisson fitness and as plain GCV to quasi-Poisson; a
+#'   negative binomial fit uses REML in its place), \code{"REML"} or
+#'   \code{"ML"}.
+#'   The result's \code{spline_type} names the criterion mgcv used.
+#' @param bootstrap Logical; if \code{TRUE} the 95\% ribbon is obtained by resampling individuals and refitting (Schluter 1988). The default \code{FALSE} uses the parametric Wald interval, which is fast; the bootstrap refits the spline \code{n_boot} times.
 #' @param n_boot Integer number of bootstrap resamples used when \code{bootstrap = TRUE}. Default is 1000.
 #' @param by_group Logical; if \code{TRUE} fit each level of \code{group} on its
 #'   own rows and return a named list of fits, one per group.
 #'   The default \code{FALSE} fits one curve with the group as a fixed
 #'   effect. Prepare the data with the same \code{group} first, so that each
 #'   group is standardised on its own.
+#' @param count_family Family for count fitness: \code{"poisson"} (the
+#'   default), \code{"quasipoisson"} or \code{"nb"}, as in
+#'   \code{correlated_fitness_surface()}; the smoothing parameter is chosen
+#'   under whichever is used. The result's \code{dispersion} is the Pearson
+#'   dispersion of the fit, and a Poisson fit warns when it is above 1.5.
 #'
 #' @details By default the fitness function is a penalised cubic regression
 #'   spline with the smoothing parameter chosen by generalised
-#'   cross-validation, following Schluter (1988). \code{bs} and \code{smoothing}
-#'   are there to match the smoother of another study; they do not change
-#'   how much the curve is smoothed, which is always chosen from the data.
+#'   cross-validation (UBRE for binary and Poisson fitness), following Schluter
+#'   (1988). \code{bs} and \code{smoothing}
+#'   set the family of curves and the criterion, to match the smoother of
+#'   another study; the amount of smoothing is still estimated from the data,
+#'   though the criterion can change it a good deal.
 #'   If mgcv's check suggests the basis dimension was too small a warning
-#'   says so. With \code{bootstrap = TRUE} the result depends on the random
-#'   seed; call \code{set.seed()} first for a reproducible ribbon.
+#'   says so; the check works on the residuals, which for survival carry too
+#'   little to test, so it is skipped there. With \code{bootstrap = TRUE} the
+#'   result depends on the random seed; call \code{set.seed()} first for a
+#'   reproducible ribbon.
 #'
 #' @return A list of class \code{"univariate_fitness"} containing the fitted GAM model, a prediction grid, and metadata.
 #' @export
@@ -95,16 +108,18 @@ univariate_spline <- function(data,
                               smoothing = c("GCV.Cp", "REML", "ML"),
                               bootstrap = FALSE,
                               n_boot = 1000,
-                              by_group = FALSE) {
+                              by_group = FALSE,
+                              count_family = c("poisson", "quasipoisson", "nb")) {
   fitness_type <- match.arg(fitness_type)
   bs <- match.arg(bs)
   smoothing <- match.arg(smoothing)
+  count_family <- match.arg(count_family)
 
   if (isTRUE(by_group)) {
     fits <- .fit_by_group(data, group, function(rows) {
       univariate_spline(rows, fitness_col, trait_col, fitness_type = fitness_type, group = NULL,
                         relative_col = relative_col, k = k, bs = bs, smoothing = smoothing,
-                        bootstrap = bootstrap, n_boot = n_boot)
+                        bootstrap = bootstrap, n_boot = n_boot, count_family = count_family)
     })
     return(fits)
   }
@@ -117,7 +132,7 @@ univariate_spline <- function(data,
     stop("`trait_col` not found in `data`.")
   }
   if (!is.numeric(data[[trait_col]])) {
-    stop("`trait_col` must be numeric (standardize upstream if needed).")
+    stop("`trait_col` must be numeric")
   }
   if (!fitness_col %in% names(data)) {
     stop("Fitness column '", fitness_col, "' not found in data")
@@ -133,23 +148,16 @@ univariate_spline <- function(data,
     stop("Group column '", group, "' not found in data")
   }
 
-  # CHECK FOR DOUBLE STANDARDIZATION
-  # Warn users not to use scale() within this function
-  message("IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).")
-  message("           Do NOT apply scale() again within this function.")
-
-  # Check if trait appears to be standardized
+  # the trait comes in standardised; warn when it does not look it
   z_mean <- mean(data[[trait_col]], na.rm = TRUE)
   z_sd <- sd(data[[trait_col]], na.rm = TRUE)
 
   if (abs(z_mean) > 0.1 || abs(z_sd - 1) > 0.1) {
     warning(
-      "Trait '", trait_col, "' does not appear standardized ",
-      "(mean = ", round(z_mean, 3), ", SD = ", round(z_sd, 3), "). ",
-      "Consider using prepare_selection_data() first."
+      "Trait '", trait_col, "' does not look standardised ",
+      "(mean ", round(z_mean, 3), ", SD ", round(z_sd, 3), "), so it is used in its own units; ",
+      "prepare_selection_data() standardises it"
     )
-  } else {
-    message("Trait appears standardized (mean ~ 0, SD ~ 1)")
   }
 
   if (fitness_type == "continuous") {
@@ -170,8 +178,8 @@ univariate_spline <- function(data,
       # Compute relative fitness on the fly (warning: not group-specific)
       if (!is.null(group)) {
         warning(
-          "Group specified but no relative fitness column found. ",
-          "Consider using prepare_selection_data() first, or pass relative_col."
+          "A group is set but there is no relative fitness column; ",
+          "run prepare_selection_data() first or pass relative_col."
         )
       }
       y <- data[[fitness_col]] / mean(data[[fitness_col]], na.rm = TRUE)
@@ -180,14 +188,16 @@ univariate_spline <- function(data,
     fam <- stats::gaussian()
     family_name <- "gaussian"
   } else if (fitness_type == "count") {
-    # Count fitness - Poisson on the raw counts, plotted on the response scale
+    # Count fitness: Poisson (or count_family) on the raw counts, plotted on
+    # the response scale
     y <- data[[fitness_col]]
-    fam <- stats::poisson("log")
-    family_name <- "poisson(log)"
+    fam <- .count_family(count_family)
+    family_name <- switch(count_family, poisson = "poisson(log)", quasipoisson = "quasipoisson(log)",
+                          nb = "negative binomial")
     if (!.is_raw_fitness(y[!is.na(y)], "count")) {
       warning(
-        "fitness_type = 'count' but values are not all non-negative integers. ",
-        "Proceeding but results may be unreliable."
+        "fitness_type = 'count' but the values are not all non-negative integers; ",
+        "fitting them as counts anyway"
       )
     }
     fit_note <- "Using original counts"
@@ -200,10 +210,7 @@ univariate_spline <- function(data,
     # Check if really binary
     unique_vals <- unique(y[!is.na(y)])
     if (!all(unique_vals %in% c(0, 1))) {
-      warning(
-        "fitness_type = 'binary' but values are not all 0/1. ",
-        "Proceeding but results may be unreliable."
-      )
+      warning("fitness_type = 'binary' but the values are not all 0/1; fitting them as binary anyway")
     }
     fit_note <- "Using original binary fitness"
   }
@@ -234,8 +241,15 @@ univariate_spline <- function(data,
   }
 
   # Default: cubic regression spline with GCV smoothing (Schluter 1988). bs = "cr"
-  # gives a genuine cubic spline basis rather than mgcv's thin-plate default.
+  # is a cubic regression spline basis; mgcv's default is thin plate.
   smooth <- paste0("s(", trait_col, ", bs = '", bs, "', k = ", k, ")")
+  # the group enters as a factor; rows with no label are one more level
+  if (!is.null(group)) df[[group]] <- droplevels(addNA(factor(df[[group]]), ifany = TRUE))
+  # levels are counted on the rows the model will use
+  if (!is.null(group) && length(unique(df[[group]][complete.cases(df[[trait_col]], y, df[[group]])])) < 2) {
+    message("No group term, as '", group, "' has only one level")
+    group <- NULL
+  }
   if (!is.null(group)) {
     fml <- stats::as.formula(paste0(".y ~ ", group, " + ", smooth))
     message("Including group fixed effect: '", group, "'")
@@ -261,10 +275,13 @@ univariate_spline <- function(data,
   if (!is.null(fit$converged) && !fit$converged) {
     warning("GAM algorithm did not fully converge")
   }
+  dispersion <- if (fitness_type == "count") .check_dispersion(fit, count_family) else NULL
 
   # mgcv's test of whether the basis had room to bend: a low k-index with a
-  # small p-value means the curve may look straighter than the data are
-  kc <- tryCatch(mgcv::k.check(fit), error = function(e) NULL)
+  # small p-value means the curve may look straighter than the data are. The
+  # test works on the residuals, which for 0/1 fitness carry very little to
+  # check (as mgcv's gam.check help says), so it is skipped for survival
+  kc <- if (fitness_type != "binary") tryCatch(mgcv::k.check(fit), error = function(e) NULL)
   if (!is.null(kc) && any(kc[, "k-index"] < 1 & kc[, "p-value"] < 0.05, na.rm = TRUE)) {
     warning("k = ", k, " may be too small for '", trait_col, "' (mgcv k-index ",
             round(min(kc[, "k-index"]), 2), "); try a larger k")
@@ -329,11 +346,12 @@ univariate_spline <- function(data,
     trait = trait_col,
     fitness_type = fitness_type,
     family = family_name,
+    dispersion = dispersion,
     k = k,
     basis = bs,
     smoothing = smoothing,
     spline_type = paste0(switch(bs, cr = "cubic regression spline", tp = "thin-plate spline", ps = "P-spline"),
-                         " (", sub("\\.Cp$", "", smoothing), ")"),
+                         " (", fit$method, ")"),
     ci_method = ci_method,
     n_obs = n_obs,
     fit_note = fit_note,

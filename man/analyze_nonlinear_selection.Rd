@@ -9,7 +9,9 @@ analyze_nonlinear_selection(
   fitness_col,
   trait_cols,
   fitness_type,
-  binary_response_col = NULL
+  binary_response_col = NULL,
+  group = NULL,
+  se_type = c("ols", "hc3")
 )
 }
 \arguments{
@@ -22,6 +24,14 @@ analyze_nonlinear_selection(
 \item{fitness_type}{A string indicating the fitness type: \code{"binary"}, \code{"continuous"}, \code{"count"}, or \code{"proportion"}.}
 
 \item{binary_response_col}{Optional string naming the raw fitness column (0/1 for binary, counts for count fitness) used for the GLM that supplies p-values. If \code{NULL}, \code{fitness_col} is treated as the raw outcome and relativised internally.}
+
+\item{group}{Optional grouping column, used as in
+\code{analyze_linear_selection()}: a separate intercept for each group in
+the GLM that supplies the p-values.}
+
+\item{se_type}{Standard errors of the least-squares gradients: \code{"ols"}
+(the default) or \code{"hc3"}, heteroscedasticity-consistent; see
+\code{selection_coefficients()}.}
 }
 \value{
 A list containing the fitted nonlinear models, summaries, ANOVA tables, and VIFs.

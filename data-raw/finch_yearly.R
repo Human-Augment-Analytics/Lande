@@ -1,6 +1,6 @@
 # Builds inst/extdata/finch_yearly.csv and data/finch_yearly.rda: one row
-# per medium ground finch per year it was seen at El Garrapatero, with survival
-# to the next year and beak size, from the public data of Beausoleil et al.
+# per medium ground finch per year it was seen at El Garrapatero, with apparent
+# survival (seen again in any later year) and beak size, from the public data of Beausoleil et al.
 # (2019) kept in validation/data/bird_data.csv. Beak size is the first
 # principal component of the three beak medians, signed so that larger beaks
 # score higher.
@@ -17,9 +17,11 @@ raw$beak_pc1 <- pc1
 rows <- list()
 for (yr in 2004:2010) {
   d <- raw[raw[[paste0("y.", yr)]] == 1, ]
+  # a sighting in any later year shows the bird lived through this one
+  later <- intersect(paste0("y.", (yr + 1):2018), names(raw))
   rows[[as.character(yr)]] <- data.frame(
     band = d$BANDFINAL, year = yr,
-    survived = as.integer(d[[paste0("y.", yr + 1)]] == 1),
+    survived = as.integer(rowSums(d[, later, drop = FALSE] == 1, na.rm = TRUE) > 0),
     beak_pc1 = round(d$beak_pc1, 4),
     beak_length = d$MedianBeakLength, beak_width = d$MedianBeakWidth, beak_depth = d$MedianBeakDepth
   )

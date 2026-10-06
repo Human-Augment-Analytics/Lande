@@ -70,7 +70,10 @@ test_that("peak_difference compares two bumps with the dip between them", {
   # bumps of the same height, both well above the dip between them
   expect_lt(abs(d$difference[1]), 0.1)
   expect_true(all(d$difference[2:3] > 0.5))
-  expect_true(all(d$p_value[2:3] < 0.001))
+  expect_true(all(d$z[2:3] > 5))
+  # a point sits above the valley on its own route by construction, so no p-value there
+  expect_true(all(is.na(d$p_value[2:3])))
+  expect_false(is.na(d$p_value[1]))
   expect_lt(abs(attr(d, "valley")[["z1"]]), 0.3)
 
   # group names stand for the groups' highest points
@@ -84,13 +87,47 @@ test_that("peak_difference compares two bumps with the dip between them", {
   eff <- quiet(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 20, method = "gam", k = 30, group = "g"))
   expect_equal(nrow(peak_difference(eff, c(-1, 0), c(1, 0))), 1)
 
-  # no dip on a slope
+  # no dip on a slope, whichever grid: a point that sits above the cell it
+  # starts from is not a valley
   df$lin <- 1 + 0.4 * df$z1 + rnorm(n, 0, 0.02)
-  slope <- quiet(correlated_fitness_surface(df, "lin", c("z1", "z2"), grid_n = 20, method = "gam"))
-  expect_message(one <- peak_difference(slope, c(-1, 0), c(1, 0), valley = TRUE), "No dip")
-  expect_equal(nrow(one), 1)
+  for (g in c(17, 18, 20, 21, 22)) {
+    slope <- quiet(correlated_fitness_surface(df, "lin", c("z1", "z2"), grid_n = g, method = "gam"))
+    expect_message(one <- peak_difference(slope, c(-1, 0), c(1, 0), valley = TRUE), "No dip")
+    expect_equal(nrow(one), 1)
+  }
 
   skip_if_not_installed("fields")
   tp <- quiet(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 15, method = "tps"))
   expect_error(peak_difference(tp, c(-1, 0), c(1, 0)), "gam")
+})
+
+test_that("the pass goes round a hollow that the straight line drops into", {
+  set.seed(47)
+  n <- 900
+  df <- data.frame(z1 = runif(n, -2, 2), z2 = runif(n, -2, 2))
+  r <- sqrt(df$z1^2 + df$z2^2)
+  th <- atan2(df$z2, df$z1)
+  # a ring, highest at (-1.2, 0) and (1.2, 0), lower where it crosses z2 = 0
+  df$w <- 1 + exp(-(r - 1.2)^2 / 0.1) * (1 + 0.5 * cos(2 * th)) + rnorm(n, 0, 0.05)
+  s <- quiet(correlated_fitness_surface(df, "w", c("z1", "z2"), grid_n = 30, method = "gam", k = 30))
+  pass <- peak_difference(s, c(-1.2, 0), c(1.2, 0), valley = TRUE)
+  line <- peak_difference(s, c(-1.2, 0), c(1.2, 0), valley = TRUE, route = "line")
+  expect_lt(sqrt(sum(attr(line, "valley")^2)), 0.3)
+  expect_gt(abs(attr(pass, "valley")[["z2"]]), 0.9)
+  expect_gt(pass$fit_b[2], line$fit_b[2] + 0.5)
+  expect_true(all(pass$difference[2:3] < line$difference[2:3]))
+
+  # the hollow in the middle is lower than any pass, so there is no dip to compare it with
+  expect_message(hollow <- peak_difference(s, c(-1.2, 0), c(0, 0), valley = TRUE), "No dip")
+  expect_equal(nrow(hollow), 1)
+  # a point well off the grid starts from the nearest kept cell, and says so
+  said <- testthat::capture_messages(peak_difference(s, c(-1.2, 0), c(5, 0), valley = TRUE))
+  expect_true(any(grepl("away from the kept surface", said)))
+
+  # two clouds of birds with nothing kept between them have no pass
+  far <- data.frame(z1 = c(rnorm(150, -1.5, 0.25), rnorm(150, 1.5, 0.25)), z2 = rnorm(300, 0, 0.3))
+  far$w <- 1 + exp(-far$z2^2) + rnorm(300, 0, 0.1)
+  split <- quiet(correlated_fitness_surface(far, "w", c("z1", "z2"), grid_n = 30, method = "gam", too_far = 0.08))
+  expect_message(apart <- peak_difference(split, c(-1.5, 0), c(1.5, 0), valley = TRUE), "not joined")
+  expect_equal(nrow(apart), 1)
 })

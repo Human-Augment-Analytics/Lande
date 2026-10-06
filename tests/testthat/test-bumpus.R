@@ -35,3 +35,23 @@ test_that("quadratic gradient on bumpus is twice the OLS squared-term coefficien
   got <- res$Beta_Coefficient[res$Type == "Quadratic" & startsWith(res$Term, "weight")]
   expect_equal(unname(got), unname(gamma_weight), tolerance = 1e-6)
 })
+
+test_that("on logged traits the gradients within each sex match Janzen and Stern (1998)", {
+  traits9 <- c("total_length", "wingspread", "weight", "head_length", "humerus",
+               "femur", "tibiotarsus", "skull_width", "sternum")
+  # their Tables 1 and 2: least-squares gradients and standard errors
+  js <- list(male = list(beta = c(-0.516, 0.097, -0.272, 0.051, 0.164, 0.116, -0.018, 0.137, 0.164),
+                         se = c(0.100, 0.128, 0.093, 0.093, 0.168, 0.169, 0.128, 0.085, 0.087)),
+             female = list(beta = c(-0.213, -0.143, -0.531, 0.061, 0.328, -0.174, 0.427, -0.019, 0.169),
+                           se = c(0.284, 0.318, 0.253, 0.322, 0.369, 0.360, 0.349, 0.260, 0.237)))
+  d <- bumpus
+  d[traits9] <- log(d[traits9])
+  for (sx in names(js)) {
+    r <- suppressWarnings(suppressMessages(
+      selection_coefficients(d[d$sex == sx, ], "survival", traits9, fitness_type = "binary")))
+    lin <- r[r$Type == "Linear", ]
+    lin <- lin[match(traits9, lin$Term), ]
+    expect_lt(max(abs(lin$Beta_Coefficient - js[[sx]]$beta)), 0.001)
+    expect_lt(max(abs(lin$Standard_Error - js[[sx]]$se)), 0.001)
+  }
+})

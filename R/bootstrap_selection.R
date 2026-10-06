@@ -4,7 +4,7 @@
 # Bootstrap standard errors and confidence intervals for selection gradients.
 # Individuals are resampled with replacement and the whole estimation procedure
 # (standardisation, relativisation, OLS) is repeated on each resample, so the
-# intervals reflect the full pipeline rather than a single fitted model.
+# intervals include standardising and relativising as well as the fit.
 # ============================================================================
 
 #' Bootstrap selection gradients
@@ -31,9 +31,14 @@
 #'   is the ordinary \code{selection_coefficients()} fit on the full data and
 #'   its warnings are reported as usual.
 #'
-#'   With strongly skewed traits the intervals for beta are too narrow, if less
-#'   so than the parametric ones (see \code{check_selection_assumptions()});
-#'   transform such traits before standardising.
+#'   With continuous fitness the intervals for beta can be too narrow when the
+#'   traits have heavy tails (skewed or not) and the linear model leaves out
+#'   curvature, though less so than the parametric ones (see
+#'   \code{check_selection_assumptions()}). For survival and counts in the
+#'   package's simulation they covered a little less than the parametric
+#'   ones, 92 to 93\% for beta. Refitting
+#'   on a transformed trait changes the scale of the gradients and is only a
+#'   check.
 #'
 #' @return A data frame with one row per coefficient and columns \code{Term},
 #'   \code{Type}, \code{Estimate} (point estimate on the full data),
@@ -78,13 +83,13 @@ bootstrap_selection <- function(data,
     )
   }
 
-  # Point estimate on the full data; its warnings are the user's to see.
+  # Point estimate on the full data; its warnings are shown.
   point <- suppressMessages(fit_once(data))
   keys <- paste(point$Term, point$Type)
 
   # A resample is unusable if it errors, or if a trait lost its variance in
   # some group (prepare_selection_data then centres only, which would put a
-  # fabricated z = 0 into the fit).
+  # false z = 0 into the fit).
   fit_resample <- function(d) {
     degenerate <- FALSE
     res <- tryCatch(

@@ -24,7 +24,10 @@ check_selection_assumptions(
 
 \item{standardize}{Logical indicating whether to standardize traits to mean 0 and SD 1. Default is \code{TRUE}.}
 
-\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").}
+\item{group}{Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.}
 }
 \value{
 A data frame of class \code{"selection_assumptions"} with one row
@@ -43,25 +46,39 @@ protocol of Palacio et al. (2019) asks.
 \details{
 The regression gradients equal the covariance-adjusted
   differentials, \eqn{P^{-1} S}, by least squares whatever the trait
-  distribution. Normality of the traits is what lets them be read as the
-  average slope and curvature of the fitness surface (Lande and Arnold
-  1983; Morrissey and Sakrejda 2013), and what ties gamma to the change in
-  the phenotypic covariance. So it matters for reading the gradients, not
-  for computing them, and it is the traits that need to be normal, not
-  fitness. Skew also matters for the intervals: in the package's
-  simulation (validation/simulation.R) nominal 95\% intervals for beta
-  covered 79\% of the time with log-normal traits, 86\% by bootstrap, so
-  transform strongly skewed traits before standardising. Mardia's (1970)
-  skewness and kurtosis tests are used for that; each trait is also tested
-  on its own with Shapiro and Wilk's test when there are 5000 rows or fewer.
+  distribution. Normal traits let them be read as the average slope and
+  curvature of the fitness surface (Lande and Arnold 1983; Morrissey and
+  Sakrejda 2013) and tie gamma to the change in the phenotypic covariance.
+  Fitness doesn't need to be normal, and normality doesn't change how the
+  gradients are computed.
+  Mardia's (1970) skewness and kurtosis test multivariate normality, and
+  each trait is also tested on its own with Shapiro and Wilk's test when
+  there are 5000 rows or fewer.
+
+  In the package's simulation (validation/simulation.R), on a curved
+  fitness surface, nominal 95\% intervals for beta covered 88\% of the time
+  with normal traits, 67\% with log-normal ones and 77\% with symmetric
+  heavy-tailed ones (92, 80 and 91\% by bootstrap). Most of that loss comes
+  from the curvature, and HC3 standard errors
+  (\code{selection_coefficients(se_type = "hc3")}) recover most of it.
+  Estimating the SD of a heavy-tailed trait lowers coverage too, for gamma
+  and, with skewed traits, for beta even on a straight surface (90\%), and
+  HC3 doesn't help there. Skew also biases beta a little. Refitting with a
+  transformed trait changes the scale selection is measured on, so report
+  it with the untransformed result.
   Collinearity is the largest variance inflation factor from the linear
   gradient model. The rows-per-term check counts the individuals, or for
   binary fitness the rarer outcome, per term of the quadratic model, with
   ten as the working minimum. With more than 2000 individuals Mardia's
-  statistics use a random subsample of 2000. If the \code{performance}
-  package is installed its heteroscedasticity and overdispersion tests are
-  added beside the package's own, along with an R squared for the gradient
-  model.
+  statistics use a random subsample of 2000, drawn the same way every run.
+  Like the gradient models, the logistic and count models fit an intercept
+  per group, with unlabelled rows as one more group. A group in which every
+  individual survived, or none did, is fitted at 0 or 1 by its intercept and
+  is left out of the separation check. For counts the note names the model
+  behind each set of p-values; the linear and quadratic models are checked
+  for overdispersion separately. If the \code{performance} package is
+  installed its heteroscedasticity and overdispersion tests are added next
+  to the package's own, along with an R squared for the gradient model.
 }
 \examples{
 check_selection_assumptions(bumpus, "survival", c("total_length", "weight", "humerus"))

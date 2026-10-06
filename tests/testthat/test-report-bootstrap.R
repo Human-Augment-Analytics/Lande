@@ -11,6 +11,19 @@ test_that("selection_report returns a consistent standardised table", {
   expect_true(any(rep$Type == "Linear"))
   expect_true(any(rep$Type == "Quadratic"))
   expect_output(print(rep), "Selection analysis")
+  # the p-values come from the logistic model, and the print says so
+  expect_equal(unname(attr(rep, "p_model")), rep("binomial(logit)", 2))
+  expect_output(print(rep), "p-values are from a logistic model on the same terms")
+  cont <- suppressWarnings(suppressMessages(selection_report(bumpus, "weight", c("total_length", "humerus"))))
+  expect_false(any(grepl("p-values", utils::capture.output(print(cont)))))
+
+  # counts where the linear model needs a negative binomial and the quadratic one does not
+  set.seed(5)
+  d <- data.frame(z1 = rnorm(400), z2 = rnorm(400))
+  d$kids <- rpois(400, exp(1.6 - 0.7 * d$z1^2 + 0.1 * d$z2))
+  mixed <- suppressWarnings(suppressMessages(selection_report(d, "kids", c("z1", "z2"))))
+  expect_equal(unname(attr(mixed, "p_model")), c("negative binomial", "poisson(log)"))
+  expect_output(print(mixed), "negative binomial model for the linear gradients and a Poisson model")
 })
 
 test_that("bootstrap_selection returns bootstrap SEs and percentile intervals", {

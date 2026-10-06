@@ -29,7 +29,7 @@
     }
   )
   if (!is.null(vif_vals) && any(vif_vals > 5)) {
-    warning("High multicollinearity detected (VIF > 5) - standard errors may be inflated")
+    warning("Collinear traits (VIF above 5) may inflate the standard errors")
   }
   vif_vals
 }
@@ -40,7 +40,7 @@
   if (n < n_params * 2) {
     warning(
       "Sample size (", n, ") may be too small for ", n_params,
-      " parameters - results may be unreliable"
+      " parameters"
     )
   }
 }
@@ -51,7 +51,7 @@
 # the observed levels; factor/character groups use the most common level.
 # Missing labels are ignored so a single NA cannot leave the choice empty.
 .reference_group <- function(x) {
-  x <- x[!is.na(x)]
+  x <- x[!is.na(as.character(x))]
   if (!length(x)) {
     stop("Group column has no non-missing values")
   }
@@ -70,6 +70,69 @@
     return(all(raw %in% c(0, 1)))
   }
   all(raw >= 0 & abs(raw - round(raw)) < 1e-8)
+}
+
+#' @noRd
+# internal utility: the mgcv family for count fitness in the spline and the
+# surface.
+.count_family <- function(count_family) {
+  switch(count_family,
+         poisson = stats::poisson("log"),
+         quasipoisson = stats::quasipoisson("log"),
+         nb = mgcv::nb())
+}
+
+#' @noRd
+# internal utility: the Pearson dispersion of a count GAM. A Poisson fit warns
+# above 1.5, the rule the gradient p-values use.
+.check_dispersion <- function(fit, count_family) {
+  disp <- sum(stats::residuals(fit, type = "pearson")^2) / fit$df.residual
+  if (count_family == "poisson" && is.finite(disp) && disp > 1.5) {
+    warning("Counts are overdispersed (dispersion ", round(disp, 2),
+            "); the Poisson standard errors are too small, and count_family = \"quasipoisson\" corrects them")
+  }
+  disp
+}
+
+#' @noRd
+# internal utility: the group as a factor for the p-value GLM when there are
+# two or more; unlabelled rows count as one more group, as in the prepared
+# data.
+.add_glm_group <- function(data, group) {
+  if (is.null(group) || !group %in% names(data)) return(data)
+  g <- droplevels(addNA(factor(data[[group]]), ifany = TRUE))
+  if (nlevels(g) > 1) data$.group <- g
+  data
+}
+
+#' @noRd
+# internal utility: the standard errors a selection model reports, "ols" or
+# "hc3", in either case
+.se_type_arg <- function(se_type) {
+  match.arg(tolower(se_type[1]), c("ols", "hc3"))
+}
+
+#' @noRd
+# internal utility: swap the least-squares standard errors in a summary.lm for
+# heteroscedasticity-consistent HC3 ones (MacKinnon and White 1985) and redo
+# the t tests on them, with the residual degrees of freedom. HC3 divides each
+# residual by one minus its leverage, so it is undefined at leverage 1.
+.hc3_summary <- function(fit, sm) {
+  keep <- !is.na(stats::coef(fit))
+  X <- stats::model.matrix(fit)[, keep, drop = FALSE]
+  h <- stats::hatvalues(fit)
+  if (any(h > 1 - 1e-8)) {
+    warning("HC3 standard errors are undefined when a row has leverage 1")
+  }
+  e <- stats::residuals(fit) / (1 - h)
+  B <- solve(crossprod(X))
+  se <- sqrt(diag(B %*% crossprod(X * e) %*% B))
+  cf <- sm$coefficients
+  cf[, "Std. Error"] <- se[rownames(cf)]
+  cf[, "t value"] <- cf[, "Estimate"] / cf[, "Std. Error"]
+  cf[, "Pr(>|t|)"] <- 2 * stats::pt(-abs(cf[, "t value"]), df = fit$df.residual)
+  sm$coefficients <- cf
+  sm
 }
 
 #' @noRd

@@ -30,7 +30,7 @@ plot_adaptive_landscape(
 
 \item{bins}{Integer specifying the number of contour bins. Default is 12.}
 
-\item{show_optimum}{Logical indicating whether to display the optimum point. Default is \code{TRUE}.}
+\item{show_optimum}{Logical indicating whether to display the optimum point, labelled as the highest point when it lies on the edge of the grid. Default is \code{TRUE}.}
 
 \item{show_actual_means}{Logical indicating whether to display actual population means. Default is \code{TRUE}.}
 

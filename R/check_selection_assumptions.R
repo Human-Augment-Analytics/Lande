@@ -4,17 +4,19 @@
 # traits (the condition for reading the gradients as the slope and curvature
 # of the fitness surface),
 # collinearity, rows per term, and the residuals or dispersion of the
-# gradient models. Reported, not enforced.
+# gradient models. Nothing is enforced.
 # ======================================================
 
 #' @noRd
 # Mardia's (1970) multivariate skewness and kurtosis, with the small-sample
 # factor for the skewness statistic. Rows are subsampled above `max_n`
-# because the statistics need an n by n matrix.
+# because the statistics need an n by n matrix; the subsample is drawn from
+# a fixed seed, so the table is the same every run, and the caller's random
+# numbers are left as they were.
 .mardia <- function(X, max_n = 2000) {
   X <- as.matrix(X)
   X <- X[stats::complete.cases(X), , drop = FALSE]
-  if (nrow(X) > max_n) X <- X[sample.int(nrow(X), max_n), , drop = FALSE]
+  if (nrow(X) > max_n) X <- X[.with_seed(1, sample.int(nrow(X), max_n)), , drop = FALSE]
   n <- nrow(X)
   p <- ncol(X)
   Xc <- scale(X, scale = FALSE)
@@ -30,6 +32,16 @@
   kurt <- (b2p - p * (p + 2)) / sqrt(8 * p * (p + 2) / n)
   p_kurt <- 2 * stats::pnorm(-abs(kurt))
   list(n = n, skewness = b1p, p_skewness = p_skew, kurtosis = b2p, p_kurtosis = p_kurt)
+}
+
+#' @noRd
+# evaluate `expr` from a given seed and put the global random number state back
+.with_seed <- function(seed, expr) {
+  env <- globalenv()
+  old <- if (exists(".Random.seed", envir = env, inherits = FALSE)) get(".Random.seed", envir = env) else NULL
+  on.exit(if (is.null(old)) rm(".Random.seed", envir = env) else assign(".Random.seed", old, envir = env))
+  set.seed(seed)
+  expr
 }
 
 #' @noRd
@@ -53,25 +65,39 @@
 #'
 #' @details The regression gradients equal the covariance-adjusted
 #'   differentials, \eqn{P^{-1} S}, by least squares whatever the trait
-#'   distribution. Normality of the traits is what lets them be read as the
-#'   average slope and curvature of the fitness surface (Lande and Arnold
-#'   1983; Morrissey and Sakrejda 2013), and what ties gamma to the change in
-#'   the phenotypic covariance. So it matters for reading the gradients, not
-#'   for computing them, and it is the traits that need to be normal, not
-#'   fitness. Skew also matters for the intervals: in the package's
-#'   simulation (validation/simulation.R) nominal 95\% intervals for beta
-#'   covered 79\% of the time with log-normal traits, 86\% by bootstrap, so
-#'   transform strongly skewed traits before standardising. Mardia's (1970)
-#'   skewness and kurtosis tests are used for that; each trait is also tested
-#'   on its own with Shapiro and Wilk's test when there are 5000 rows or fewer.
+#'   distribution. Normal traits let them be read as the average slope and
+#'   curvature of the fitness surface (Lande and Arnold 1983; Morrissey and
+#'   Sakrejda 2013) and tie gamma to the change in the phenotypic covariance.
+#'   Fitness doesn't need to be normal, and normality doesn't change how the
+#'   gradients are computed.
+#'   Mardia's (1970) skewness and kurtosis test multivariate normality, and
+#'   each trait is also tested on its own with Shapiro and Wilk's test when
+#'   there are 5000 rows or fewer.
+#'
+#'   In the package's simulation (validation/simulation.R), on a curved
+#'   fitness surface, nominal 95\% intervals for beta covered 88\% of the time
+#'   with normal traits, 67\% with log-normal ones and 77\% with symmetric
+#'   heavy-tailed ones (92, 80 and 91\% by bootstrap). Most of that loss comes
+#'   from the curvature, and HC3 standard errors
+#'   (\code{selection_coefficients(se_type = "hc3")}) recover most of it.
+#'   Estimating the SD of a heavy-tailed trait lowers coverage too, for gamma
+#'   and, with skewed traits, for beta even on a straight surface (90\%), and
+#'   HC3 doesn't help there. Skew also biases beta a little. Refitting with a
+#'   transformed trait changes the scale selection is measured on, so report
+#'   it with the untransformed result.
 #'   Collinearity is the largest variance inflation factor from the linear
 #'   gradient model. The rows-per-term check counts the individuals, or for
 #'   binary fitness the rarer outcome, per term of the quadratic model, with
 #'   ten as the working minimum. With more than 2000 individuals Mardia's
-#'   statistics use a random subsample of 2000. If the \code{performance}
-#'   package is installed its heteroscedasticity and overdispersion tests are
-#'   added beside the package's own, along with an R squared for the gradient
-#'   model.
+#'   statistics use a random subsample of 2000, drawn the same way every run.
+#'   Like the gradient models, the logistic and count models fit an intercept
+#'   per group, with unlabelled rows as one more group. A group in which every
+#'   individual survived, or none did, is fitted at 0 or 1 by its intercept and
+#'   is left out of the separation check. For counts the note names the model
+#'   behind each set of p-values; the linear and quadratic models are checked
+#'   for overdispersion separately. If the \code{performance} package is
+#'   installed its heteroscedasticity and overdispersion tests are added next
+#'   to the package's own, along with an R squared for the gradient model.
 #'
 #' @inheritParams selection_coefficients
 #' @return A data frame of class \code{"selection_assumptions"} with one row
@@ -100,9 +126,12 @@ check_selection_assumptions <- function(data,
   absent <- setdiff(need, names(data))
   if (length(absent)) stop("Missing columns: ", paste(absent, collapse = ", "))
 
+  # the rows the gradient models use: complete fitness and traits, with
+  # unlabelled rows as one more group
+  keep <- stats::complete.cases(data[, c(fitness_col, trait_cols), drop = FALSE])
   prep <- suppressWarnings(suppressMessages(prepare_selection_data(
-    data, fitness_col, trait_cols, standardize = standardize, group = group,
-    add_relative = TRUE, na_action = "drop", name_relative = ".w"
+    data[keep, , drop = FALSE], fitness_col, trait_cols, standardize = standardize, group = group,
+    add_relative = TRUE, na_action = "none", name_relative = ".w"
   )))
   if (fitness_type == "auto") fitness_type <- detect_family(prep[[fitness_col]])$type
   if (!fitness_type %in% c("binary", "count")) fitness_type <- "continuous"
@@ -162,6 +191,9 @@ check_selection_assumptions <- function(data,
   # the gradient models; the performance package adds its own tests and an R2 when installed
   has_perf <- requireNamespace("performance", quietly = TRUE)
   lin <- paste(trait_cols, collapse = " + ")
+  # the logistic and count models take an intercept per group, as the gradient models do
+  glm_data <- .add_glm_group(prep, group)
+  glm_rhs <- if (".group" %in% names(glm_data)) paste(".group +", lin) else lin
   if (fitness_type == "continuous") {
     fit <- stats::lm(stats::as.formula(paste(".w ~", lin)), data = prep)
     r <- stats::residuals(fit)
@@ -176,25 +208,54 @@ check_selection_assumptions <- function(data,
     if (has_perf) {
       ph <- tryCatch(as.numeric(performance::check_heteroscedasticity(fit)), error = function(e) NA_real_)
       add("Linear model residuals: heteroscedasticity (performance)", NA_real_, ph,
-          if (isTRUE(ph < 0.05)) "performance agrees the variance is not constant" else "")
+          if (isTRUE(ph < 0.05)) "performance's test also finds the variance is not constant" else "")
     }
   } else if (fitness_type == "binary") {
-    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", lin)), data = prep, family = stats::binomial()))
-    coefs <- stats::coef(fit)[-1]
+    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", glm_rhs)), data = glm_data, family = stats::binomial()))
+    coefs <- stats::coef(fit)[trait_cols]
     extreme <- max(abs(coefs), na.rm = TRUE)
-    fitted_edge <- mean(stats::fitted(fit) < 1e-6 | stats::fitted(fit) > 1 - 1e-6)
+    # a group in which everyone survived, or nobody did, is fitted at 0 or 1
+    # by its intercept; only groups whose outcome varies can show separation
+    y <- glm_data[[fitness_col]]
+    varies <- if (".group" %in% names(glm_data)) {
+      stats::ave(y, glm_data$.group, FUN = function(v) as.numeric(length(unique(v)) > 1)) == 1
+    } else {
+      rep(TRUE, length(y))
+    }
+    at_edge <- stats::fitted(fit) < 1e-6 | stats::fitted(fit) > 1 - 1e-6
+    fitted_edge <- if (any(varies)) mean(at_edge[varies]) else 0
     add("Logistic model: separation", extreme, NA_real_,
         if (extreme > 10 || fitted_edge > 0.05) "coefficients or fitted values at the edge; possible complete separation" else "no sign of separation")
   } else {
-    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", lin)), data = prep, family = stats::poisson()))
+    fit <- suppressWarnings(stats::glm(stats::as.formula(paste(fitness_col, "~", glm_rhs)), data = glm_data, family = stats::poisson()))
     disp <- sum(stats::residuals(fit, type = "pearson")^2) / stats::df.residual(fit)
     p_disp <- NA_real_
     if (has_perf) {
       od <- tryCatch(performance::check_overdispersion(fit), error = function(e) NULL)
       if (!is.null(od)) p_disp <- as.numeric(od$p_value)
     }
-    add("Poisson model: dispersion ratio", disp, p_disp,
-        if (disp > 1.5) "overdispersed; the gradients use a negative binomial model" else "")
+    # the linear and quadratic gradient models each move to a negative binomial
+    # on their own dispersion, so name the model each set of gradients uses
+    quad <- paste(c(trait_cols, paste0("I(", trait_cols, "^2)"),
+                    if (p >= 2) utils::combn(trait_cols, 2, paste, collapse = ":")), collapse = " + ")
+    family_of <- function(rhs) {
+      rhs <- if (".group" %in% names(glm_data)) paste(".group +", rhs) else rhs
+      tryCatch(attr(suppressWarnings(.fit_pvalue_glm(stats::as.formula(paste(fitness_col, "~", rhs)), glm_data, "count")),
+                    "family_label"), error = function(e) NA_character_)
+    }
+    nb <- c(family_of(lin), family_of(quad)) %in% "negative binomial"
+    note <- if (all(nb)) {
+      "overdispersed; the p-values use a negative binomial model"
+    } else if (nb[1]) {
+      "overdispersed; the linear p-values use a negative binomial model, the quadratic ones a Poisson model"
+    } else if (nb[2]) {
+      "the quadratic model is overdispersed; its p-values use a negative binomial model, the linear ones a Poisson model"
+    } else if (disp > 1.5) {
+      "overdispersed, but the negative binomial fit failed; the p-values are from a Poisson model"
+    } else {
+      ""
+    }
+    add("Poisson model: dispersion ratio", disp, p_disp, note)
   }
   if (has_perf) {
     r2 <- tryCatch(performance::r2(fit), error = function(e) NULL)

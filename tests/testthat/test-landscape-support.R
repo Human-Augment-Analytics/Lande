@@ -19,11 +19,26 @@ test_that("the landscape counts how much of each simulated population leaves the
   expect_gt(max(g$.outside), 0.9)
   expect_equal(names(land$support), c("outside", "at_optimum", "warn"))
   expect_equal(land$support$outside, mean(g$.outside))
-  # fitness keeps rising, so the optimum is outside the data
+  # fitness keeps rising, so the optimum is outside the data and on the edge of the grid
   expect_gt(land$support$at_optimum, 0.25)
   expect_output(print(land), "extrapolation")
+  expect_true(land$optimum_edge)
+  expect_output(print(land), "edge of the grid")
+
+  # a surface with a top inside the data has its optimum inside the grid
+  df$top <- 2 - 0.3 * (df$z1^2 + df$z2^2) + rnorm(n, 0, 0.05)
+  hill <- mgcv::gam(top ~ s(z1, z2, k = 10), data = df)
+  inside <- suppressMessages(adaptive_landscape(df, hill, c("z1", "z2"), simulation_n = 100, grid_n = 11))
+  expect_false(inside$optimum_edge)
   expect_message(adaptive_landscape(df, fit, c("z1", "z2"), simulation_n = 50, grid_n = 5), "outside the data")
   expect_s3_class(plot_adaptive_landscape(land, c("z1", "z2"), show_support = TRUE), "ggplot")
+  # the plot calls a maximum on the edge the highest point, and an interior one the optimum
+  label_of <- function(l) {
+    labs <- unlist(lapply(ggplot2::ggplot_build(plot_adaptive_landscape(l, c("z1", "z2")))$data, function(d) d$label))
+    labs[labs %in% c("Optimum", "Highest point, at the grid edge")]
+  }
+  expect_equal(label_of(land), "Highest point, at the grid edge")
+  expect_equal(label_of(inside), "Optimum")
 })
 
 test_that("one trait counts individuals beyond the observed range", {

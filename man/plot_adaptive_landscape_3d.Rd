@@ -23,7 +23,7 @@ plot_adaptive_landscape_3d(
 
 \item{phi}{Numeric colatitude viewing angle. Default is 30.}
 
-\item{grid_n}{Integer specifying the resolution of the interpolation grid. Default is 200.}
+\item{grid_n}{Ignored; the landscape's own grid is used.}
 
 \item{color_palette}{Optional vector of colors for the surface. Defaults to viridis plasma.}
 

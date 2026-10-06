@@ -1,21 +1,26 @@
 # Builds inst/extdata/finch_community.csv and data/finch_community.rda: the
 # finches of El Garrapatero, four species with Geospiza fortis split into small
 # and large beak morphs, from the public data of Beausoleil et al. (2023), one
-# row per bird with its mean beak measurements and the number of later years it
-# was seen again (their fitness measure). Source file kept in validation/data:
+# row per bird with its mean beak measurements and its apparent lifespan, the
+# last year it was seen minus the first (their fitness measure, mxcpois in their
+# file). Source file kept in validation/data:
 # it is data/bird.data.RData from the authors' code repository (GPL-3), which
 # they archived as https://doi.org/10.5683/SP3/0YIWSE. Cite the paper and the
 # dataset.
 # Run from the package root.
 load("validation/data/beausoleil2023_bird.data.RData")
 d <- bird.data[complete.cases(bird.data[, c("avg.mbl", "avg.mbd", "avg.mbw", "mxcpois", "sp2")]), ]
+years <- 2003:2020
+seen <- as.matrix(d[, paste0("y.", years)]) == 1
 out <- data.frame(
   band = d$BANDFINAL,
   species = d$sp2,
   beak_length = d$avg.mbl,
   beak_depth = d$avg.mbd,
   beak_width = d$avg.mbw,
-  recaptures = as.integer(d$mxcpois)
+  lifespan = as.integer(d$mxcpois),
+  # birds first caught late had fewer years in which to be seen again
+  first_year = apply(seen, 1, function(r) min(years[which(r)]))
 )
 rownames(out) <- NULL
 write.csv(out, "inst/extdata/finch_community.csv", row.names = FALSE)
