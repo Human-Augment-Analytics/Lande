@@ -50,13 +50,13 @@ Imports:
     Matrix,
     ggplot2 (>= 3.4.0),
     dplyr,
+    fields,
     grDevices,
     stats,
     utils
 Suggests:
     akima,
     car,
-    fields,
     ggrepel,
     patchwork,
     performance,
