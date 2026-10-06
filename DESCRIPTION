@@ -22,7 +22,7 @@ Authors@R:
         person("Guillermo", "Garcia-Costoya",
             role = c("aut"),
             comment = c(affiliation = "School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States")),
-        person("James", "Stroud", email = "stroud@gatech.edu",
+        person(c("James", "T."), "Stroud", email = "stroud@gatech.edu",
             role = c("aut", "cre"),
             comment = c(affiliation = "School of Biological Sciences, Georgia Institute of Technology, Atlanta, GA, United States"))
     )
