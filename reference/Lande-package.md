@@ -38,13 +38,13 @@ Useful links:
 
 ## Author
 
-**Maintainer**: James Stroud <stroud@gatech.edu> (affiliation: School of
-Biological Sciences, Georgia Institute of Technology, Atlanta, GA,
+**Maintainer**: James T. Stroud <stroud@gatech.edu> (affiliation: School
+of Biological Sciences, Georgia Institute of Technology, Atlanta, GA,
 United States)
 
 Authors:
 
-- James Stroud <stroud@gatech.edu> (affiliation: School of Biological
+- James T. Stroud <stroud@gatech.edu> (affiliation: School of Biological
   Sciences, Georgia Institute of Technology, Atlanta, GA, United States)
 
 - Vanessa Zhou (affiliation: College of Computing, Georgia Institute of
@@ -59,8 +59,8 @@ Authors:
 - Taylor Papke (affiliation: College of Computing, Georgia Institute of
   Technology, Atlanta, GA, United States)
 
-- Dima Nabhani (affiliation: College of Computing, Georgia Institute of
-  Technology, Atlanta, GA, United States)
+- Dima Al Nabhani (affiliation: College of Computing, Georgia Institute
+  of Technology, Atlanta, GA, United States)
 
 - Guillermo Garcia-Costoya (affiliation: School of Biological Sciences,
   Georgia Institute of Technology, Atlanta, GA, United States)
