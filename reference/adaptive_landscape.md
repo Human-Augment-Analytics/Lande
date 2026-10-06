@@ -36,9 +36,9 @@ adaptive_landscape(
 
   One or two trait column names. With one trait the model is usually the
   `$model` of
-  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md)
+  [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md)
   and the result is a curve; with two it is the `$model` of
-  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md)
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md)
   and the result is a surface.
 
 - group_col:
@@ -89,7 +89,7 @@ landscape may keep rising beyond it.
 For a single trait the grid also carries `.ind_fit`, the individual
 fitness function evaluated at each population mean, for drawing the two
 curves together (see
-[`plot_adaptive_landscape()`](https://human-augment-analytics.github.io/Lande/reference/plot_adaptive_landscape.md)).
+[`plot_adaptive_landscape()`](https://human-augment-analytics.github.io/lande/reference/plot_adaptive_landscape.md)).
 
 The simulated populations spread beyond the data, especially towards the
 edge of the grid, and the fitness of those individuals is extrapolated.

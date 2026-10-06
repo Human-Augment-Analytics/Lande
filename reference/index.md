@@ -4,11 +4,11 @@
 
 Standardise the traits, relativise fitness and check the data
 
-- [`prepare_selection_data()`](https://human-augment-analytics.github.io/Lande/reference/prepare_selection_data.md)
+- [`prepare_selection_data()`](https://human-augment-analytics.github.io/lande/reference/prepare_selection_data.md)
   : Prepare data for selection analysis
-- [`detect_family()`](https://human-augment-analytics.github.io/Lande/reference/detect_family.md)
+- [`detect_family()`](https://human-augment-analytics.github.io/lande/reference/detect_family.md)
   : Automatically detect fitness type and GLM family
-- [`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)
+- [`check_selection_assumptions()`](https://human-augment-analytics.github.io/lande/reference/check_selection_assumptions.md)
   : Check the assumptions behind a selection analysis
 
 ## Differentials and gradients
@@ -16,46 +16,46 @@ Standardise the traits, relativise fitness and check the data
 Selection differentials, linear and quadratic gradients, their intervals
 and canonical axes
 
-- [`selection_differential()`](https://human-augment-analytics.github.io/Lande/reference/selection_differential.md)
+- [`selection_differential()`](https://human-augment-analytics.github.io/lande/reference/selection_differential.md)
   : Calculate selection differential (S)
-- [`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md)
+- [`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md)
   : Calculate selection coefficients
-- [`analyze_linear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_linear_selection.md)
+- [`analyze_linear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_linear_selection.md)
   : Analyze linear selection gradients (beta)
-- [`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_nonlinear_selection.md)
+- [`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_nonlinear_selection.md)
   : Analyze nonlinear selection gradients (gamma)
-- [`analyze_disruptive_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_disruptive_selection.md)
+- [`analyze_disruptive_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_disruptive_selection.md)
   : Disruptive or stabilising selection on one trait
-- [`extract_linear_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_linear_coefficients.md)
+- [`extract_linear_coefficients()`](https://human-augment-analytics.github.io/lande/reference/extract_linear_coefficients.md)
   : Extract linear selection coefficients
-- [`extract_quadratic_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_quadratic_coefficients.md)
+- [`extract_quadratic_coefficients()`](https://human-augment-analytics.github.io/lande/reference/extract_quadratic_coefficients.md)
   : Extract quadratic selection coefficients
-- [`extract_interaction_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_interaction_coefficients.md)
+- [`extract_interaction_coefficients()`](https://human-augment-analytics.github.io/lande/reference/extract_interaction_coefficients.md)
   : Extract correlational selection coefficients
-- [`bootstrap_selection()`](https://human-augment-analytics.github.io/Lande/reference/bootstrap_selection.md)
+- [`bootstrap_selection()`](https://human-augment-analytics.github.io/lande/reference/bootstrap_selection.md)
   : Bootstrap selection gradients
-- [`canonical_analysis()`](https://human-augment-analytics.github.io/Lande/reference/canonical_analysis.md)
+- [`canonical_analysis()`](https://human-augment-analytics.github.io/lande/reference/canonical_analysis.md)
   : Canonical analysis of the gamma matrix
-- [`plot_canonical_axes()`](https://human-augment-analytics.github.io/Lande/reference/plot_canonical_axes.md)
+- [`plot_canonical_axes()`](https://human-augment-analytics.github.io/lande/reference/plot_canonical_axes.md)
   : Fitness along the canonical axes
-- [`selection_report()`](https://human-augment-analytics.github.io/Lande/reference/selection_report.md)
+- [`selection_report()`](https://human-augment-analytics.github.io/lande/reference/selection_report.md)
   : Standardised selection analysis report
 
 ## Fitness functions and surfaces
 
 Spline fitness functions for one trait and fitness surfaces for two
 
-- [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md)
+- [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md)
   : Estimate univariate correlated fitness function
-- [`plot_univariate_fitness()`](https://human-augment-analytics.github.io/Lande/reference/plot_univariate_fitness.md)
+- [`plot_univariate_fitness()`](https://human-augment-analytics.github.io/lande/reference/plot_univariate_fitness.md)
   : Plot Univariate Correlated Fitness Function
-- [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md)
+- [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md)
   : Calculate the Correlated Fitness Surface
-- [`plot_correlated_fitness()`](https://human-augment-analytics.github.io/Lande/reference/plot_correlated_fitness.md)
+- [`plot_correlated_fitness()`](https://human-augment-analytics.github.io/lande/reference/plot_correlated_fitness.md)
   : Plot Correlated Fitness Surface
-- [`plot_correlated_fitness_enhanced()`](https://human-augment-analytics.github.io/Lande/reference/plot_correlated_fitness_enhanced.md)
+- [`plot_correlated_fitness_enhanced()`](https://human-augment-analytics.github.io/lande/reference/plot_correlated_fitness_enhanced.md)
   : Plot Enhanced Correlated Fitness Surface
-- [`peak_difference()`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)
+- [`peak_difference()`](https://human-augment-analytics.github.io/lande/reference/peak_difference.md)
   : Compare the fitted fitness at two points of a surface
 
 ## Adaptive landscape
@@ -63,55 +63,55 @@ Spline fitness functions for one trait and fitness surfaces for two
 Mean fitness against the population mean, and how it compares with the
 individual surface
 
-- [`adaptive_landscape()`](https://human-augment-analytics.github.io/Lande/reference/adaptive_landscape.md)
+- [`adaptive_landscape()`](https://human-augment-analytics.github.io/lande/reference/adaptive_landscape.md)
   : Calculate Adaptive Landscape
-- [`plot_adaptive_landscape()`](https://human-augment-analytics.github.io/Lande/reference/plot_adaptive_landscape.md)
+- [`plot_adaptive_landscape()`](https://human-augment-analytics.github.io/lande/reference/plot_adaptive_landscape.md)
   : Plot Adaptive Landscape
-- [`plot_adaptive_landscape_3d()`](https://human-augment-analytics.github.io/Lande/reference/plot_adaptive_landscape_3d.md)
+- [`plot_adaptive_landscape_3d()`](https://human-augment-analytics.github.io/lande/reference/plot_adaptive_landscape_3d.md)
   : Plot Adaptive Landscape (3D Perspective)
-- [`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/Lande/reference/compare_fitness_surfaces_data.md)
+- [`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/lande/reference/compare_fitness_surfaces_data.md)
   : Compare Correlated Fitness Surface vs Adaptive Landscape
-- [`plot_fitness_surfaces_comparison()`](https://human-augment-analytics.github.io/Lande/reference/plot_fitness_surfaces_comparison.md)
+- [`plot_fitness_surfaces_comparison()`](https://human-augment-analytics.github.io/lande/reference/plot_fitness_surfaces_comparison.md)
   : Plot Fitness Surfaces Comparison
 
 ## Over time
 
 One fitness function or surface per period
 
-- [`temporal_landscape()`](https://human-augment-analytics.github.io/Lande/reference/temporal_landscape.md)
+- [`temporal_landscape()`](https://human-augment-analytics.github.io/lande/reference/temporal_landscape.md)
   : Fitness functions and adaptive landscapes over time
-- [`plot_temporal_landscape()`](https://human-augment-analytics.github.io/Lande/reference/plot_temporal_landscape.md)
+- [`plot_temporal_landscape()`](https://human-augment-analytics.github.io/lande/reference/plot_temporal_landscape.md)
   : Plot fitness functions and landscapes over time
 
 ## App
 
 The whole workflow in a browser
 
-- [`run_app()`](https://human-augment-analytics.github.io/Lande/reference/run_app.md)
+- [`run_app()`](https://human-augment-analytics.github.io/lande/reference/run_app.md)
   : Open the Shiny app
-- [`Lande`](https://human-augment-analytics.github.io/Lande/reference/Lande-package.md)
-  [`Lande-package`](https://human-augment-analytics.github.io/Lande/reference/Lande-package.md)
-  : Lande: Tools for Evolutionary Selection Analysis
+- [`lande`](https://human-augment-analytics.github.io/lande/reference/lande-package.md)
+  [`lande-package`](https://human-augment-analytics.github.io/lande/reference/lande-package.md)
+  : lande: Tools for Evolutionary Selection Analysis
 
 ## Datasets
 
-Example datasets included with Lande
+Example datasets included with lande
 
-- [`bumpus`](https://human-augment-analytics.github.io/Lande/reference/bumpus.md)
+- [`bumpus`](https://human-augment-analytics.github.io/lande/reference/bumpus.md)
   : Bumpus house sparrow survival data
-- [`crescent_pond_pupfish`](https://human-augment-analytics.github.io/Lande/reference/crescent_pond_pupfish.md)
-  [`little_lake_pupfish`](https://human-augment-analytics.github.io/Lande/reference/crescent_pond_pupfish.md)
+- [`crescent_pond_pupfish`](https://human-augment-analytics.github.io/lande/reference/crescent_pond_pupfish.md)
+  [`little_lake_pupfish`](https://human-augment-analytics.github.io/lande/reference/crescent_pond_pupfish.md)
   : Pupfish hybrid survival in two San Salvador lakes
-- [`finch_yearly`](https://human-augment-analytics.github.io/Lande/reference/finch_yearly.md)
+- [`finch_yearly`](https://human-augment-analytics.github.io/lande/reference/finch_yearly.md)
   : Medium ground finch survival from year to year
-- [`finch_community`](https://human-augment-analytics.github.io/Lande/reference/finch_community.md)
+- [`finch_community`](https://human-augment-analytics.github.io/lande/reference/finch_community.md)
   : Darwin's finch community at El Garrapatero
 
 ## Print methods
 
-- [`print(`*`<selection_report>`*`)`](https://human-augment-analytics.github.io/Lande/reference/print.selection_report.md)
+- [`print(`*`<selection_report>`*`)`](https://human-augment-analytics.github.io/lande/reference/print.selection_report.md)
   : Print a selection report
-- [`print(`*`<adaptive_landscape>`*`)`](https://human-augment-analytics.github.io/Lande/reference/print.adaptive_landscape.md)
+- [`print(`*`<adaptive_landscape>`*`)`](https://human-augment-analytics.github.io/lande/reference/print.adaptive_landscape.md)
   : Print method for adaptive landscape
-- [`print(`*`<selection_assumptions>`*`)`](https://human-augment-analytics.github.io/Lande/reference/print.selection_assumptions.md)
+- [`print(`*`<selection_assumptions>`*`)`](https://human-augment-analytics.github.io/lande/reference/print.selection_assumptions.md)
   : Print the assumption checks

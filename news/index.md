@@ -1,6 +1,6 @@
 # Changelog
 
-## Lande 0.1.0
+## lande 0.1.0
 
 First release.
 
@@ -11,10 +11,10 @@ First release.
   fitness surfaces drawn only where there are data, and adaptive
   landscapes of mean fitness for one or two traits.
 - `count_family = "quasipoisson"` or `"nb"` in
-  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md),
-  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md)
+  [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md),
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md)
   and
-  [`temporal_landscape()`](https://human-augment-analytics.github.io/Lande/reference/temporal_landscape.md)
+  [`temporal_landscape()`](https://human-augment-analytics.github.io/lande/reference/temporal_landscape.md)
   for overdispersed counts; the spline and the surface report the
   dispersion.
 - `by_group = TRUE` in the spline and the surface fits each group on its
@@ -31,18 +31,18 @@ First release.
   bundled as datasets, with CSV copies of the pupfish and finch data in
   `extdata`.
 - A Shiny app that runs the analyses in a browser, opened with
-  [`run_app()`](https://human-augment-analytics.github.io/Lande/reference/run_app.md),
+  [`run_app()`](https://human-augment-analytics.github.io/lande/reference/run_app.md),
   which writes out the R calls that repeat an analysis with the current
   settings.
-- [`canonical_analysis()`](https://human-augment-analytics.github.io/Lande/reference/canonical_analysis.md)
+- [`canonical_analysis()`](https://human-augment-analytics.github.io/lande/reference/canonical_analysis.md)
   rotates the gamma matrix to its canonical axes, with double-regression
   standard errors, permutation p-values (Reynolds et al.
   2010. and an optional bootstrap, and
-        [`plot_canonical_axes()`](https://human-augment-analytics.github.io/Lande/reference/plot_canonical_axes.md)
+        [`plot_canonical_axes()`](https://human-augment-analytics.github.io/lande/reference/plot_canonical_axes.md)
         draws fitness along them.
 - Standard errors and a band on the GAM fitness surface, drawn with the
   plots’ `uncertainty` option, and
-  [`peak_difference()`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)
+  [`peak_difference()`](https://human-augment-analytics.github.io/lande/reference/peak_difference.md)
   to compare two points of a surface, or each with the pass between them
   (`route = "line"` for the straight line).
 - The adaptive landscape reports how much of each simulated population

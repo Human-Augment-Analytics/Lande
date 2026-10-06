@@ -86,7 +86,7 @@ selection_report(
   91% with heavy-tailed symmetric ones. It did nothing for the coverage
   lost to estimating a skewed trait's SD, and with survival and counts
   its intervals covered a little less, down to 91% (see
-  [`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)).
+  [`check_selection_assumptions()`](https://human-augment-analytics.github.io/lande/reference/check_selection_assumptions.md)).
   For continuous fitness the p-values follow the chosen errors; for
   survival and counts they come from the GLM with either `se_type`.
 

@@ -9,7 +9,7 @@ Lande & Arnold (1983) set out, and adds spline fitness functions,
 fitness surfaces and adaptive landscapes on top of the same prepared
 data. Svensson (2023) reviews the approach and the arguments about it;
 Palacio et al. (2019) set out what an analysis should report, and
-[`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)
+[`check_selection_assumptions()`](https://human-augment-analytics.github.io/lande/reference/check_selection_assumptions.md)
 runs the checks they ask for on the data and the models.
 
 **Key capabilities:**
@@ -183,7 +183,7 @@ $`\gamma_{ii}`$ and the $`\gamma_{ij}`$ together. Canonical analysis
 (Phillips & Arnold, 1989; Blows & Brooks, 2003) rotates
 $`\boldsymbol{\gamma}`$ to its eigenvectors, combinations of the traits
 that each have a single curvature, the eigenvalue $`\lambda`$. See
-[`canonical_analysis()`](https://human-augment-analytics.github.io/Lande/reference/canonical_analysis.md)
+[`canonical_analysis()`](https://human-augment-analytics.github.io/lande/reference/canonical_analysis.md)
 in section 5.17.
 
 **File:** `analyze_nonlinear_selection.R`,
@@ -298,7 +298,7 @@ is the **adaptive landscape**.
 **File:** `adaptive_landscape.R`
 
 The two surfaces are compared with
-[`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/Lande/reference/compare_fitness_surfaces_data.md)
+[`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/lande/reference/compare_fitness_surfaces_data.md)
 (section 5.15). The same construction works for a single trait, where
 the landscape is a curve of mean fitness against the population mean,
 drawn alongside the fitness function it was averaged from.
@@ -311,14 +311,14 @@ Beausoleil et al. (2019) fitted a separate fitness function to each year
 of the finch data and found disruptive selection throughout, stronger in
 some years than others and significant in three of the six year-to-year
 intervals they tested. The package does the same with
-[`temporal_landscape()`](https://human-augment-analytics.github.io/Lande/reference/temporal_landscape.md):
+[`temporal_landscape()`](https://human-augment-analytics.github.io/lande/reference/temporal_landscape.md):
 the fitness function (one trait) or surface (two traits) and, if asked,
 the adaptive landscape are fitted separately for each level of a time
 column, on traits standardised once over all periods so that the periods
 share one axis. The result is one row per period with the sample size,
 mean fitness, the degrees of freedom of the smooth, the position of the
 highest fitness and, for one trait, the number of interior peaks.
-[`plot_temporal_landscape()`](https://human-augment-analytics.github.io/Lande/reference/plot_temporal_landscape.md)
+[`plot_temporal_landscape()`](https://human-augment-analytics.github.io/lande/reference/plot_temporal_landscape.md)
 draws the periods side by side or, for one trait, as a heat map of
 fitness against trait and time.
 
@@ -375,7 +375,7 @@ The package loads everything it needs:
 
 ``` r
 
-library(Lande)
+library(lande)
 ```
 
 #### 4.2 Package Descriptions
@@ -396,8 +396,8 @@ package; the rest are needed only for the features listed.
 | `viridis` | Perceptually uniform colour scales for scientific visualisation |
 | `patchwork` | Composing multiple plots into a single figure |
 | `performance` | Heteroscedasticity, overdispersion and $`R^2`$ in the assumption checks |
-| `akima` | Putting the two surfaces on one grid to correlate them in [`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/Lande/reference/compare_fitness_surfaces_data.md) |
-| `shiny` | The app, [`run_app()`](https://human-augment-analytics.github.io/Lande/reference/run_app.md) |
+| `akima` | Putting the two surfaces on one grid to correlate them in [`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/lande/reference/compare_fitness_surfaces_data.md) |
+| `shiny` | The app, [`run_app()`](https://human-augment-analytics.github.io/lande/reference/run_app.md) |
 | `plotly` | The rotatable 3D landscape in the app |
 
 #### 4.3 Example data and the app
@@ -410,7 +410,7 @@ al. (2019); and `finch_community`, the five finch groups of Beausoleil
 et al. (2023). Most examples below use simulated data; sections 5.16,
 5.17 and 7.0 use `finch_yearly` and `bumpus`.
 
-[`run_app()`](https://human-augment-analytics.github.io/Lande/reference/run_app.md)
+[`run_app()`](https://human-augment-analytics.github.io/lande/reference/run_app.md)
 runs the same workflow in a browser, on four of these datasets (all but
 `finch_yearly`) or an uploaded CSV, and writes out the R calls that
 repeat the analysis with its settings.
@@ -718,7 +718,7 @@ analyze_disruptive_selection(
 $`\gamma = 2 b_2`$ from $`w \sim z + z^2`$ (with the standard error
 doubled as well), following Lande & Arnold (1983) and Stinchcombe et
 al. (2008). Both are computed through
-[`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md)
+[`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md)
 on the single trait.
 
 **Returns:** Data frame with:
@@ -907,7 +907,7 @@ the nearest individual are blanked as well, and the distance is kept in
 distance rule.
 
 **Separate fits:** `by_group = TRUE`, here and in
-[`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md),
+[`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md),
 fits each group on its own rows and returns a named list, rather than
 one shape shifted by a group term. Prepare the data with the same
 `group` so each is standardised on its own, and plot with
@@ -1006,7 +1006,7 @@ point on the highest route from one to the other, with standard errors
 from the covariance of the model’s coefficients. `route = "line"` takes
 the lowest point on the straight line instead, as Beausoleil et
 al. (2023) measured valley depths;
-[`?peak_difference`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)
+[`?peak_difference`](https://human-augment-analytics.github.io/lande/reference/peak_difference.md)
 explains why the two can differ and why the comparisons are exploratory.
 The thin-plate spline gives no standard errors.
 
@@ -1103,7 +1103,7 @@ population that involves.
 
 With a single trait the grid is a line of population means, the model is
 normally the `$model` of
-[`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md),
+[`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md),
 and the result is a curve rather than a surface.
 
 **Example:**
@@ -1228,7 +1228,7 @@ selection_coefficients(
 
 `se_type = "hc3"` gives leave-one-out standard errors (MacKinnon &
 White, 1985; Mitchell-Olds & Shaw, 1987; see
-[`?selection_coefficients`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md)).
+[`?selection_coefficients`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md)).
 They allow for residual spread that changes with the traits, as it does
 when the model leaves out curvature; in the package’s simulation they
 recovered most of the coverage lost there, most of all with heavy-tailed
@@ -1265,23 +1265,23 @@ print(results_binary)
 ```
 
 The table is put together by three exported helpers,
-[`extract_linear_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_linear_coefficients.md),
-[`extract_quadratic_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_quadratic_coefficients.md)
+[`extract_linear_coefficients()`](https://human-augment-analytics.github.io/lande/reference/extract_linear_coefficients.md),
+[`extract_quadratic_coefficients()`](https://human-augment-analytics.github.io/lande/reference/extract_quadratic_coefficients.md)
 and
-[`extract_interaction_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_interaction_coefficients.md).
+[`extract_interaction_coefficients()`](https://human-augment-analytics.github.io/lande/reference/extract_interaction_coefficients.md).
 Each takes the trait names and the model object from
-[`analyze_linear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_linear_selection.md)
+[`analyze_linear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_linear_selection.md)
 or
-[`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_nonlinear_selection.md),
+[`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_nonlinear_selection.md),
 pulls the terms out by name, doubles the quadratic estimates and skips
 any term the model does not have. They are only needed if you fit the
 models yourself and want the same table.
 
 #### 5.14 `selection_report()`
 
-[`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md)
+[`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md)
 gives the coefficient table and
-[`selection_report()`](https://human-augment-analytics.github.io/Lande/reference/selection_report.md)
+[`selection_report()`](https://human-augment-analytics.github.io/lande/reference/selection_report.md)
 the differentials and gradients in one standardised table:
 
 ``` r
@@ -1459,7 +1459,7 @@ al. (2019) found their deepest valley in the 2009 to 2010 interval. With
 the default UBRE criterion 2005, 2006 and 2008 each show two or three
 peaks instead. Their test was the quadratic gradient on the birds
 between the peaks, which is
-[`analyze_disruptive_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_disruptive_selection.md)
+[`analyze_disruptive_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_disruptive_selection.md)
 in section 5.6 run on that subset.
 
 #### 5.17 `canonical_analysis()` and `plot_canonical_axes()`
@@ -1526,7 +1526,7 @@ individuals (Reynolds et al., 2010), and the estimated axes lean towards
 directions of phenotype with little variance (Morrissey, 2014).
 `bootstrap = TRUE` gives percentile intervals, with each resample’s axes
 matched to the original ones, and
-[`plot_canonical_axes()`](https://human-augment-analytics.github.io/Lande/reference/plot_canonical_axes.md)
+[`plot_canonical_axes()`](https://human-augment-analytics.github.io/lande/reference/plot_canonical_axes.md)
 draws the fitness surface along any two axes, or the fitness function
 along one, which is where to check whether a curved axis has a peak
 inside the data.
@@ -1626,7 +1626,7 @@ that scale; the package reports variance-standardised gradients only.
 
 #### 7.0 Assumption Checks
 
-[`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)
+[`check_selection_assumptions()`](https://human-augment-analytics.github.io/lande/reference/check_selection_assumptions.md)
 puts the checks behind a Lande and Arnold analysis in one table:
 Mardia’s tests of multivariate normality of the traits, which is what
 lets the gradients be read as the slope and curvature of the fitness
@@ -1710,7 +1710,7 @@ fit <- logistf(fitness ~ trait, data = data)
 
 #### 7.3 Missing Data
 
-[`prepare_selection_data()`](https://human-augment-analytics.github.io/Lande/reference/prepare_selection_data.md)
+[`prepare_selection_data()`](https://human-augment-analytics.github.io/lande/reference/prepare_selection_data.md)
 checks the fitness and trait columns for `NA`. The default,
 `na_action = "warn"`, keeps every row and warns with the count. The
 models drop incomplete rows themselves, and traits and relative fitness
@@ -1757,7 +1757,7 @@ if (requireNamespace("car", quietly = TRUE)) {
 
 #### 7.5 Reduced k Warning
 
-[`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md)
+[`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md)
 warns “Reducing k from 10 to …” when a trait has fewer distinct values
 than the basis asks for, which happens with small groups, single years
 or coarsely measured traits. The curve is then less flexible than the

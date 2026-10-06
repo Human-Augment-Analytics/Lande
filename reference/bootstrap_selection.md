@@ -92,13 +92,13 @@ every resample keeps the original group sizes. A resample in which a
 trait has no variance within a group (so it could only be centred) is
 discarded rather than fitted on a degenerate value. The point estimate
 is the ordinary
-[`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md)
+[`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md)
 fit on the full data and its warnings are reported as usual.
 
 With continuous fitness the intervals for beta can be too narrow when
 the traits have heavy tails (skewed or not) and the linear model leaves
 out curvature, though less so than the parametric ones (see
-[`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)).
+[`check_selection_assumptions()`](https://human-augment-analytics.github.io/lande/reference/check_selection_assumptions.md)).
 For survival and counts in the package's simulation they covered a
 little less than the parametric ones, 92 to 93% for beta. Refitting on a
 transformed trait changes the scale of the gradients and is only a

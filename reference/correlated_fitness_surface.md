@@ -116,7 +116,7 @@ correlated_fitness_surface(
   Logical; with `method = "tps"` and `TRUE` (the default), predictions
   are held inside the range of the fitness type, 0 to 1 for survival and
   at least 0 for counts, as
-  [`adaptive_landscape()`](https://human-augment-analytics.github.io/Lande/reference/adaptive_landscape.md)
+  [`adaptive_landscape()`](https://human-augment-analytics.github.io/lande/reference/adaptive_landscape.md)
   does. The GAM respects the range through its link and is unaffected.
 
 - level:

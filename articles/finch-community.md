@@ -13,7 +13,7 @@ stay in, except in the comparison with capture year below.
 
 ``` r
 
-library(Lande)
+library(lande)
 finches <- finch_community
 table(finches$species)
 ```
@@ -105,7 +105,7 @@ surface$peaks
 The lifespans are overdispersed and the Poisson fit warns. With a
 dispersion over three, Poisson standard errors are too small.
 `count_family = "quasipoisson"` estimates the dispersion and
-[`peak_difference()`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)
+[`peak_difference()`](https://human-augment-analytics.github.io/lande/reference/peak_difference.md)
 uses it in its standard errors. The smoothness is chosen again under the
 new family, which moves the fitted lifespan by a median of 0.01 years
 and by up to 41% of the Poisson value in places.
@@ -180,7 +180,7 @@ The valley in each comparison is the pass, the lowest point on the
 highest route between two high points. Fortis small sits about 2.5
 standard errors above its passes to fortis large and to scandens, and
 the lower of each pair about 1.5. Those z values run high (see
-[`?peak_difference`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)),
+[`?peak_difference`](https://human-augment-analytics.github.io/lande/reference/peak_difference.md)),
 so no pair is clearly separated, and no high point is reliably higher
 than another. The straight line from fortis large to scandens crosses a
 low patch at about 13.6 by 11.6 mm. The route between them goes round

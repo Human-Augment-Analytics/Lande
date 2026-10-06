@@ -24,7 +24,7 @@ plot_correlated_fitness(
 - tps:
 
   Output list from
-  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md).
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md).
 
 - trait_cols:
 

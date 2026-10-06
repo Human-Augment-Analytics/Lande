@@ -21,7 +21,7 @@ plot_fitness_surfaces_comparison(
 - comparison_data:
 
   Output list from
-  [`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/Lande/reference/compare_fitness_surfaces_data.md).
+  [`compare_fitness_surfaces_data()`](https://human-augment-analytics.github.io/lande/reference/compare_fitness_surfaces_data.md).
 
 - bins:
 

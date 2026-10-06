@@ -36,7 +36,7 @@ temporal_landscape(
 
   A data frame with fitness, trait and time columns. Standardise the
   traits once, over all periods, with
-  [`prepare_selection_data()`](https://human-augment-analytics.github.io/Lande/reference/prepare_selection_data.md)
+  [`prepare_selection_data()`](https://human-augment-analytics.github.io/lande/reference/prepare_selection_data.md)
   before calling; the periods must share one trait axis, so nothing is
   restandardised per period.
 
@@ -55,7 +55,7 @@ temporal_landscape(
 - fitness_type:
 
   Passed to
-  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md)
+  [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md)
   for one trait; the surface detects the type itself.
 
 - min_n:
@@ -72,9 +72,9 @@ temporal_landscape(
 
   Basis size, basis and smoothing criterion for the period fits. `NULL`
   uses the defaults of
-  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md)
+  [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md)
   or
-  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md).
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md).
 
 - bootstrap, n_boot:
 
@@ -91,14 +91,14 @@ temporal_landscape(
 - mask, too_far:
 
   Passed to
-  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md)
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md)
   for two traits.
 
 - count_family:
 
   Family for count fitness in every period's fit: `"poisson"` (the
   default), `"quasipoisson"` or `"nb"`, as in
-  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md).
+  [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md).
 
 ## Value
 

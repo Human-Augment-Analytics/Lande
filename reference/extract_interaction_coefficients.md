@@ -17,7 +17,7 @@ extract_interaction_coefficients(trait_cols, results)
 - results:
 
   A model results object returned by
-  [`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_nonlinear_selection.md).
+  [`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_nonlinear_selection.md).
 
 ## Value
 

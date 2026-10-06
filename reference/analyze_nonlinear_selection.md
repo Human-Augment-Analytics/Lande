@@ -47,7 +47,7 @@ analyze_nonlinear_selection(
 - group:
 
   Optional grouping column, used as in
-  [`analyze_linear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_linear_selection.md):
+  [`analyze_linear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_linear_selection.md):
   a separate intercept for each group in the GLM that supplies the
   p-values.
 
@@ -55,7 +55,7 @@ analyze_nonlinear_selection(
 
   Standard errors of the least-squares gradients: `"ols"` (the default)
   or `"hc3"`, heteroscedasticity-consistent; see
-  [`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md).
+  [`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md).
 
 ## Value
 

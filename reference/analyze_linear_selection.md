@@ -56,7 +56,7 @@ analyze_linear_selection(
 
   Standard errors of the least-squares gradients: `"ols"` (the default)
   or `"hc3"`, heteroscedasticity-consistent; see
-  [`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md).
+  [`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md).
 
 ## Value
 

@@ -6,7 +6,7 @@ enclosures in two lakes and recorded survival over three months; Martin
 and Wainwright (2013) describe the experiment. The package has the
 survival data and trait scores for each lake as `crescent_pond_pupfish`
 and `little_lake_pupfish`, already standardised within lake;
-[`?crescent_pond_pupfish`](https://human-augment-analytics.github.io/Lande/reference/crescent_pond_pupfish.md)
+[`?crescent_pond_pupfish`](https://human-augment-analytics.github.io/lande/reference/crescent_pond_pupfish.md)
 describes the columns. They also hold the low-density enclosures and
 laboratory-reared fish of the three parental species, but Martin’s
 analyses use the high-density enclosures only, 796 fish in Crescent Pond
@@ -17,7 +17,7 @@ jaw length (`pmx`), nasal protrusion (`nose`), nasal angle
 
 ``` r
 
-library(Lande)
+library(lande)
 crescent <- crescent_pond_pupfish[crescent_pond_pupfish$density == "H", ]
 little <- little_lake_pupfish[little_lake_pupfish$density == "H", ]
 traits <- c("jaw", "pmx", "nose", "noseangle", "body", "eye")

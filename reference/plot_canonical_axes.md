@@ -2,7 +2,7 @@
 
 Draws the fitness surface in the space of two canonical axes, or the
 fitness function along one, from the scores of
-[`canonical_analysis()`](https://human-augment-analytics.github.io/Lande/reference/canonical_analysis.md).
+[`canonical_analysis()`](https://human-augment-analytics.github.io/lande/reference/canonical_analysis.md).
 A negative \\\lambda\\ is stabilising selection along an axis only when
 fitness along that axis has a peak inside the data, otherwise it is only
 curvature.
@@ -18,7 +18,7 @@ plot_canonical_axes(ca, which = 1:2, grid_n = 40, ...)
 - ca:
 
   Output of
-  [`canonical_analysis()`](https://human-augment-analytics.github.io/Lande/reference/canonical_analysis.md).
+  [`canonical_analysis()`](https://human-augment-analytics.github.io/lande/reference/canonical_analysis.md).
 
 - which:
 
@@ -31,9 +31,9 @@ plot_canonical_axes(ca, which = 1:2, grid_n = 40, ...)
 - ...:
 
   Passed to
-  [`plot_correlated_fitness()`](https://human-augment-analytics.github.io/Lande/reference/plot_correlated_fitness.md)
+  [`plot_correlated_fitness()`](https://human-augment-analytics.github.io/lande/reference/plot_correlated_fitness.md)
   for two axes or to
-  [`plot_univariate_fitness()`](https://human-augment-analytics.github.io/Lande/reference/plot_univariate_fitness.md)
+  [`plot_univariate_fitness()`](https://human-augment-analytics.github.io/lande/reference/plot_univariate_fitness.md)
   for one.
 
 ## Value

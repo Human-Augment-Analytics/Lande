@@ -93,7 +93,7 @@ data with the canonical scores `m1`, `m2`, ... added; the fitness type,
 ## Details
 
 The gamma matrix \\\gamma\\ comes from
-[`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md),
+[`selection_coefficients()`](https://human-augment-analytics.github.io/lande/reference/selection_coefficients.md),
 with the quadratic gradients doubled and the correlational gradients as
 they stand. Its eigenvectors are the columns of `M` and its eigenvalues
 the curvatures \\\lambda\\; directional selection along the axes is
@@ -127,7 +127,7 @@ few individuals (Reynolds et al. 2010), and the estimated axes lean
 towards directions of phenotype with little variance (Morrissey 2014).
 Read the eigenvalues together with the fitness surface along the same
 axes, which
-[`plot_canonical_axes()`](https://human-augment-analytics.github.io/Lande/reference/plot_canonical_axes.md)
+[`plot_canonical_axes()`](https://human-augment-analytics.github.io/lande/reference/plot_canonical_axes.md)
 draws, and with the bootstrap intervals. With the bootstrap, each
 resample's axes are matched to the original ones by their largest
 absolute cosine, since order and sign change between resamples.

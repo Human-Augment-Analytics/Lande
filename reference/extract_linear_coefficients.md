@@ -17,7 +17,7 @@ extract_linear_coefficients(trait_cols, results)
 - results:
 
   A model results object returned by
-  [`analyze_linear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_linear_selection.md).
+  [`analyze_linear_selection()`](https://human-augment-analytics.github.io/lande/reference/analyze_linear_selection.md).
 
 ## Value
 

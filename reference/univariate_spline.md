@@ -99,7 +99,7 @@ univariate_spline(
 
   Family for count fitness: `"poisson"` (the default), `"quasipoisson"`
   or `"nb"`, as in
-  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md);
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/lande/reference/correlated_fitness_surface.md);
   the smoothing parameter is chosen under whichever is used. The
   result's `dispersion` is the Pearson dispersion of the fit, and a
   Poisson fit warns when it is above 1.5.

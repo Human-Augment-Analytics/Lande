@@ -23,7 +23,7 @@ plot_univariate_fitness(
 - uni:
 
   Output object of class `"univariate_fitness"` from
-  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md).
+  [`univariate_spline()`](https://human-augment-analytics.github.io/lande/reference/univariate_spline.md).
 
 - trait_col:
 

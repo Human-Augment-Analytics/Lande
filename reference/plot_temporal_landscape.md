@@ -23,7 +23,7 @@ plot_temporal_landscape(
 - tl:
 
   Output of
-  [`temporal_landscape()`](https://human-augment-analytics.github.io/Lande/reference/temporal_landscape.md).
+  [`temporal_landscape()`](https://human-augment-analytics.github.io/lande/reference/temporal_landscape.md).
 
 - type:
 

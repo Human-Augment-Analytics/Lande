@@ -10,7 +10,7 @@ the reference the package is checked against.
 
 ``` r
 
-library(Lande)
+library(lande)
 traits <- c("total_length", "wingspread", "weight", "head_length", "humerus",
             "femur", "tibiotarsus", "skull_width", "sternum")
 report <- selection_report(bumpus, "survival", traits, fitness_type = "binary")

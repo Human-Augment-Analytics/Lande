@@ -11,7 +11,7 @@ emigration.
 
 ``` r
 
-library(Lande)
+library(lande)
 finch <- finch_yearly
 table(finch$year)
 ```

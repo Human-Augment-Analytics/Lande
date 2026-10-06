@@ -33,16 +33,16 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/Human-Augment-Analytics/Lande/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/Human-Augment-Analytics/lande/blob/main/DESCRIPTION)
 
 Zhou V, Khan A, Yu C, Papke T, Al Nabhani D, Garcia-Costoya G, Stroud JT
-(2026). *Lande: Tools for Evolutionary Selection Analysis*. R package
-version 0.1.0, <https://github.com/Human-Augment-Analytics/Lande>.
+(2026). *lande: Tools for Evolutionary Selection Analysis*. R package
+version 0.1.0, <https://github.com/Human-Augment-Analytics/lande>.
 
     @Manual{,
-      title = {Lande: Tools for Evolutionary Selection Analysis},
+      title = {lande: Tools for Evolutionary Selection Analysis},
       author = {Vanessa Zhou and Ali Sean Khan and Calvin Yu and Taylor Papke and Dima {Al Nabhani} and Guillermo Garcia-Costoya and James T. Stroud},
       year = {2026},
       note = {R package version 0.1.0},
-      url = {https://github.com/Human-Augment-Analytics/Lande},
+      url = {https://github.com/Human-Augment-Analytics/lande},
     }

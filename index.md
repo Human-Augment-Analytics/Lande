@@ -1,4 +1,4 @@
-# Lande
+# lande
 
 Stroud lab’s Lande-Arnold toolkit for measuring phenotypic selection.
 
@@ -22,14 +22,14 @@ overdispersed.
 ``` r
 
 # install.packages("remotes")
-remotes::install_github("Human-Augment-Analytics/Lande")
+remotes::install_github("Human-Augment-Analytics/lande")
 ```
 
 ## Gradients
 
 ``` r
 
-library(Lande)
+library(lande)
 
 traits <- c("weight", "total_length", "humerus")
 
@@ -76,7 +76,7 @@ one surface. The highest point is filled for a peak and open otherwise.
 
 A GAM surface carries its standard error and a band.
 `uncertainty = "se"` or `"band"` in the plots draws them, and
-[`peak_difference()`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)
+[`peak_difference()`](https://human-augment-analytics.github.io/lande/reference/peak_difference.md)
 compares the fitted fitness at two points, or each with the pass between
 them.
 
@@ -105,7 +105,7 @@ plot_temporal_landscape(years, type = "heatmap")
 
 ## App
 
-[`run_app()`](https://human-augment-analytics.github.io/Lande/reference/run_app.md)
+[`run_app()`](https://human-augment-analytics.github.io/lande/reference/run_app.md)
 opens the analysis in a browser: bundled or uploaded data, gradients,
 fitness functions, surface, landscape and per-group results, with the
 fitting options in Advanced settings. Needs `shiny`; `plotly` adds the
@@ -132,7 +132,7 @@ data are also in `inst/extdata` as CSV files.
 
 ## Notes
 
-[`detect_family()`](https://human-augment-analytics.github.io/Lande/reference/detect_family.md)
+[`detect_family()`](https://human-augment-analytics.github.io/lande/reference/detect_family.md)
 classifies fitness as binary, count or continuous and picks the model
 used for the p-values; the gradients themselves always come from OLS on
 relative fitness. The spline uses a cubic regression basis with the
@@ -141,5 +141,5 @@ surface a thin-plate basis chosen by REML; both can be changed with `bs`
 and `smoothing`.
 
 See
-[`vignette("evolutionary-selection-analysis")`](https://human-augment-analytics.github.io/Lande/articles/evolutionary-selection-analysis.md)
+[`vignette("evolutionary-selection-analysis")`](https://human-augment-analytics.github.io/lande/articles/evolutionary-selection-analysis.md)
 for the maths and worked examples.
