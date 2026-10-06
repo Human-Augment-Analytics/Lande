@@ -9,7 +9,7 @@ knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 7, fig.heigh
 Martin (2016) released laboratory-reared hybrids of the three *Cyprinodon* pupfish species of San Salvador Island into field enclosures in two lakes and recorded survival over three months; Martin and Wainwright (2013) describe the experiment. The package has the survival data and trait scores for each lake as `crescent_pond_pupfish` and `little_lake_pupfish`, already standardised within lake; `?crescent_pond_pupfish` describes the columns. They also hold the low-density enclosures and laboratory-reared fish of the three parental species, but Martin's analyses use the high-density enclosures only, 796 fish in Crescent Pond and 875 in Little Lake, so we keep to those. The traits are the six functional traits of Martin's Table 3: lower jaw length (`jaw`), upper jaw length (`pmx`), nasal protrusion (`nose`), nasal angle (`noseangle`), body depth (`body`) and orbit diameter (`eye`).
 
 ```{r}
-library(Lande)
+library(lande)
 crescent <- crescent_pond_pupfish[crescent_pond_pupfish$density == "H", ]
 little <- little_lake_pupfish[little_lake_pupfish$density == "H", ]
 traits <- c("jaw", "pmx", "nose", "noseangle", "body", "eye")

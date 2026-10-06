@@ -12,7 +12,7 @@
 # own seed, so the results do not depend on the number of cores.
 #
 # Rscript validation/simulation.R [replicates] [resamples] [cores]
-suppressPackageStartupMessages(library(Lande))
+suppressPackageStartupMessages(library(lande))
 
 args <- as.numeric(commandArgs(trailingOnly = TRUE))
 reps <- if (is.na(args[1])) 1000 else args[1]

@@ -31,7 +31,7 @@ cat("Project Root:", here(), "\n")
 if (file.exists(here::here("DESCRIPTION")) && requireNamespace("pkgload", quietly = TRUE)) {
     pkgload::load_all(here::here(), quiet = TRUE)
 } else {
-    library(Lande)
+    library(lande)
 }
 suppressPackageStartupMessages({
     library(here)
@@ -328,7 +328,7 @@ cat("\n========================================\n")
 cat("FUNCTION TESTING COMPLETE\n")
 cat("========================================\n")
 
-cat("\nFunctions loaded:", length(getNamespaceExports("Lande")), "\n")
+cat("\nFunctions loaded:", length(getNamespaceExports("lande")), "\n")
 cat("Plots created:", length(univariate_plots) + length(cfs_plots), "\n")
 
 cat("\nFiles generated:\n")

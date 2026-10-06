@@ -1,4 +1,4 @@
-url: https://human-augment-analytics.github.io/Lande/
+url: https://human-augment-analytics.github.io/lande/
 
 template:
   bootstrap: 5
@@ -8,7 +8,7 @@ toc:
   depth: 3
 
 home:
-  title: Lande
+  title: lande
   description: Selection gradients, fitness surfaces and adaptive landscapes from one data frame.
 
 navbar:
@@ -36,7 +36,7 @@ navbar:
         href: articles/finches-year-by-year.html
     app:
       text: App
-      href: https://human-augment-analytics.github.io/Lande/app/
+      href: https://human-augment-analytics.github.io/lande/app/
 
 articles:
 - title: Guide
@@ -97,9 +97,9 @@ reference:
   desc: The whole workflow in a browser
   contents:
   - run_app
-  - Lande-package
+  - lande-package
 - title: Datasets
-  desc: Example datasets included with Lande
+  desc: Example datasets included with lande
   contents:
   - bumpus
   - crescent_pond_pupfish

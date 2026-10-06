@@ -1,4 +1,4 @@
-# Lande <img src="man/figures/logo.png" align="right" height="139" alt="" />
+# lande <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 Stroud lab's Lande-Arnold toolkit for measuring phenotypic selection.
 
@@ -19,13 +19,13 @@ the counts are overdispersed.
 
 ```r
 # install.packages("remotes")
-remotes::install_github("Human-Augment-Analytics/Lande")
+remotes::install_github("Human-Augment-Analytics/lande")
 ```
 
 ## Gradients
 
 ```r
-library(Lande)
+library(lande)
 
 traits <- c("weight", "total_length", "humerus")
 

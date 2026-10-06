@@ -1,4 +1,4 @@
-Package: Lande
+Package: lande
 Type: Package
 Title: Tools for Evolutionary Selection Analysis
 Version: 0.1.0
@@ -37,9 +37,9 @@ Description: Estimates selection differentials and linear, quadratic and
     for several groups on one surface. Includes bootstrap intervals, a
     combined results table and a Shiny app.
 License: MIT + file LICENSE
-URL: https://github.com/Human-Augment-Analytics/Lande,
-    https://human-augment-analytics.github.io/Lande/
-BugReports: https://github.com/Human-Augment-Analytics/Lande/issues
+URL: https://github.com/Human-Augment-Analytics/lande,
+    https://human-augment-analytics.github.io/lande/
+BugReports: https://github.com/Human-Augment-Analytics/lande/issues
 Encoding: UTF-8
 LazyData: true
 Depends:

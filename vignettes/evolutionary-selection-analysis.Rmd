@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
   fig.width = 6.5, fig.height = 4.5, dpi = 72, out.width = "100%"
 )
 set.seed(1)
-library(Lande)
+library(lande)
 ```
 
 <style>
@@ -282,7 +282,7 @@ Solid arrows show data passed from one function to the next. Blue dashed arrows 
 The package loads everything it needs:
 
 ```{r, message=FALSE, warning=FALSE}
-library(Lande)
+library(lande)
 ```
 
 ### 4.2 Package Descriptions

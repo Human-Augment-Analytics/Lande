@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(Lande)
+library(lande)
 
-test_check("Lande")
+test_check("lande")
