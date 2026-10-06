@@ -36,8 +36,7 @@ plot_adaptive_landscape_3d(
 
 - grid_n:
 
-  Integer specifying the resolution of the interpolation grid. Default
-  is 200.
+  Ignored; the landscape's own grid is used.
 
 - color_palette:
 
@@ -63,17 +62,12 @@ if (requireNamespace("fields", quietly = TRUE)) {
                              simulation_n = 100, grid_n = 15)
   plot_adaptive_landscape_3d(land, c("total_length", "weight"))
 }
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
 #> Data type: binary; method: gam; n = 136; k = 29
 #> GAM fitting with 136 observations
 #>   Trying formula: main
 #> Success with formula: main
 #> Predictions range: 0.0472 to 0.703
 #> Masked 424 of 900 grid points outside the data
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Use prepare_selection_data() before calling this function.
-#>            Do NOT standardize again within this function.
 #> Population mean grid ranges:
 #>   total_length: -2.96 to 2.94
 #>   weight: -3.12 to 4.85
@@ -84,8 +78,9 @@ if (requireNamespace("fields", quietly = TRUE)) {
 #> Calculating mean fitness for 225 grid points
 #> Optimal population mean phenotype:
 #>   total_length    weight
-#> 8   -0.0123897 -3.121579
-#> Mean fitness at optimum: 0.6808
-#> 75% of simulated individuals fell outside the data (96% at the optimum)
+#> 7   -0.4336396 -3.121579
+#> Mean fitness at optimum: 0.6821
+#> The highest mean fitness is on the edge of the grid; the landscape may keep rising beyond it
+#> 75% of simulated individuals fell outside the data (99% at the optimum)
 #> The optimum rests on extrapolation: more than 25% of the population simulated there lies outside the data
 ```

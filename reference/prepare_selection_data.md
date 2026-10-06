@@ -76,7 +76,7 @@ head(prep[, c("survival", "relative_fitness", "total_length", "weight")])
 
 # standardised and relativised within each sex
 by_sex <- prepare_selection_data(bumpus, "survival", "total_length", group = "sex")
-#> Standardizing and computing relative fitness within groups: 'sex'
+#> Standardising and computing relative fitness within groups: 'sex'
 tapply(by_sex$total_length, by_sex$sex, mean)
 #>        female          male 
 #> -1.249452e-15  2.333524e-15 

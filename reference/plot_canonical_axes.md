@@ -44,6 +44,6 @@ A `ggplot` object.
 
 ``` r
 ca <- canonical_analysis(bumpus, "survival", c("total_length", "weight", "humerus"))
-#> Warning: High multicollinearity detected (VIF > 5) - standard errors may be inflated
+#> Warning: Collinear traits (VIF above 5) may inflate the standard errors
 plot_canonical_axes(ca, which = c(1, 3), grid_n = 25)
 ```

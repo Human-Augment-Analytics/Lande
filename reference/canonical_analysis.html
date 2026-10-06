@@ -71,7 +71,9 @@ along that axis. Correlational selection that is spread over many
 <span>  group <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bootstrap <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  n_boot <span class="op">=</span> <span class="fl">200</span>,</span>
-<span>  conf <span class="op">=</span> <span class="fl">0.95</span></span>
+<span>  conf <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  test <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"permutation"</span>, <span class="st">"double_regression"</span><span class="op">)</span>,</span>
+<span>  n_perm <span class="op">=</span> <span class="fl">999</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -100,7 +102,10 @@ along that axis. Correlational selection that is spread over many
 
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
-<dd><p>Optional string specifying a grouping variable (e.g., "year", "site").</p></dd>
+<dd><p>Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.</p></dd>
 
 
 <dt id="arg-bootstrap">bootstrap<a class="anchor" aria-label="anchor" href="#arg-bootstrap"></a></dt>
@@ -116,6 +121,17 @@ is <code>FALSE</code>.</p></dd>
 <dt id="arg-conf">conf<a class="anchor" aria-label="anchor" href="#arg-conf"></a></dt>
 <dd><p>Confidence level of the bootstrap interval. Default is 0.95.</p></dd>
 
+
+<dt id="arg-test">test<a class="anchor" aria-label="anchor" href="#arg-test"></a></dt>
+<dd><p>Where the p-values come from: <code>"permutation"</code> (the
+default), Reynolds et al.'s (2010) permutation test, or
+<code>"double_regression"</code>, the double-regression tests, which are far too
+liberal.</p></dd>
+
+
+<dt id="arg-n-perm">n_perm<a class="anchor" aria-label="anchor" href="#arg-n-perm"></a></dt>
+<dd><p>Number of permutations. Default is 999.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -124,8 +140,8 @@ is <code>FALSE</code>.</p></dd>
   axis; <code>axes</code>, a data frame with <code>lambda</code>, its standard error and
   p-value, <code>theta</code>, and with the bootstrap <code>CI_lower</code>,
   <code>CI_upper</code> and <code>N_Boot</code>; <code>scores</code>, the prepared data with
-  the canonical scores <code>m1</code>, <code>m2</code>, ... added; the fitness type and
-  <code>n</code>.</p>
+  the canonical scores <code>m1</code>, <code>m2</code>, ... added; the fitness type,
+  <code>n</code>, <code>test</code> and <code>n_perm</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -134,21 +150,36 @@ is <code>FALSE</code>.</p></dd>
   the correlational gradients as they stand. Its eigenvectors are the
   columns of <code>M</code> and its eigenvalues the curvatures \(\lambda\);
   directional selection along the axes is \(\theta = M^T \beta\).
-  Standard errors and p-values come from the double regression of Bisgaard
-  and Ankenman (1996): fitness is refitted on the canonical scores and their
-  squares, without cross-products, and twice the coefficient of a squared
-  score is that axis's \(\lambda\). For survival and counts the p-values
-  come from the logistic or count model on the same terms, as they do for
-  the gradients.</p>
-<p>The tests treat the axes as known when they were estimated
-  from the same data, so they are anticonservative (Reynolds et al. 2010).
-  Sampling error in \(\gamma\) also spreads its eigenvalues, so the largest
+  Standard errors come from the double regression of Bisgaard and Ankenman
+  (1996): fitness is refitted on the canonical scores and their squares,
+  without cross-products, and twice the coefficient of a squared score is
+  that axis's \(\lambda\).</p>
+<p>The double-regression tests treat the axes as known when they were
+  estimated from the same data. With 136 individuals and fitness unrelated
+  to five traits, the largest eigenvalue came out significant in about three
+  samples in four, so by default
+  the p-values come from the permutation test of Reynolds et al. (2010):
+  fitness is shuffled among individuals, within groups when <code>group</code> is
+  given, the canonical analysis and the double regression are repeated, and
+  each axis's p-value is the share of shuffles, counting the data as one,
+  whose F for the eigenvalue of the same rank is at least the observed one.
+  It tests whether an axis curves more than it would with fitness unrelated
+  to the traits; once one axis is strongly curved, the tests of the others
+  are only rough. Every fitness type uses least squares on relative fitness,
+  and the result depends on the random seed; call <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> first. With
+  <code>test = "double_regression"</code> the p-values come from the double
+  regression itself, for survival and counts from the logistic or count
+  model on the same terms. The standard errors treat the axes as known
+  either way.</p>
+<p>Sampling error in \(\gamma\) also spreads its eigenvalues, so the largest
   curvatures are overestimated, especially with many traits and few
-  individuals (Morrissey 2014). Read the eigenvalues beside the fitness
-  surface along the same axes, which <code><a href="plot_canonical_axes.html">plot_canonical_axes()</a></code> draws,
-  and rely more on the bootstrap intervals. With the bootstrap,
-  each resample's axes are matched to the original ones by their largest
-  absolute cosine, since order and sign change between resamples.</p>
+  individuals (Reynolds et al. 2010), and the estimated axes lean towards
+  directions of phenotype with little variance (Morrissey 2014). Read the
+  eigenvalues together with the fitness surface along the same axes, which
+  <code><a href="plot_canonical_axes.html">plot_canonical_axes()</a></code> draws, and with the bootstrap intervals. With
+  the bootstrap, each resample's axes are matched to the original ones by
+  their largest absolute cosine, since order and sign change between
+  resamples.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
@@ -168,7 +199,7 @@ is <code>FALSE</code>.</p></dd>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">ca</span> <span class="op">&lt;-</span> <span class="fu">canonical_analysis</span><span class="op">(</span><span class="va">bumpus</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span>, <span class="st">"humerus"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>High multicollinearity detected (VIF &gt; 5) - standard errors may be inflated</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Collinear traits (VIF above 5) may inflate the standard errors</span>
 <span class="r-in"><span><span class="va">ca</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Canonical analysis of gamma for total_length, weight, humerus on 136 individuals</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -178,13 +209,14 @@ is <code>FALSE</code>.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> weight        0.590  0.782 0.202</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> humerus       0.766 -0.621 0.167</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Curvature along each axis (negative stabilising, positive disruptive):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Curvature along each axis (negative is consistent with stabilising selection, positive with disruptive):</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  axis  lambda     se p_value  theta</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    m1  0.0331 0.1138   0.678  0.281</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    m2 -0.0248 0.2509   0.661 -0.507</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    m3 -0.1511 0.0988   0.125 -0.282</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    m1  0.0331 0.1138   0.968  0.281</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    m2 -0.0248 0.2509   0.909 -0.507</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    m3 -0.1511 0.0988   0.472 -0.282</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> The axes come from these data, so the tests are anticonservative.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> p-values from 999 permutations of fitness (Reynolds et al. 2010), which allow for the </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> axes coming from these data. The standard errors treat the axes as known.</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

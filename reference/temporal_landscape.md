@@ -2,9 +2,9 @@
 
 Fits the fitness function (one trait) or fitness surface (two traits)
 separately for each level of a time column, usually year, and optionally
-the adaptive landscape for each, so that how selection changes over time
-can be seen. Beausoleil et al. (2019) did this for Darwin's finches, one
-year at a time.
+the adaptive landscape for each, to show how selection changes over
+time. Beausoleil et al. (2019) did this for Darwin's finches, one year
+at a time.
 
 ## Usage
 
@@ -25,7 +25,8 @@ temporal_landscape(
   grid_n = 60,
   simulation_n = 300,
   mask = TRUE,
-  too_far = NULL
+  too_far = NULL,
+  count_family = c("poisson", "quasipoisson", "nb")
 )
 ```
 
@@ -93,6 +94,12 @@ temporal_landscape(
   [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md)
   for two traits.
 
+- count_family:
+
+  Family for count fitness in every period's fit: `"poisson"` (the
+  default), `"quasipoisson"` or `"nb"`, as in
+  [`univariate_spline()`](https://human-augment-analytics.github.io/Lande/reference/univariate_spline.md).
+
 ## Value
 
 An object of class `"temporal_landscape"`: `fits` and `landscapes`, one
@@ -111,28 +118,28 @@ function on one common trait grid, `NA` outside that period's data;
 ``` r
 prep <- prepare_selection_data(finch_yearly, "survived", "beak_pc1")
 years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
-#> 2004: n = 110, mean fitness 0.273, edf 2.5, 1 interior peak, highest fitness at the edge of the data
-#> 2005: n = 185, mean fitness 0.205, edf 3.9, 2 interior peaks
-#> 2006: n = 233, mean fitness 0.086, edf 1.0, 0 interior peaks, highest fitness at the edge of the data
-#> 2007: n = 61, mean fitness 0.262, edf 1.7, 1 interior peak
-#> 2008: n = 127, mean fitness 0.205, edf 6.4, 3 interior peaks
-#> 2009: n = 196, mean fitness 0.153, edf 4.0, 1 interior peak, highest fitness at the edge of the data
-#> 2010: n = 175, mean fitness 0.120, edf 1.0, 0 interior peaks, highest fitness at the edge of the data
+#> 2004: n = 110, mean fitness 0.345, edf 3.0, 1 interior peak, highest fitness at the edge of the data
+#> 2005: n = 185, mean fitness 0.276, edf 5.2, 3 interior peaks
+#> 2006: n = 233, mean fitness 0.180, edf 4.4, 2 interior peaks
+#> 2007: n = 61, mean fitness 0.344, edf 2.7, 1 interior peak
+#> 2008: n = 127, mean fitness 0.307, edf 7.0, 3 interior peaks, highest fitness at the edge of the data
+#> 2009: n = 196, mean fitness 0.194, edf 4.8, 1 interior peak, highest fitness at the edge of the data
+#> 2010: n = 175, mean fitness 0.189, edf 1.0, 0 interior peaks, highest fitness at the edge of the data
 years$summary
 #>   time   n mean_fitness mean_beak_pc1      edf optimum_beak_pc1 optimum_fit
-#> 1 2004 110   0.27272727    0.15262095 2.514761       2.56126184   0.4175333
-#> 2 2005 185   0.20540541    0.01659862 3.891967       1.51821556   0.2515484
-#> 3 2006 233   0.08583691   -0.07931978 1.000098       2.70000995   0.1085371
-#> 4 2007  61   0.26229508    0.12403720 1.672904       0.70740350   0.3342915
-#> 5 2008 127   0.20472441   -0.12870140 6.385272      -0.02345104   0.3931988
-#> 6 2009 196   0.15306122   -0.08518852 4.007243       2.84197912   0.6114977
-#> 7 2010 175   0.12000000    0.13770410 1.000048      -2.10396884   0.2646446
+#> 1 2004 110    0.3454545    0.15262095 3.039609         2.561262   0.4325621
+#> 2 2005 185    0.2756757    0.01659862 5.210404         1.471795   0.3642465
+#> 3 2006 233    0.1802575   -0.07931978 4.447501         1.722241   0.2434433
+#> 4 2007  61    0.3442623    0.12403720 2.732732         1.194424   0.5077420
+#> 5 2008 127    0.3070866   -0.12870140 6.962240        -2.103969   0.9659317
+#> 6 2009 196    0.1938776   -0.08518852 4.813914         2.841979   0.6449075
+#> 7 2010 175    0.1885714    0.13770410 1.000049        -2.103969   0.3286811
 #>   optimum_edge peaks
 #> 1         TRUE     1
-#> 2        FALSE     2
-#> 3         TRUE     0
+#> 2        FALSE     3
+#> 3        FALSE     2
 #> 4        FALSE     1
-#> 5        FALSE     3
+#> 5         TRUE     3
 #> 6         TRUE     1
 #> 7         TRUE     0
 plot_temporal_landscape(years, type = "heatmap")

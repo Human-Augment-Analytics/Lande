@@ -91,7 +91,10 @@ confidence intervals for every coefficient (beta, gamma, gamma_ij).</p>
 
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
-<dd><p>Optional string specifying a grouping variable (e.g., "year", "site").</p></dd>
+<dd><p>Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.</p></dd>
 
 
 <dt id="arg-use-relative-for-fit">use_relative_for_fit<a class="anchor" aria-label="anchor" href="#arg-use-relative-for-fit"></a></dt>
@@ -129,16 +132,21 @@ confidence intervals for every coefficient (beta, gamma, gamma_ij).</p>
   is discarded rather than fitted on a degenerate value. The point estimate
   is the ordinary <code><a href="selection_coefficients.html">selection_coefficients()</a></code> fit on the full data and
   its warnings are reported as usual.</p>
-<p>With strongly skewed traits the intervals for beta are too narrow, if less
-  so than the parametric ones (see <code><a href="check_selection_assumptions.html">check_selection_assumptions()</a></code>);
-  transform such traits before standardising.</p>
+<p>With continuous fitness the intervals for beta can be too narrow when the
+  traits have heavy tails (skewed or not) and the linear model leaves out
+  curvature, though less so than the parametric ones (see
+  <code><a href="check_selection_assumptions.html">check_selection_assumptions()</a></code>). For survival and counts in the
+  package's simulation they covered a little less than the parametric
+  ones, 92 to 93% for beta. Refitting
+  on a transformed trait changes the scale of the gradients and is only a
+  check.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">bootstrap_selection</span><span class="op">(</span><span class="va">bumpus</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span><span class="op">)</span>, n_boot <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>High multicollinearity detected (VIF &gt; 5) - standard errors may be inflated</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Collinear traits (VIF above 5) may inflate the standard errors</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    Term          Type    Estimate    Boot_SE   CI_lower</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1          total_length        Linear -0.17811220 0.10303749 -0.4021452</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2                weight        Linear -0.09992466 0.08007062 -0.2573204</span>

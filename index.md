@@ -77,7 +77,7 @@ one surface. The highest point is filled for a peak and open otherwise.
 A GAM surface carries its standard error and a band.
 `uncertainty = "se"` or `"band"` in the plots draws them, and
 [`peak_difference()`](https://human-augment-analytics.github.io/Lande/reference/peak_difference.md)
-compares the fitted fitness at two points, or each with the dip between
+compares the fitted fitness at two points, or each with the pass between
 them.
 
 ## Adaptive landscapes
@@ -106,11 +106,11 @@ plot_temporal_landscape(years, type = "heatmap")
 ## App
 
 [`run_app()`](https://human-augment-analytics.github.io/Lande/reference/run_app.md)
-opens the whole workflow in a browser: bundled or uploaded data,
-gradients, fitness functions, surface, landscape and per-group results,
-with the fitting options in Advanced settings. Needs `shiny`; `plotly`
-adds the rotatable 3D landscape. The app lives in `inst/app`; see its
-README there.
+opens the analysis in a browser: bundled or uploaded data, gradients,
+fitness functions, surface, landscape and per-group results, with the
+fitting options in Advanced settings. Needs `shiny`; `plotly` adds the
+rotatable 3D landscape. The app lives in `inst/app`; see its README
+there.
 
 ## Data
 
@@ -122,9 +122,10 @@ README there.
   analyses use the high-density enclosures, `density == "H"`, and so do
   the examples and the app.
 - `finch_yearly`: the yearly medium ground finch data of Beausoleil et
-  al. (2019).
+  al. (2019), with survival as being seen again in any later year.
 - `finch_community`: the five-group finch community of Beausoleil et al.
-  (2023), with recapture years as fitness.
+  (2023), with apparent lifespan as fitness and the year each bird was
+  first caught.
 
 Each has a help page with its columns and source. The pupfish and finch
 data are also in `inst/extdata` as CSV files.
@@ -135,8 +136,9 @@ data are also in `inst/extdata` as CSV files.
 classifies fitness as binary, count or continuous and picks the model
 used for the p-values; the gradients themselves always come from OLS on
 relative fitness. The spline uses a cubic regression basis with the
-smoothing chosen by GCV and the surface a thin-plate basis chosen by
-REML; both can be changed with `bs` and `smoothing`.
+smoothing chosen by GCV (UBRE for survival and Poisson counts) and the
+surface a thin-plate basis chosen by REML; both can be changed with `bs`
+and `smoothing`.
 
 See
 [`vignette("evolutionary-selection-analysis")`](https://human-augment-analytics.github.io/Lande/articles/evolutionary-selection-analysis.md)

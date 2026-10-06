@@ -76,13 +76,13 @@ A `ggplot` object.
 ``` r
 prep <- prepare_selection_data(finch_yearly, "survived", "beak_pc1")
 years <- temporal_landscape(prep, "survived", "beak_pc1", "year", landscape = FALSE)
-#> 2004: n = 110, mean fitness 0.273, edf 2.5, 1 interior peak, highest fitness at the edge of the data
-#> 2005: n = 185, mean fitness 0.205, edf 3.9, 2 interior peaks
-#> 2006: n = 233, mean fitness 0.086, edf 1.0, 0 interior peaks, highest fitness at the edge of the data
-#> 2007: n = 61, mean fitness 0.262, edf 1.7, 1 interior peak
-#> 2008: n = 127, mean fitness 0.205, edf 6.4, 3 interior peaks
-#> 2009: n = 196, mean fitness 0.153, edf 4.0, 1 interior peak, highest fitness at the edge of the data
-#> 2010: n = 175, mean fitness 0.120, edf 1.0, 0 interior peaks, highest fitness at the edge of the data
+#> 2004: n = 110, mean fitness 0.345, edf 3.0, 1 interior peak, highest fitness at the edge of the data
+#> 2005: n = 185, mean fitness 0.276, edf 5.2, 3 interior peaks
+#> 2006: n = 233, mean fitness 0.180, edf 4.4, 2 interior peaks
+#> 2007: n = 61, mean fitness 0.344, edf 2.7, 1 interior peak
+#> 2008: n = 127, mean fitness 0.307, edf 7.0, 3 interior peaks, highest fitness at the edge of the data
+#> 2009: n = 196, mean fitness 0.194, edf 4.8, 1 interior peak, highest fitness at the edge of the data
+#> 2010: n = 175, mean fitness 0.189, edf 1.0, 0 interior peaks, highest fitness at the edge of the data
 plot_temporal_landscape(years, ncol = 4)
 
 plot_temporal_landscape(years, type = "heatmap")

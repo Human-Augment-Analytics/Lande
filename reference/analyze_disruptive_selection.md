@@ -1,9 +1,8 @@
-# Analyze disruptive/stabilizing selection
+# Disruptive or stabilising selection on one trait
 
-Detects disruptive or stabilizing selection on a single trait by
-estimating its linear (beta) and quadratic (gamma) selection gradients.
-A positive gamma indicates disruptive selection; a negative gamma
-indicates stabilizing selection.
+Estimates the linear (beta) and quadratic (gamma) selection gradients of
+a single trait. Gamma is positive under disruptive selection and
+negative under stabilising selection.
 
 ## Usage
 

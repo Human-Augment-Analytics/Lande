@@ -23,7 +23,8 @@ correlated_fitness_surface(
   smoothing = c("REML", "GCV.Cp", "ML"),
   clamp = TRUE,
   level = 0.95,
-  by_group = FALSE
+  by_group = FALSE,
+  count_family = c("poisson", "quasipoisson", "nb")
 )
 ```
 
@@ -67,10 +68,11 @@ correlated_fitness_surface(
 
   Logical; with `TRUE` (the default) the GAM includes `group` as a fixed
   effect and predicts the surface at the reference level, as the
-  gradient models do for year or site. With `FALSE` one surface is
-  fitted to everyone and the group is only used for the `groups` table
-  and the overlay, which is what a community surface of several species
-  needs (Beausoleil et al. 2023).
+  gradient models do for year or site; rows with no group label are one
+  more level. With `FALSE` one surface is fitted to everyone and the
+  group is only used for the `groups` table and the overlay, which is
+  what a community surface of several species needs (Beausoleil et al.
+  2023).
 
 - k:
 
@@ -128,6 +130,18 @@ correlated_fitness_surface(
   hull. The default `FALSE` fits one surface, with the group as a fixed
   effect or only marked on it (see `group_effect`).
 
+- count_family:
+
+  Family for count fitness in the GAM: `"poisson"` (the default);
+  `"quasipoisson"`, which estimates the dispersion, so the standard
+  errors and peak comparisons allow for overdispersed counts; or `"nb"`,
+  a negative binomial. The smoothing parameter is chosen again with the
+  dispersion estimated, so the fitted surface changes too, usually
+  becoming smoother, and can change a lot where there are few
+  individuals. The result's `dispersion` is the Pearson dispersion of
+  the fit, and a Poisson fit warns when it is above 1.5 (a rule of
+  thumb).
+
 ## Value
 
 A list containing the fitted model, grid predictions, and metadata. With
@@ -143,32 +157,33 @@ frame has one row per group with its size, mean traits and the highest
 point of the surface within its own range, flagged `peak_interior` when
 that point is an interior maximum of the surface and `peak_edge` when it
 lies at the edge of the data; with both `FALSE` the surface keeps rising
-past the group's range.
+past the group's range. For count fitness `count_family` and
+`dispersion` record the family used and the Pearson dispersion of the
+fit.
 
 ## Details
 
 The family follows the fitness column: 0/1 fitness gets a binomial
-family, non-negative whole numbers with more than two values (recapture
-years, offspring) a Poisson family with a log link, and anything else a
-Gaussian family. With `method = "auto"` binary and count fitness use the
-GAM and continuous fitness the thin-plate spline. By default the GAM
-uses a thin-plate smooth with the smoothing parameter chosen by REML;
-`bs` and `smoothing` are there to match another study's smoother and do
-not apply to `method = "tps"`. With `"cr"` or `"ps"`, which are
-one-dimensional bases, the two traits enter as a tensor product smooth.
-Predicting a fitted surface over the full rectangle of the grid
-extrapolates into corners that no individual occupies; `mask = TRUE`
-leaves those blank rather than showing a fitted value there. The hull
-still fills gaps between separate clusters of individuals, such as
-several species on one surface; `too_far` blanks those too.
+family, non-negative whole numbers with more than two values (lifespan
+in years, offspring) a Poisson family with a log link or the one set by
+`count_family`, and anything else a Gaussian family. With
+`method = "auto"` binary and count fitness use the GAM and continuous
+fitness the thin-plate spline. By default the GAM uses a thin-plate
+smooth with the smoothing parameter chosen by REML; `bs` and `smoothing`
+are there to match another study's smoother and do not apply to
+`method = "tps"`. With `"cr"` or `"ps"`, which are one-dimensional
+bases, the two traits enter as a tensor product smooth. Predicting a
+fitted surface over the full rectangle of the grid extrapolates into
+corners that no individual occupies; `mask = TRUE` leaves those blank
+rather than showing a fitted value there. The hull still fills gaps
+between separate clusters of individuals, such as several species on one
+surface; `too_far` blanks those too.
 
 ## Examples
 
 ``` r
 prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
 surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
 #> Data type: binary; method: gam; n = 136; k = 29
 #> GAM fitting with 136 observations
 #>   Trying formula: main
@@ -188,8 +203,6 @@ pup <- pup[pup$density == "H", ]
 prep2 <- prepare_selection_data(pup, "survival", c("nose", "noseangle"))
 surf2 <- correlated_fitness_surface(prep2, "survival", c("nose", "noseangle"), grid_n = 30,
                                     too_far = 0.15, group = "lake", group_effect = FALSE)
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
 #> Data type: binary; method: gam; n = 1671; k = 30
 #> Grouping variable: lake (2 groups); one surface for all groups, the group only marks means and peaks
 #> GAM fitting with 1671 observations

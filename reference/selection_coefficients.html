@@ -58,7 +58,8 @@ Extracts linear (beta), quadratic (gamma), and correlational selection gradients
 <span>  standardize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  group <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  use_relative_for_fit <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  return_grouped <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  return_grouped <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  se_type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ols"</span>, <span class="st">"hc3"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -87,7 +88,10 @@ Extracts linear (beta), quadratic (gamma), and correlational selection gradients
 
 
 <dt id="arg-group">group<a class="anchor" aria-label="anchor" href="#arg-group"></a></dt>
-<dd><p>Optional string specifying a grouping variable (e.g., "year", "site").</p></dd>
+<dd><p>Optional string specifying a grouping variable (e.g., "year", "site").
+Traits and relative fitness are standardised within each group, and for
+binary and count fitness the GLM that supplies the p-values gets a
+separate intercept for each group.</p></dd>
 
 
 <dt id="arg-use-relative-for-fit">use_relative_for_fit<a class="anchor" aria-label="anchor" href="#arg-use-relative-for-fit"></a></dt>
@@ -97,10 +101,39 @@ Extracts linear (beta), quadratic (gamma), and correlational selection gradients
 <dt id="arg-return-grouped">return_grouped<a class="anchor" aria-label="anchor" href="#arg-return-grouped"></a></dt>
 <dd><p>Logical indicating whether to return results grouped if a <code>group</code> is specified.</p></dd>
 
+
+<dt id="arg-se-type">se_type<a class="anchor" aria-label="anchor" href="#arg-se-type"></a></dt>
+<dd><p>Standard errors of the gradients: <code>"ols"</code>, the usual
+least-squares ones (the default), or <code>"hc3"</code>, leave-one-out standard
+errors that allow for residual spread changing with the traits.
+Mitchell-Olds and Shaw (1987) suggested the jackknife for selection
+gradients when the residuals are not normal; HC3 (MacKinnon and White
+1985) gets much the same in closed form, from how far the estimates move
+when each individual is left out. In the package's simulation it recovered
+most of the coverage beta loses when the model leaves out curvature, from
+88 to 93% with normal traits, 67 to 86% with log-normal ones and 77 to
+91% with heavy-tailed symmetric ones. It did nothing for the coverage lost
+to estimating a skewed trait's SD, and with survival and counts its
+intervals covered a little less, down to 91% (see
+<code><a href="check_selection_assumptions.html">check_selection_assumptions()</a></code>). For continuous fitness the p-values
+follow the chosen errors; for survival and counts they come from the GLM
+with either <code>se_type</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A data frame containing selection coefficients (Term, Type, Beta_Coefficient, Standard_Error, P_Value, Variance).</p>
+    <p>A data frame containing selection coefficients (Term, Type,
+  Beta_Coefficient, Standard_Error, P_Value, Variance), with the standard
+  errors used in the attribute <code>"se_type"</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
+    <p>MacKinnon, J. G. and White, H. (1985) Some
+  heteroskedasticity-consistent covariance matrix estimators with improved
+  finite sample properties. Journal of Econometrics 29, 305-325.
+  Mitchell-Olds, T. and Shaw, R. G. (1987) Regression analysis of natural
+  selection: statistical inference and biological interpretation. Evolution
+  41, 1149-1161.</p>
     </div>
 
     <div class="section level2">
@@ -108,7 +141,7 @@ Extracts linear (beta), quadratic (gamma), and correlational selection gradients
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">selection_coefficients</span><span class="op">(</span><span class="va">bumpus</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span><span class="op">)</span>, fitness_type <span class="op">=</span> <span class="st">"binary"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> there are higher-order terms (interactions) in this model</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> consider setting type = 'predictor'; see ?vif</span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>High multicollinearity detected (VIF &gt; 5) - standard errors may be inflated</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Collinear traits (VIF above 5) may inflate the standard errors</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                    Term          Type Beta_Coefficient Standard_Error</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1          total_length        Linear      -0.17811220      0.0974800</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2                weight        Linear      -0.09992466      0.0974800</span>

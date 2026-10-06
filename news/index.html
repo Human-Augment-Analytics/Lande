@@ -46,17 +46,21 @@
 <ul><li>Selection differentials and linear, quadratic and correlational gradients on relative fitness, with p-values from the logistic model for survival and from a Poisson or negative binomial model for counts.</li>
 <li>Cubic spline fitness functions with a bootstrap band, two-trait fitness surfaces drawn only where there are data, and adaptive landscapes of mean fitness for one or two traits.</li>
 <li>
+<code>count_family = "quasipoisson"</code> or <code>"nb"</code> in <code><a href="../reference/univariate_spline.html">univariate_spline()</a></code>, <code><a href="../reference/correlated_fitness_surface.html">correlated_fitness_surface()</a></code> and <code><a href="../reference/temporal_landscape.html">temporal_landscape()</a></code> for overdispersed counts; the spline and the surface report the dispersion.</li>
+<li>
 <code>by_group = TRUE</code> in the spline and the surface fits each group on its own and returns a list of fits.</li>
 <li>Several groups on one surface, with each group’s mean and highest point marked, and interior peaks told from maxima at the edge of the data.</li>
 <li>Fitness functions and landscapes fitted period by period.</li>
-<li>Bootstrap standard errors and percentile intervals for the gradients.</li>
+<li>Bootstrap standard errors and percentile intervals for the gradients, and leave-one-out (HC3) standard errors with <code>se_type = "hc3"</code>.</li>
 <li>Assumption checks in one table: multivariate normality of the traits, VIF, rows per term, residuals or dispersion of the gradient model.</li>
-<li>Bumpus’s sparrows bundled as data; pupfish and finch data in <code>extdata</code>.</li>
-<li>A Shiny app for the whole workflow, opened with <code><a href="../reference/run_app.html">run_app()</a></code>, which writes out the R calls that repeat an analysis with the current settings.</li>
+<li>Bumpus’s sparrows, Martin’s pupfish and two sets of Galapagos finches bundled as datasets, with CSV copies of the pupfish and finch data in <code>extdata</code>.</li>
+<li>A Shiny app that runs the analyses in a browser, opened with <code><a href="../reference/run_app.html">run_app()</a></code>, which writes out the R calls that repeat an analysis with the current settings.</li>
 <li>
-<code><a href="../reference/canonical_analysis.html">canonical_analysis()</a></code> rotates the gamma matrix to its canonical axes, with double-regression standard errors and an optional bootstrap, and <code><a href="../reference/plot_canonical_axes.html">plot_canonical_axes()</a></code> draws fitness along them.</li>
-<li>Standard errors and a band on the GAM fitness surface, drawn with the plots’ <code>uncertainty</code> option, and <code><a href="../reference/peak_difference.html">peak_difference()</a></code> to compare two points of a surface, or each with the dip between them.</li>
-<li>The adaptive landscape reports how much of each simulated population falls outside the data, and the plot can mark where it does.</li>
+<code><a href="../reference/canonical_analysis.html">canonical_analysis()</a></code> rotates the gamma matrix to its canonical axes, with double-regression standard errors, permutation p-values (Reynolds et al.
+<ol start="2010" style="list-style-type: decimal"><li>and an optional bootstrap, and <code><a href="../reference/plot_canonical_axes.html">plot_canonical_axes()</a></code> draws fitness along them.</li>
+</ol></li>
+<li>Standard errors and a band on the GAM fitness surface, drawn with the plots’ <code>uncertainty</code> option, and <code><a href="../reference/peak_difference.html">peak_difference()</a></code> to compare two points of a surface, or each with the pass between them (<code>route = "line"</code> for the straight line).</li>
+<li>The adaptive landscape reports how much of each simulated population falls outside the data, and flags an optimum on the edge of the grid; the plot can mark where the population leaves the data.</li>
 <li>A <code>clamp</code> option on the landscape and the thin-plate surface holds predicted fitness inside the range of the fitness type; on by default.</li>
 </ul></div>
   </main></div>

@@ -79,7 +79,7 @@
 
 
 <dt id="arg-grid-n">grid_n<a class="anchor" aria-label="anchor" href="#arg-grid-n"></a></dt>
-<dd><p>Integer specifying the resolution of the interpolation grid. Default is 200.</p></dd>
+<dd><p>Ignored; the landscape's own grid is used.</p></dd>
 
 
 <dt id="arg-color-palette">color_palette<a class="anchor" aria-label="anchor" href="#arg-color-palette"></a></dt>
@@ -104,17 +104,12 @@
 <span class="r-in"><span>                             simulation_n <span class="op">=</span> <span class="fl">100</span>, grid_n <span class="op">=</span> <span class="fl">15</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="fu">plot_adaptive_landscape_3d</span><span class="op">(</span><span class="va">land</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>            Do NOT apply scale() again within this function.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Data type: binary; method: gam; n = 136; k = 29</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> GAM fitting with 136 observations</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   Trying formula: main</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Success with formula: main</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Predictions range: 0.0472 to 0.703</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Masked 424 of 900 grid points outside the data</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>            Use prepare_selection_data() before calling this function.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>            Do NOT standardize again within this function.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Population mean grid ranges:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   total_length: -2.96 to 2.94</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   weight: -3.12 to 4.85</span>
@@ -125,9 +120,10 @@
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Calculating mean fitness for 225 grid points</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Optimal population mean phenotype:</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   total_length    weight</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 8   -0.0123897 -3.121579</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> Mean fitness at optimum: 0.6808</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 75% of simulated individuals fell outside the data (96% at the optimum)</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 7   -0.4336396 -3.121579</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Mean fitness at optimum: 0.6821</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> The highest mean fitness is on the edge of the grid; the landscape may keep rising beyond it</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 75% of simulated individuals fell outside the data (99% at the optimum)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> The optimum rests on extrapolation: more than 25% of the population simulated there lies outside the data</span>
 <span class="r-plt img"><img src="plot_adaptive_landscape_3d-1.png" alt="" width="700" height="433"></span>
 </code></pre></div>

@@ -2,8 +2,7 @@
 
 Morphological measurements and overwinter survival of house sparrows
 (*Passer domesticus*) collected by Hermon Bumpus in 1898 after a severe
-winter storm in Providence, Rhode Island. It is a classic dataset for
-demonstrating natural selection on quantitative traits.
+winter storm in Providence, Rhode Island.
 
 ## Usage
 

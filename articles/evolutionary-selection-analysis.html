@@ -188,12 +188,12 @@ is the mean fitness of the population, and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>w</mi><mi>i</mi></msub><annotation encoding="application/x-tex">w_i</annotation></semantics></math>
 is the relative fitness of individual
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>.</p>
-<p><strong>Why relative fitness?</strong> Selection operates on
-relative, not absolute, differences in fitness. This standardisation
-ensures that selection gradients are comparable across studies. Brodie
-and Janzen (1996) showed that regressing absolute survival puts the
-gradients on the wrong scale, which is why the package always
-relativises fitness before fitting. <strong>File:</strong>
+<p>Fitness is made relative because selection acts on differences in
+fitness relative to the mean, and dividing by mean fitness puts
+gradients from different studies on one scale. Brodie and Janzen (1996)
+showed that regressing absolute survival puts the gradients on the wrong
+scale, which is why the package always relativises fitness before
+fitting. <strong>File:</strong>
 <code>prepare_selection_data.R</code></p>
 </div>
 <div class="section level4">
@@ -215,20 +215,19 @@ scale, allowing direct comparison of selection gradients. A
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\beta = 0.5</annotation></semantics></math>
 means that a one-standard-deviation increase in the trait increases
 relative fitness by 0.5 units.</p>
-<p><strong>Standardise within the group you analyse.</strong> Traits and
-relative fitness must be scaled within the population and time period in
-question. With data from several years or sites, pass the column to
-<code>group</code> and both steps are done separately within each level
-before the data are stacked. This is the same as fitting a fixed effect
-for the group in the regression, so the pooled gradients gain power from
-the extra individuals without mixing the groups’ scales. It also means
-the pooled model cannot test whether selection differs between groups (a
+<p>Scale traits and relative fitness within the population and time
+period in question. With data from several years or sites, pass the
+column to <code>group</code> and both steps are done separately within
+each level before the data are stacked. For the linear gradients scaling
+within groups is the same as fitting a fixed effect for the group, and
+for the quadratic ones close to it, so the pooled gradients gain power
+from the extra individuals without mixing the groups’ scales, but the
+pooled model cannot test whether selection differs between groups (a
 year by trait interaction); fit the groups separately with
 <code>return_grouped = TRUE</code> for that.</p>
-<p><strong>Do not standardise twice.</strong> The gradients are the raw
-partial regression coefficients from the models fitted to these
-standardised traits. Do not wrap the traits in <code><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale()</a></code>
-inside a model formula, and do not use a modelling option that
+<p>The gradients are the raw partial regression coefficients from models
+fitted to these standardised traits, so don’t wrap the traits in
+<code><a href="https://rdrr.io/r/base/scale.html" class="external-link">scale()</a></code> in a model formula or use a modelling option that
 standardises predictors; either would scale the coefficients a second
 time. <strong>File:</strong> <code>prepare_selection_data.R</code></p>
 </div>
@@ -280,8 +279,7 @@ not for survival or offspring counts. For binary fitness the p-values
 therefore come from a logistic regression of the raw 0/1 outcome on the
 same terms, and for counts from a Poisson regression of the raw counts,
 replaced by a negative binomial one when the counts are overdispersed.
-The coefficients reported are still the least-squares gradients in every
-case. <strong>File:</strong> <code>analyze_linear_selection.R</code></p>
+<strong>File:</strong> <code>analyze_linear_selection.R</code></p>
 </div>
 <div class="section level4">
 <h4 id="nonlinear-selection-gradients">2.5 Nonlinear Selection Gradients<a class="anchor" aria-label="anchor" href="#nonlinear-selection-gradients"></a>
@@ -359,13 +357,14 @@ See <code><a href="../reference/canonical_analysis.html">canonical_analysis()</a
 <div class="section level4">
 <h4 id="nonparametric-fitness-functions-and-surfaces">2.6 Nonparametric Fitness Functions and Surfaces<a class="anchor" aria-label="anchor" href="#nonparametric-fitness-functions-and-surfaces"></a>
 </h4>
-<p>Traditional quadratic models impose a fixed shape on the fitness
-function. Nonparametric methods allow the data to reveal unexpected
-patterns. These are still individual-level fitness functions; the
-population-level adaptive landscape is a separate construction (section
-2.7). Cubic splines for one trait and thin-plate splines for two follow
-Schluter (1988) and Schluter and Nychka (1994); Brodie et al. (1995) is
-the guide to reading the surfaces.</p>
+<p>Quadratic regression fixes the shape of the fitness function in
+advance, while a spline takes its shape from the data and can show, for
+example, two peaks that a quadratic would average away. These are still
+individual-level fitness functions; the population-level adaptive
+landscape is a separate construction (section 2.7). Cubic splines for
+one trait and thin-plate splines for two follow Schluter (1988) and
+Schluter and Nychka (1994); Brodie et al. (1995) is the guide to reading
+the surfaces.</p>
 <p><strong>Univariate spline model:</strong></p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>w</mi><mo>=</mo><mi>α</mi><mo>+</mo><mi>s</mi><mo stretchy="false" form="prefix">(</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>ε</mi></mrow><annotation encoding="application/x-tex">w = \alpha + s(z) + \varepsilon</annotation></semantics></math></p>
 <p>where
@@ -377,8 +376,9 @@ splines.</p>
 <p>where
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>z</mi><mn>1</mn></msub><mo>,</mo><msub><mi>z</mi><mn>2</mn></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">f(z_1, z_2)</annotation></semantics></math>
 is a two-dimensional smooth surface showing how individual fitness
-varies across trait combinations. The univariate spline uses generalised
-cross-validation for its smoothing parameter (Schluter 1988); the
+varies across trait combinations. The univariate spline chooses its
+smoothing parameter by generalised cross-validation (Schluter 1988),
+which for survival and Poisson counts mgcv applies in its UBRE form; the
 surface uses REML. The surface is drawn only where there are data: grid
 points outside the convex hull of the observed trait pairs are blank,
 and a distance rule can also blank cells far from any individual, as
@@ -410,10 +410,9 @@ describes mean fitness as a function of population mean phenotype:</p>
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover><mi>z</mi><mo accent="true">‾</mo></mover><mn>1</mn></msub><mo>,</mo><msub><mover><mi>z</mi><mo accent="true">‾</mo></mover><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">\bar{z}_1, \bar{z}_2</annotation></semantics></math>
 = population mean phenotypes</li>
 </ul>
-<p>Unlike correlated fitness surfaces (which use individual data),
-adaptive landscapes require simulation because they represent a
-theoretical construct: the expected mean fitness for a population with a
-given mean phenotype.</p>
+<p>A fitness surface is fitted to individuals. The adaptive landscape is
+the mean fitness a population would have at a given mean phenotype, so
+it is computed by simulating such populations.</p>
 <p><strong>Calculation procedure:</strong></p>
 <p>For each candidate population mean
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>𝐳</mi><mo accent="true">‾</mo></mover><annotation encoding="application/x-tex">\bar{\mathbf{z}}</annotation></semantics></math>:</p>
@@ -470,22 +469,19 @@ w_{\text{ind}} = \hat{f}(\mathbf{z}_{\text{ind}})
 </table>
 <p><strong>File:</strong> <code>adaptive_landscape.R</code></p>
 <p>The two surfaces are compared with
-<code><a href="../reference/compare_fitness_surfaces_data.html">compare_fitness_surfaces_data()</a></code> (section 5.15): the
-correlated fitness surface describes the selection acting on individuals
-now, and the adaptive landscape describes where that selection would
-move a population’s mean. The same construction works for a single
-trait, where the landscape is a curve of mean fitness against the
-population mean, drawn alongside the fitness function it was averaged
-from.</p>
+<code><a href="../reference/compare_fitness_surfaces_data.html">compare_fitness_surfaces_data()</a></code> (section 5.15). The same
+construction works for a single trait, where the landscape is a curve of
+mean fitness against the population mean, drawn alongside the fitness
+function it was averaged from.</p>
 <hr>
 </div>
 <div class="section level4">
 <h4 id="landscapes-over-time">2.8 Landscapes over Time<a class="anchor" aria-label="anchor" href="#landscapes-over-time"></a>
 </h4>
-<p>Selection is rarely constant. Beausoleil et al. (2019) fitted a
-separate fitness function to each year of the finch data and found the
-shape changing from year to year, with two peaks in some years and a
-slope in others. The package does the same with
+<p>Beausoleil et al. (2019) fitted a separate fitness function to each
+year of the finch data and found disruptive selection throughout,
+stronger in some years than others and significant in three of the six
+year-to-year intervals they tested. The package does the same with
 <code><a href="../reference/temporal_landscape.html">temporal_landscape()</a></code>: the fitness function (one trait) or
 surface (two traits) and, if asked, the adaptive landscape are fitted
 separately for each level of a time column, on traits standardised once
@@ -582,7 +578,7 @@ or
 <tr class="odd">
 <td><code>univariate_spline.R</code></td>
 <td>1D fitness</td>
-<td>Cubic regression spline (GCV)</td>
+<td>Cubic regression spline (GCV, UBRE for 0/1 and Poisson counts)</td>
 <td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>w</mi><mo>=</mo><mi>α</mi><mo>+</mo><mi>s</mi><mo stretchy="false" form="prefix">(</mo><mi>z</mi><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mi>ε</mi></mrow><annotation encoding="application/x-tex">w = \alpha + s(z) + \varepsilon</annotation></semantics></math></td>
 </tr>
 <tr class="even">
@@ -661,14 +657,14 @@ together</td>
 <td>Canonical analysis</td>
 <td>Eigen-decomposition of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝛄</mi><annotation encoding="application/x-tex">\boldsymbol{\gamma}</annotation></semantics></math>,
-double regression</td>
+double regression, permutation test</td>
 <td><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>𝛄</mi><mo>=</mo><mi>𝐌</mi><mi>𝚲</mi><msup><mi>𝐌</mi><mi>T</mi></msup></mrow><annotation encoding="application/x-tex">\boldsymbol{\gamma} = \mathbf{M}\boldsymbol{\Lambda}\mathbf{M}^T</annotation></semantics></math></td>
 </tr>
 <tr class="even">
 <td><code>peak_difference.R</code></td>
 <td>Peak comparison</td>
-<td>Difference in fitted fitness between two points, lowest point on the
-line between</td>
+<td>Difference in fitted fitness between two points, and between each
+and the pass between them</td>
 <td>Link-scale difference, SE from the model’s covariance</td>
 </tr>
 <tr class="odd">
@@ -973,8 +969,8 @@ this simplifies to:
 <h4 id="analyze_linear_selection">5.4 <code>analyze_linear_selection()</code><a class="anchor" aria-label="anchor" href="#analyze_linear_selection"></a>
 </h4>
 <p><strong>Purpose:</strong> Estimates linear selection gradients
-(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝛃</mi><annotation encoding="application/x-tex">\boldsymbol{\beta}</annotation></semantics></math>)
-with comprehensive diagnostics.</p>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝛃</mi><annotation encoding="application/x-tex">\boldsymbol{\beta}</annotation></semantics></math>),
+with variance inflation factors and Type III tests.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/analyze_linear_selection.html">analyze_linear_selection</a></span><span class="op">(</span></span>
 <span>  <span class="va">data</span>,</span>
@@ -1143,19 +1139,23 @@ function using GAMs.</p>
 <span>  relative_col <span class="op">=</span> <span class="cn">NULL</span>, <span class="co"># pre-computed relative fitness column, if any</span></span>
 <span>  k <span class="op">=</span> <span class="fl">10</span>,              <span class="co"># basis dimension</span></span>
 <span>  bs <span class="op">=</span> <span class="st">"cr"</span>,           <span class="co"># spline basis: "cr", "tp" or "ps"</span></span>
-<span>  smoothing <span class="op">=</span> <span class="st">"GCV.Cp"</span>, <span class="co"># how the smoothing parameter is chosen: "GCV.Cp", "REML" or "ML"</span></span>
+<span>  smoothing <span class="op">=</span> <span class="st">"GCV.Cp"</span>, <span class="co"># how the smoothing parameter is chosen: "GCV.Cp" (UBRE for 0/1 and Poisson counts), "REML" or "ML"</span></span>
 <span>  bootstrap <span class="op">=</span> <span class="cn">FALSE</span>,   <span class="co"># TRUE: percentile-bootstrap 95% ribbon (Schluter 1988)</span></span>
-<span>  n_boot <span class="op">=</span> <span class="fl">1000</span></span>
+<span>  n_boot <span class="op">=</span> <span class="fl">1000</span>,</span>
+<span>  count_family <span class="op">=</span> <span class="st">"poisson"</span> <span class="co"># "quasipoisson" or "nb" for overdispersed counts</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Technical details:</strong></p>
 <ul>
 <li>Penalised cubic regression spline (<code>bs = "cr"</code>) with the
 smoothing parameter chosen by generalised cross-validation, following
-Schluter (1988). <code>bs</code> and <code>smoothing</code> exist to
-match the smoother another study used; they change the family of curves,
-not how much the data are smoothed, which is always chosen from the
-data. A warning is given if mgcv’s check suggests <code>k</code> left
-the curve too little room to bend.</li>
+Schluter (1988); for survival and Poisson counts mgcv uses its UBRE
+form, and a negative binomial fit uses REML. <code>bs</code> sets the
+family of curves and <code>smoothing</code> the criterion, to match the
+smoother another study used; the amount of smoothing is still estimated
+from the data, though the criterion can change it a good deal. A warning
+is given if mgcv’s check suggests <code>k</code> left the curve too
+little room to bend; the check is skipped for survival, whose residuals
+carry too little to test.</li>
 <li>For binary fitness: binomial GAM with logit link on the raw 0/1
 values; for counts: Poisson GAM with log link on the raw counts; for
 continuous fitness: Gaussian GAM on relative fitness</li>
@@ -1176,12 +1176,12 @@ over individuals with <code>bootstrap = TRUE</code>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">spline_fit</span><span class="op">$</span><span class="va">grid</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        size       fit          lwr       upr</span></span>
-<span><span class="co">#&gt; 1 -3.190356 0.4562304 3.693586e-07 0.9999977</span></span>
-<span><span class="co">#&gt; 2 -3.159592 0.4591544 4.885365e-07 0.9999972</span></span>
-<span><span class="co">#&gt; 3 -3.128828 0.4620803 6.476331e-07 0.9999965</span></span>
-<span><span class="co">#&gt; 4 -3.098065 0.4650070 8.585529e-07 0.9999956</span></span>
-<span><span class="co">#&gt; 5 -3.067301 0.4679334 1.191470e-06 0.9999945</span></span>
-<span><span class="co">#&gt; 6 -3.036537 0.4708582 1.503094e-06 0.9999933</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 -3.190356 0.4562304 5.508080e-07 0.9999762</span></span>
+<span><span class="co">#&gt; 2 -3.159592 0.4591544 7.218188e-07 0.9999706</span></span>
+<span><span class="co">#&gt; 3 -3.128828 0.4620803 9.459050e-07 0.9999639</span></span>
+<span><span class="co">#&gt; 4 -3.098065 0.4650070 1.213084e-06 0.9999555</span></span>
+<span><span class="co">#&gt; 5 -3.067301 0.4679334 1.529131e-06 0.9999452</span></span>
+<span><span class="co">#&gt; 6 -3.036537 0.4708582 1.927859e-06 0.9999341</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="plot_univariate_fitness">5.8 <code>plot_univariate_fitness()</code><a class="anchor" aria-label="anchor" href="#plot_univariate_fitness"></a>
@@ -1232,7 +1232,8 @@ thin-plate splines (continuous) or GAMs (binary and count fitness).</p>
 <span>  smoothing <span class="op">=</span> <span class="st">"REML"</span>, <span class="co"># GAM smoothing parameter choice: "REML", "GCV.Cp" or "ML"</span></span>
 <span>  clamp <span class="op">=</span> <span class="cn">TRUE</span>, <span class="co"># Hold thin-plate predictions within the range of the fitness type</span></span>
 <span>  level <span class="op">=</span> <span class="fl">0.95</span>, <span class="co"># Confidence level of the band around a GAM surface</span></span>
-<span>  by_group <span class="op">=</span> <span class="cn">FALSE</span> <span class="co"># TRUE: a separate surface for each group, returned as a named list</span></span>
+<span>  by_group <span class="op">=</span> <span class="cn">FALSE</span>, <span class="co"># TRUE: a separate surface for each group, returned as a named list</span></span>
+<span>  count_family <span class="op">=</span> <span class="st">"poisson"</span> <span class="co"># "quasipoisson" or "nb" for overdispersed counts</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Method selection:</strong></p>
 <ul>
@@ -1243,10 +1244,13 @@ fitness (spline-based)</li>
 <code>"gam"</code>: Uses <code><a href="https://rdrr.io/pkg/mgcv/man/gam.html" class="external-link">mgcv::gam()</a></code> with a thin-plate
 smooth and REML smoothing (works for all three). The family follows the
 fitness column: binomial for 0/1, Poisson with a log link for counts
-such as recapture years or offspring, Gaussian otherwise.
-<code>bs</code> and <code>smoothing</code> swap in another basis or
-criterion to match a published analysis; with <code>"cr"</code> or
-<code>"ps"</code> the two traits enter as a tensor product.</li>
+such as lifespan in years or offspring, Gaussian otherwise. Counts are
+often overdispersed. A Poisson fit warns when the dispersion is above
+1.5, and <code>count_family = "quasipoisson"</code> then corrects the
+standard errors and peak comparisons. <code>bs</code> and
+<code>smoothing</code> swap in another basis or criterion to match a
+published analysis; with <code>"cr"</code> or <code>"ps"</code> the two
+traits enter as a tensor product.</li>
 <li>
 <code>"auto"</code>: Chooses based on fitness type (GAM for binary
 and count, TPS for continuous)</li>
@@ -1376,9 +1380,14 @@ error as dashed contour lines over the surface, and
 upper bound side by side on one fill scale.
 <code>peak_difference(surface, from, to, valley = TRUE)</code> gives the
 difference in fitted fitness between two points, given as group names or
-trait values, and between each of them and the lowest point on the line
-joining them, with standard errors from the covariance of the model’s
-coefficients. The thin-plate spline gives no standard errors.</p>
+trait values, and between each of them and the pass between them, the
+lowest point on the highest route from one to the other, with standard
+errors from the covariance of the model’s coefficients.
+<code>route = "line"</code> takes the lowest point on the straight line
+instead, as Beausoleil et al. (2023) measured valley depths;
+<code><a href="../reference/peak_difference.html">?peak_difference</a></code> explains why the two can differ and why
+the comparisons are exploratory. The thin-plate spline gives no standard
+errors.</p>
 <p><strong>Example:</strong></p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_correlated_fitness.html">plot_correlated_fitness</a></span><span class="op">(</span></span>
@@ -1443,7 +1452,7 @@ model</li>
 <li>Calculate mean fitness
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover><mi>W</mi><mo accent="true">‾</mo></mover><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><mo>∑</mo><msub><mover><mi>w</mi><mo accent="true">̂</mo></mover><mtext mathvariant="normal">ind</mtext></msub></mrow><annotation encoding="application/x-tex">\bar{W} = \frac{1}{N}\sum \hat{w}_{\text{ind}}</annotation></semantics></math>
 </li>
-<li>Find optimum - the population mean that maximises
+<li>Find the optimum, the population mean that maximises
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>W</mi><mo accent="true">‾</mo></mover><annotation encoding="application/x-tex">\bar{W}</annotation></semantics></math>
 </li>
 </ol>
@@ -1490,8 +1499,8 @@ and the result is a curve rather than a surface.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">landscape</span><span class="op">$</span><span class="va">optimum</span></span>
-<span><span class="co">#&gt;            size     colour .mean_fit .outside</span></span>
-<span><span class="co">#&gt; 1173 -0.5666342 -0.1465932 0.5624699    0.138</span></span></code></pre></div>
+<span><span class="co">#&gt;           size      colour .mean_fit .outside</span></span>
+<span><span class="co">#&gt; 1222 -0.741549 -0.02229907 0.5612512    0.143</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="plot_adaptive_landscape">5.12 <code>plot_adaptive_landscape()</code><a class="anchor" aria-label="anchor" href="#plot_adaptive_landscape"></a>
@@ -1562,7 +1571,8 @@ selection analysis.</p>
 <span>  standardize <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  group <span class="op">=</span> <span class="cn">NULL</span>,               <span class="co"># optional grouping column (e.g. year)</span></span>
 <span>  use_relative_for_fit <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  return_grouped <span class="op">=</span> <span class="cn">FALSE</span>      <span class="co"># TRUE: one set of gradients per group</span></span>
+<span>  return_grouped <span class="op">=</span> <span class="cn">FALSE</span>,     <span class="co"># TRUE: one set of gradients per group</span></span>
+<span>  se_type <span class="op">=</span> <span class="st">"ols"</span>             <span class="co"># "hc3": leave-one-out standard errors</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Workflow:</strong></p>
 <ol style="list-style-type: decimal">
@@ -1582,12 +1592,23 @@ selection analysis.</p>
 <li>
 <code>Beta_Coefficient</code>: Estimated selection gradient</li>
 <li>
-<code>Standard_Error</code>: Standard error of estimate</li>
+<code>Standard_Error</code>: Standard error of estimate, least
+squares or HC3 (<code>se_type</code>)</li>
 <li>
 <code>P_Value</code>: Statistical significance</li>
 <li>
 <code>Variance</code>: Square of standard error</li>
 </ul>
+<p><code>se_type = "hc3"</code> gives leave-one-out standard errors
+(MacKinnon &amp; White, 1985; Mitchell-Olds &amp; Shaw, 1987; see
+<code><a href="../reference/selection_coefficients.html">?selection_coefficients</a></code>). They allow for residual spread
+that changes with the traits, as it does when the model leaves out
+curvature; in the package’s simulation they recovered most of the
+coverage lost there, most of all with heavy-tailed traits. They did
+nothing for the coverage lost to estimating a skewed trait’s SD, and
+with survival and counts they covered a little less. For continuous
+fitness the p-values follow them; for survival and counts the p-values
+come from the GLM with either <code>se_type</code>.</p>
 <p><strong>Example:</strong></p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">results_binary</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/selection_coefficients.html">selection_coefficients</a></span><span class="op">(</span></span>
@@ -1622,16 +1643,16 @@ not have. They are only needed if you fit the models yourself and want
 the same table.</p>
 </div>
 <div class="section level4">
-<h4 id="one-call-wrappers">5.14 One-call wrappers<a class="anchor" aria-label="anchor" href="#one-call-wrappers"></a>
+<h4 id="selection_report">5.14 <code>selection_report()</code><a class="anchor" aria-label="anchor" href="#selection_report"></a>
 </h4>
-<p>The full workflow is available in one call through
-<code><a href="../reference/selection_coefficients.html">selection_coefficients()</a></code> (the coefficient table) and
-<code><a href="../reference/selection_report.html">selection_report()</a></code> (differentials and gradients in a single
-standardised table):</p>
+<p><code><a href="../reference/selection_coefficients.html">selection_coefficients()</a></code> gives the coefficient table and
+<code><a href="../reference/selection_report.html">selection_report()</a></code> the differentials and gradients in one
+standardised table:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/selection_report.html">selection_report</a></span><span class="op">(</span><span class="va">prepared</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"size"</span>, <span class="st">"colour"</span><span class="op">)</span>, fitness_type <span class="op">=</span> <span class="st">"binary"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Selection analysis (standardised traits, relative fitness)</span></span>
 <span><span class="co">#&gt; Fitness type: binary </span></span>
+<span><span class="co">#&gt; p-values are from a logistic model on the same terms</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;           Term          Type Estimate Std_Error P_Value Sig</span></span>
 <span><span class="co">#&gt;           size  Differential  -0.1126        NA      NA    </span></span>
@@ -1663,10 +1684,10 @@ in different places.</p>
 <span><span class="va">comparison</span><span class="op">$</span><span class="va">summary_stats</span></span>
 <span><span class="co">#&gt;              Surface Fitness_Range_Min Fitness_Range_Max Fitness_Mean</span></span>
 <span><span class="co">#&gt; 1 Correlated Fitness        0.17063668         0.7006815    0.4908177</span></span>
-<span><span class="co">#&gt; 2 Adaptive Landscape        0.05906825         0.5624699    0.3492047</span></span>
+<span><span class="co">#&gt; 2 Adaptive Landscape        0.06221752         0.5612512    0.3493286</span></span>
 <span><span class="co">#&gt;   Fitness_SD N_Points</span></span>
 <span><span class="co">#&gt; 1  0.1185462     3600</span></span>
-<span><span class="co">#&gt; 2  0.1227410     2500</span></span></code></pre></div>
+<span><span class="co">#&gt; 2  0.1226478     2500</span></span></code></pre></div>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_fitness_surfaces_comparison.html">plot_fitness_surfaces_comparison</a></span><span class="op">(</span></span>
 <span>  comparison_data <span class="op">=</span> <span class="va">comparison</span>,</span>
@@ -1728,29 +1749,31 @@ values of every period stacked in <code>grid</code>, for one trait the
 fitness functions on a common grid in <code>heat</code> (blank where a
 period has no individuals), and the periods skipped for having fewer
 than <code>min_n</code> rows.</p>
-<p>Standardise the traits once, over all periods, before calling: the
-periods must share one trait axis, so nothing is restandardised per
-period. The number of peaks depends on the basis size <code>k</code> as
-any spline feature does; treat it as a description of the fitted curve,
-and test disruptive selection with the quadratic gradient on the birds
-between the peaks as Beausoleil et al. (2019) did.</p>
+<p>Standardise the traits once over all periods before calling; nothing
+is restandardised per period, since the periods share one trait axis.
+The number of peaks depends on the basis size <code>k</code> and the
+smoothing criterion, as any spline feature does, so test disruptive
+selection with the quadratic gradient on the birds between the peaks, as
+Beausoleil et al. (2019) did.</p>
 <p><strong>Example:</strong> medium ground finches at El Garrapatero,
-one row per bird per year it was seen, survival to the next year against
-beak size (first principal component of the three beak medians), from
-the public data of Beausoleil et al. (2019).</p>
+one row per bird per year it was seen, survival (seen again in any later
+year) against beak size (first principal component of the three beak
+medians), from the public data of Beausoleil et al. (2019). The splines
+here use REML; the “Finches year by year” article compares it with
+UBRE.</p>
 <div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">finch_prep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_selection_data.html">prepare_selection_data</a></span><span class="op">(</span><span class="va">finch_yearly</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span><span class="op">)</span></span>
-<span><span class="va">years</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/temporal_landscape.html">temporal_landscape</a></span><span class="op">(</span><span class="va">finch_prep</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span>, <span class="st">"year"</span>, simulation_n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">years</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/temporal_landscape.html">temporal_landscape</a></span><span class="op">(</span><span class="va">finch_prep</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span>, <span class="st">"year"</span>, smoothing <span class="op">=</span> <span class="st">"REML"</span>, simulation_n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">years</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time"</span>, <span class="st">"n"</span>, <span class="st">"mean_fitness"</span>, <span class="st">"edf"</span>, <span class="st">"optimum_beak_pc1"</span>, <span class="st">"peaks"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;   time   n mean_fitness      edf optimum_beak_pc1 peaks</span></span>
-<span><span class="co">#&gt; 1 2004 110   0.27272727 2.514761       2.56126184     1</span></span>
-<span><span class="co">#&gt; 2 2005 185   0.20540541 3.891967       1.51821556     2</span></span>
-<span><span class="co">#&gt; 3 2006 233   0.08583691 1.000098       2.70000995     0</span></span>
-<span><span class="co">#&gt; 4 2007  61   0.26229508 1.672904       0.70740350     1</span></span>
-<span><span class="co">#&gt; 5 2008 127   0.20472441 6.385272      -0.02345104     3</span></span>
-<span><span class="co">#&gt; 6 2009 196   0.15306122 4.007243       2.84197912     1</span></span>
-<span><span class="co">#&gt; 7 2010 175   0.12000000 1.000048      -2.10396884     0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1 2004 110    0.3454545 1.000082        -1.834495     0</span></span>
+<span><span class="co">#&gt; 2 2005 185    0.2756757 1.000645        -1.708023     0</span></span>
+<span><span class="co">#&gt; 3 2006 233    0.1802575 1.000176        -2.045747     0</span></span>
+<span><span class="co">#&gt; 4 2007  61    0.3442623 1.016109        -1.162755     0</span></span>
+<span><span class="co">#&gt; 5 2008 127    0.3070866 1.000084        -2.103969     0</span></span>
+<span><span class="co">#&gt; 6 2009 196    0.1938776 3.165374         2.841979     1</span></span>
+<span><span class="co">#&gt; 7 2010 175    0.1885714 1.000047        -2.103969     0</span></span></code></pre></div>
 <div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_temporal_landscape.html">plot_temporal_landscape</a></span><span class="op">(</span><span class="va">years</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
@@ -1767,12 +1790,14 @@ The same fitness functions as a heat map, blank where a year has no
 birds.
 </p>
 </div>
-<p>The spline finds more than one peak in 2005 and 2008 and a steep rise
-towards large beaks in 2009, the year with the strongest selection in
-Beausoleil et al. (2019). Peaks in a fitted curve are a description, not
-a test; their test was the quadratic gradient on the birds between the
-peaks, which is <code><a href="../reference/analyze_disruptive_selection.html">analyze_disruptive_selection()</a></code> in section
-5.6 run on that subset.</p>
+<p>With REML the functions are close to straight lines on the logit
+scale in every year but 2009, when survival dips past a small bump for
+the small morph and then rises steeply towards large beaks; Beausoleil
+et al. (2019) found their deepest valley in the 2009 to 2010 interval.
+With the default UBRE criterion 2005, 2006 and 2008 each show two or
+three peaks instead. Their test was the quadratic gradient on the birds
+between the peaks, which is <code><a href="../reference/analyze_disruptive_selection.html">analyze_disruptive_selection()</a></code>
+in section 5.6 run on that subset.</p>
 </div>
 <div class="section level4">
 <h4 id="canonical_analysis-and-plot_canonical_axes">5.17 <code>canonical_analysis()</code> and
@@ -1789,20 +1814,24 @@ along each.</p>
 <span>  group <span class="op">=</span> <span class="cn">NULL</span>,        <span class="co"># Standardise and relativise within groups, as the gradients do</span></span>
 <span>  bootstrap <span class="op">=</span> <span class="cn">FALSE</span>,   <span class="co"># Percentile intervals for the eigenvalues</span></span>
 <span>  n_boot <span class="op">=</span> <span class="fl">200</span>,</span>
-<span>  conf <span class="op">=</span> <span class="fl">0.95</span></span>
+<span>  conf <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>  test <span class="op">=</span> <span class="st">"permutation"</span>, <span class="co"># p-values by shuffling fitness (Reynolds et al. 2010); "double_regression" for the double-regression tests</span></span>
+<span>  n_perm <span class="op">=</span> <span class="fl">999</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p><strong>Returns:</strong> the gamma matrix,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>,
 the loadings <code>M</code> with one column per axis, and an
 <code>axes</code> table with each eigenvalue
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>,
-its standard error and p-value from the double regression of Bisgaard
-and Ankenman (1996), and the directional selection along the axis,
+its standard error from the double regression of Bisgaard and Ankenman
+(1996), a p-value from the permutation test of Reynolds et al. (2010),
+and the directional selection along the axis,
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><msup><mi>𝐌</mi><mi>⊤</mi></msup><mi>𝛃</mi></mrow><annotation encoding="application/x-tex">\theta = \mathbf{M}^\top\boldsymbol{\beta}</annotation></semantics></math>.
 The prepared data come back with the canonical scores <code>m1</code>,
 <code>m2</code>, … added.</p>
 <div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ca</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/canonical_analysis.html">canonical_analysis</a></span><span class="op">(</span><span class="va">bumpus</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span>, <span class="st">"humerus"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">ca</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/canonical_analysis.html">canonical_analysis</a></span><span class="op">(</span><span class="va">bumpus</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span>, <span class="st">"humerus"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">ca</span></span>
 <span><span class="co">#&gt; Canonical analysis of gamma for total_length, weight, humerus on 136 individuals</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -1812,29 +1841,33 @@ The prepared data come back with the canonical scores <code>m1</code>,
 <span><span class="co">#&gt; weight        0.590  0.782 0.202</span></span>
 <span><span class="co">#&gt; humerus       0.766 -0.621 0.167</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Curvature along each axis (negative stabilising, positive disruptive):</span></span>
+<span><span class="co">#&gt; Curvature along each axis (negative is consistent with stabilising selection, positive with disruptive):</span></span>
 <span><span class="co">#&gt;  axis  lambda     se p_value  theta</span></span>
-<span><span class="co">#&gt;    m1  0.0331 0.1138   0.678  0.281</span></span>
-<span><span class="co">#&gt;    m2 -0.0248 0.2509   0.661 -0.507</span></span>
-<span><span class="co">#&gt;    m3 -0.1511 0.0988   0.125 -0.282</span></span>
+<span><span class="co">#&gt;    m1  0.0331 0.1138   0.968  0.281</span></span>
+<span><span class="co">#&gt;    m2 -0.0248 0.2509   0.905 -0.507</span></span>
+<span><span class="co">#&gt;    m3 -0.1511 0.0988   0.469 -0.282</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; The axes come from these data, so the tests are anticonservative.</span></span></code></pre></div>
+<span><span class="co">#&gt; p-values from 999 permutations of fitness (Reynolds et al. 2010), which allow for the </span></span>
+<span><span class="co">#&gt; axes coming from these data. The standard errors treat the axes as known.</span></span></code></pre></div>
 <p>A negative
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>λ</mi><annotation encoding="application/x-tex">\lambda</annotation></semantics></math>
 is curvature along that axis, consistent with stabilising selection, and
 a positive one with disruptive selection, exactly as for
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>γ</mi><mrow><mi>i</mi><mi>i</mi></mrow></msub><annotation encoding="application/x-tex">\gamma_{ii}</annotation></semantics></math>.
-The tests treat the axes as known when they were estimated from the same
-data, so they are anticonservative (Reynolds et al., 2010). Sampling
-error in
+The double-regression tests treat the axes as known when they were
+estimated from the same data, which makes them much too liberal
+(Reynolds et al., 2010). The p-values come from shuffling fitness among
+individuals and repeating the analysis each time; set a seed first to
+get the same p-values again. Sampling error in
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>𝛄</mi><annotation encoding="application/x-tex">\boldsymbol{\gamma}</annotation></semantics></math>
 also spreads its eigenvalues, so the largest curvatures are
-overestimated, more so with many traits and few individuals (Morrissey,
-2014). <code>bootstrap = TRUE</code> gives percentile intervals, with
-each resample’s axes matched to the original ones, and
-<code><a href="../reference/plot_canonical_axes.html">plot_canonical_axes()</a></code> draws the fitness surface along any
-two axes, or the fitness function along one, which is where to check
-whether a curved axis has a peak inside the data.</p>
+overestimated, more so with many traits and few individuals (Reynolds et
+al., 2010), and the estimated axes lean towards directions of phenotype
+with little variance (Morrissey, 2014). <code>bootstrap = TRUE</code>
+gives percentile intervals, with each resample’s axes matched to the
+original ones, and <code><a href="../reference/plot_canonical_axes.html">plot_canonical_axes()</a></code> draws the fitness
+surface along any two axes, or the fitness function along one, which is
+where to check whether a curved axis has a peak inside the data.</p>
 <div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_canonical_axes.html">plot_canonical_axes</a></span><span class="op">(</span><span class="va">ca</span>, which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">3</span><span class="op">)</span>, grid_n <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
@@ -1942,18 +1975,21 @@ corners are valleys</td>
 </tr>
 <tr class="odd">
 <td>Zero (0)</td>
-<td>Traits evolve independently</td>
+<td>No correlational selection on the pair</td>
 <td>Contours are symmetric about both axes</td>
 </tr>
 </tbody>
 </table>
-<p>The classic example is Brodie (1992) on garter snakes: neither colour
-pattern nor escape behaviour was under strong selection on its own, but
-striped snakes that fled in a straight line and unstriped snakes that
-reversed direction both survived better than the mismatched
-combinations. That is positive correlational selection between two
-traits, visible as a ridge across the fitness surface rather than as a
-peak on either axis.</p>
+<p>In Brodie’s (1992) garter snakes, neither colour pattern nor escape
+behaviour was under strong selection on its own, but striped snakes that
+fled in a straight line and unstriped snakes that reversed direction
+both survived better than the mismatched combinations. Selection was on
+the combination, which shows as a ridge across the fitness surface with
+no peak on either axis. The sign of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>γ</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><annotation encoding="application/x-tex">\gamma_{ij}</annotation></semantics></math>
+depends on how the traits are scored. With stripes scored high and
+reversals counted, the favoured pairs are high-low and low-high, so the
+gradient is negative.</p>
 </div>
 <div class="section level4">
 <h4 id="effect-sizes">6.3 Effect Sizes<a class="anchor" aria-label="anchor" href="#effect-sizes"></a>
@@ -1999,8 +2035,8 @@ package reports variance-standardised gradients only.</p>
    A one-standard-deviation increase in size increases relative fitness by 0.25 units."
 
 Scenario 2: γ_size = -0.15, p = 0.02
-→ "Body size shows significant stabilising selection.
-   Intermediate sizes have highest fitness; extremes are disadvantageous."
+→ "Fitness curves downwards with body size, which is consistent with
+   stabilising selection if the fitness function peaks inside the data."
 
 Scenario 3: γ_size x beak = 0.32, p = 0.004
 → "Significant positive correlational selection between size and beak depth.
@@ -2012,13 +2048,13 @@ Scenario 3: γ_size x beak = 0.32, p = 0.004
 <h3 id="troubleshooting-and-common-issues">7. Troubleshooting and Common Issues<a class="anchor" aria-label="anchor" href="#troubleshooting-and-common-issues"></a>
 </h3>
 <div class="section level4">
-<h4 id="check-the-assumptions-first">7.0 Check the Assumptions First<a class="anchor" aria-label="anchor" href="#check-the-assumptions-first"></a>
+<h4 id="assumption-checks">7.0 Assumption Checks<a class="anchor" aria-label="anchor" href="#assumption-checks"></a>
 </h4>
-<p><code><a href="../reference/check_selection_assumptions.html">check_selection_assumptions()</a></code> puts the checks a Lande
-and Arnold analysis rests on in one table: Mardia’s tests of
-multivariate normality of the traits, which is what lets the gradients
-be read as the slope and curvature of the fitness surface (Lande &amp;
-Arnold, 1983; Morrissey &amp; Sakrejda, 2013; they equal
+<p><code><a href="../reference/check_selection_assumptions.html">check_selection_assumptions()</a></code> puts the checks behind a
+Lande and Arnold analysis in one table: Mardia’s tests of multivariate
+normality of the traits, which is what lets the gradients be read as the
+slope and curvature of the fitness surface (Lande &amp; Arnold, 1983;
+Morrissey &amp; Sakrejda, 2013; they equal
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>𝐏</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mi>𝐒</mi></mrow><annotation encoding="application/x-tex">\mathbf{P}^{-1}\mathbf{S}</annotation></semantics></math>
 by least squares whatever the distribution), Shapiro-Wilk for each
 trait, the largest VIF, the individuals (for survival, the rarer
@@ -2026,8 +2062,7 @@ outcome) per quadratic term, and for the gradient models residual
 normality and heteroscedasticity, separation, or the dispersion ratio.
 With the <code>performance</code> package installed it adds that
 package’s heteroscedasticity and overdispersion tests and an R squared.
-Palacio et al. (2019) set out what to report; this table is meant to sit
-beside the gradients.</p>
+Report the table with the gradients, as Palacio et al. (2019) ask.</p>
 <div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/check_selection_assumptions.html">check_selection_assumptions</a></span><span class="op">(</span><span class="va">bumpus</span>, <span class="st">"survival"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"total_length"</span>, <span class="st">"weight"</span>, <span class="st">"humerus"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Assumption checks (binary fitness, n = 136)</span></span>
@@ -2096,8 +2131,9 @@ quadratic and
 correlational terms, so nine traits mean 54 terms. Allow about ten
 individuals per term, and for binary fitness about ten survivors (or
 deaths, whichever is rarer) per term; below that the quadratic and
-correlational estimates are noise with p-values attached. Choose fewer
-traits on biological grounds rather than fitting them all.</p>
+correlational estimates are mostly noise, even when their p-values are
+small. Choose fewer traits on biological grounds rather than fitting
+them all.</p>
 </div>
 <div class="section level4">
 <h4 id="convergence-issues-in-binary-models">7.2 Convergence Issues in Binary Models<a class="anchor" aria-label="anchor" href="#convergence-issues-in-binary-models"></a>
@@ -2135,7 +2171,7 @@ label are kept and treated as their own group.
 prints how many went, which keeps the sample size explicit and is the
 better choice when the same data go on to the splines and surfaces.</p>
 <div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Where are the gaps, and how many rows do they cost?</span></span>
+<code class="sourceCode R"><span><span class="co"># Missing values per column, and incomplete rows</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colSums</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">fitness_col</span>, <span class="va">trait_cols</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/stats/complete.cases.html" class="external-link">complete.cases</a></span><span class="op">(</span><span class="va">data</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">fitness_col</span>, <span class="va">trait_cols</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -2223,13 +2259,13 @@ Knutie, S. A., De León, L. F., Chaves, J. A., Clayton, D. H., Koop, J.
 A. H., Sharpe, D. M. T., Gotanda, K. M., Huber, S. K., Barrett, R. D.
 H., &amp; Hendry, A. P. (2023). The fitness landscape of a community of
 Darwin’s finches. <em>Evolution</em>, 77(12), 2533-2546.</p></li>
-<li><p>Beausoleil, M.-O., Camacho, C., Rabadán-González, J., Richard,
-R., Lalla, K., Raeymaekers, J. A. M., Knutie, S. A., De León, L. F.,
-Chaves, J. A., Clayton, D. H., Koop, J. A. H., Sharpe, D. M. T.,
-Gotanda, K. M., Huber, S. K., Barrett, R. D. H., &amp; Hendry, A. P.
-(2019). Temporally varying disruptive selection in the medium ground
-finch (<em>Geospiza fortis</em>). <em>Proceedings of the Royal Society
-B</em>, 286(1916), 20192290.</p></li>
+<li><p>Beausoleil, M.-O., Frishkoff, L. O., M’Gonigle, L. K.,
+Raeymaekers, J. A. M., Knutie, S. A., De León, L. F., Huber, S. K.,
+Chaves, J. A., Clayton, D. H., Koop, J. A. H., Podos, J., Sharpe, D. M.
+T., Hendry, A. P., &amp; Barrett, R. D. H. (2019). Temporally varying
+disruptive selection in the medium ground finch (<em>Geospiza
+fortis</em>). <em>Proceedings of the Royal Society B</em>, 286(1916),
+20192290.</p></li>
 <li><p>Arnold, S. J., &amp; Wade, M. J. (1984). On the measurement of
 natural and sexual selection: theory. <em>Evolution</em>, 38(4),
 709-719.</p></li>
@@ -2261,6 +2297,13 @@ Lectures, Marine Biological Laboratory, Woods Hole</em>,
 landscapes: frequency and trait-dependent selection surfaces within an
 adaptive radiation of Caribbean pupfishes. <em>Evolution</em>, 70(6),
 1265-1282.</p></li>
+<li><p>MacKinnon, J. G., &amp; White, H. (1985). Some
+heteroskedasticity-consistent covariance matrix estimators with improved
+finite sample properties. <em>Journal of Econometrics</em>, 29(3),
+305-325.</p></li>
+<li><p>Mitchell-Olds, T., &amp; Shaw, R. G. (1987). Regression analysis
+of natural selection: statistical inference and biological
+interpretation. <em>Evolution</em>, 41(6), 1149-1161.</p></li>
 </ol>
 </div>
 </div>

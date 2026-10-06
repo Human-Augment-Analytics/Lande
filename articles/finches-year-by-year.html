@@ -75,10 +75,13 @@
     
     
 <p>Beausoleil et al. (2019) followed medium ground finches at El
-Garrapatero from 2004 to 2010 and fitted a separate fitness function to
-each year. The package has them as <code>finch_yearly</code>, one row
-per bird per year it was seen, with survival to the next year and beak
-size as the first principal component of three beak measures.</p>
+Garrapatero and fitted a separate fitness function to each year. The
+package has the birds seen from 2004 to 2010 as
+<code>finch_yearly</code>, one row per bird per year it was seen, with
+beak size as the first principal component of three beak measures. A
+bird counts as surviving if it was seen again in any later year up to
+2018, the last year in the file. Survival here is apparent survival;
+death cannot be told from emigration.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/Human-Augment-Analytics/Lande" class="external-link">Lande</a></span><span class="op">)</span></span>
 <span><span class="va">finch</span> <span class="op">&lt;-</span> <span class="va">finch_yearly</span></span>
@@ -90,39 +93,59 @@ size as the first principal component of three beak measures.</p>
 <h2 id="one-fitness-function-per-year">One fitness function per year<a class="anchor" aria-label="anchor" href="#one-fitness-function-per-year"></a>
 </h2>
 <p>Traits are standardised once, over all years, so the panels share one
-axis.</p>
+axis. The splines use REML, which is less prone than the default UBRE to
+settle on a wiggly curve.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">prep</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_selection_data.html">prepare_selection_data</a></span><span class="op">(</span><span class="va">finch</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span><span class="op">)</span></span>
-<span><span class="va">years</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/temporal_landscape.html">temporal_landscape</a></span><span class="op">(</span><span class="va">prep</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span>, <span class="st">"year"</span>, simulation_n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
+<span><span class="va">years</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/temporal_landscape.html">temporal_landscape</a></span><span class="op">(</span><span class="va">prep</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span>, <span class="st">"year"</span>, smoothing <span class="op">=</span> <span class="st">"REML"</span>, simulation_n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
 <span><span class="va">years</span><span class="op">$</span><span class="va">summary</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time"</span>, <span class="st">"n"</span>, <span class="st">"mean_fitness"</span>, <span class="st">"edf"</span>, <span class="st">"optimum_beak_pc1"</span>, <span class="st">"peaks"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
 <pre><code><span><span class="co">##   time   n mean_fitness      edf optimum_beak_pc1 peaks</span></span>
-<span><span class="co">## 1 2004 110   0.27272727 2.514761       2.56126184     1</span></span>
-<span><span class="co">## 2 2005 185   0.20540541 3.891967       1.51821556     2</span></span>
-<span><span class="co">## 3 2006 233   0.08583691 1.000098       2.70000995     0</span></span>
-<span><span class="co">## 4 2007  61   0.26229508 1.672904       0.70740350     1</span></span>
-<span><span class="co">## 5 2008 127   0.20472441 6.385272      -0.02345104     3</span></span>
-<span><span class="co">## 6 2009 196   0.15306122 4.007243       2.84197912     1</span></span>
-<span><span class="co">## 7 2010 175   0.12000000 1.000048      -2.10396884     0</span></span></code></pre>
+<span><span class="co">## 1 2004 110    0.3454545 1.000082        -1.834495     0</span></span>
+<span><span class="co">## 2 2005 185    0.2756757 1.000645        -1.708023     0</span></span>
+<span><span class="co">## 3 2006 233    0.1802575 1.000176        -2.045747     0</span></span>
+<span><span class="co">## 4 2007  61    0.3442623 1.016109        -1.162755     0</span></span>
+<span><span class="co">## 5 2008 127    0.3070866 1.000084        -2.103969     0</span></span>
+<span><span class="co">## 6 2009 196    0.1938776 3.165374         2.841979     1</span></span>
+<span><span class="co">## 7 2010 175    0.1885714 1.000047        -2.103969     0</span></span></code></pre>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_temporal_landscape.html">plot_temporal_landscape</a></span><span class="op">(</span><span class="va">years</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></code></pre></div>
 <p><img src="finches-year-by-year_files/figure-html/unnamed-chunk-4-1.png" class="r-plt" alt="" width="864"></p>
-<p>Survival rose steeply with beak size in 2009, the year in which
-Beausoleil et al. found the strongest selection; the 2006 and 2010
-curves are straight lines with one degree of freedom; 2005 and 2008 have
-more than one peak. The band is the 95% interval of each year’s spline,
-the dashed line the adaptive landscape, and the diamond the highest
-fitted survival in the year’s range, which for 2006, 2009 and 2010 sits
-at the edge of the data rather than at an interior peak.</p>
+<p>Most years are close to straight lines on the logit scale, usually
+sloping gently down towards large beaks, most steeply in 2008 and 2010.
+The exception is 2009, when survival dips past a small bump for the
+small morph and then rises steeply towards large beaks; Beausoleil et
+al. found their deepest valley in the 2009 to 2010 interval. The band is
+the 95% interval of each year’s spline, the dashed line the adaptive
+landscape, and the marker the highest fitted survival in the year’s
+range, open where it sits at the edge of the data.</p>
+</div>
+<div class="section level2">
+<h2 id="how-much-the-peaks-depend-on-the-smoothing">How much the peaks depend on the smoothing<a class="anchor" aria-label="anchor" href="#how-much-the-peaks-depend-on-the-smoothing"></a>
+</h2>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ubre</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/temporal_landscape.html">temporal_landscape</a></span><span class="op">(</span><span class="va">prep</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span>, <span class="st">"year"</span>, simulation_n <span class="op">=</span> <span class="fl">200</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>year <span class="op">=</span> <span class="va">years</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">time</span>, REML <span class="op">=</span> <span class="va">years</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">peaks</span>, UBRE <span class="op">=</span> <span class="va">ubre</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">peaks</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">##   year REML UBRE</span></span>
+<span><span class="co">## 1 2004    0    1</span></span>
+<span><span class="co">## 2 2005    0    3</span></span>
+<span><span class="co">## 3 2006    0    2</span></span>
+<span><span class="co">## 4 2007    0    1</span></span>
+<span><span class="co">## 5 2008    0    3</span></span>
+<span><span class="co">## 6 2009    1    1</span></span>
+<span><span class="co">## 7 2010    0    0</span></span></code></pre>
+<p>With the default UBRE criterion several years have two or three
+peaks, closer to the two peaks a year that Beausoleil et al. describe
+with a smoothing parameter they fixed themselves. The count moves with
+the smoothing and the basis size, so the <code>peaks</code> column is
+not a test; theirs was the quadratic gradient on the birds between the
+peaks.</p>
 </div>
 <div class="section level2">
 <h2 id="as-a-heat-map">As a heat map<a class="anchor" aria-label="anchor" href="#as-a-heat-map"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_temporal_landscape.html">plot_temporal_landscape</a></span><span class="op">(</span><span class="va">years</span>, type <span class="op">=</span> <span class="st">"heatmap"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="finches-year-by-year_files/figure-html/unnamed-chunk-5-1.png" class="r-plt" alt="" width="864"></p>
-<p>The number of peaks in a fitted curve moves with the basis size, so
-the <code>peaks</code> column describes the fit rather than testing
-anything.</p>
+<p><img src="finches-year-by-year_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="864"></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

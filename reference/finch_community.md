@@ -2,9 +2,10 @@
 
 Four ground finch species at El Garrapatero, Santa Cruz Island,
 Galapagos, with *Geospiza fortis* split into its small and large beak
-morphs. One row per bird, with its mean beak measurements and the number
-of later years it was seen again, the fitness measure of Beausoleil et
-al. (2023). Built by `data-raw/finch_community.R` from the file in the
+morphs. One row per bird, with its mean beak measurements and its
+apparent lifespan, the fitness measure of Beausoleil et al. (2023).
+Birds first caught late in the study had fewer years in which to be seen
+again. Built by `data-raw/finch_community.R` from the file in the
 authors' code repository (GPL-3).
 
 ## Usage
@@ -15,7 +16,7 @@ finch_community
 
 ## Format
 
-A data frame with 3428 rows and 6 variables:
+A data frame with 3428 rows and 7 variables:
 
 - band:
 
@@ -39,9 +40,14 @@ A data frame with 3428 rows and 6 variables:
 
   Mean beak width (mm).
 
-- recaptures:
+- lifespan:
 
-  Number of later years the bird was seen again.
+  Apparent lifespan in years: the last year the bird was seen minus the
+  first.
+
+- first_year:
+
+  The year the bird was first caught.
 
 ## Source
 

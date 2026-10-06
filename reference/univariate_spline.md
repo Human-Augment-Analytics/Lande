@@ -19,7 +19,8 @@ univariate_spline(
   smoothing = c("GCV.Cp", "REML", "ML"),
   bootstrap = FALSE,
   n_boot = 1000,
-  by_group = FALSE
+  by_group = FALSE,
+  count_family = c("poisson", "quasipoisson", "nb")
 )
 ```
 
@@ -48,7 +49,8 @@ univariate_spline(
 - group:
 
   Optional string specifying a grouping variable. If provided, group
-  fixed effects are included.
+  fixed effects are included (none when it has only one level); rows
+  with no group label are one more level.
 
 - relative_col:
 
@@ -69,14 +71,17 @@ univariate_spline(
 - smoothing:
 
   How the smoothing parameter is chosen: `"GCV.Cp"` (generalised
-  cross-validation, the default), `"REML"` or `"ML"`.
+  cross-validation, the default, which mgcv applies in its UBRE form to
+  binary and Poisson fitness and as plain GCV to quasi-Poisson; a
+  negative binomial fit uses REML in its place), `"REML"` or `"ML"`. The
+  result's `spline_type` names the criterion mgcv used.
 
 - bootstrap:
 
   Logical; if `TRUE` the 95% ribbon is obtained by resampling
   individuals and refitting (Schluter 1988). The default `FALSE` uses
-  the parametric Wald interval, which is instant; the bootstrap refits
-  the spline `n_boot` times.
+  the parametric Wald interval, which is fast; the bootstrap refits the
+  spline `n_boot` times.
 
 - n_boot:
 
@@ -90,6 +95,15 @@ univariate_spline(
   one curve with the group as a fixed effect. Prepare the data with the
   same `group` first, so that each group is standardised on its own.
 
+- count_family:
+
+  Family for count fitness: `"poisson"` (the default), `"quasipoisson"`
+  or `"nb"`, as in
+  [`correlated_fitness_surface()`](https://human-augment-analytics.github.io/Lande/reference/correlated_fitness_surface.md);
+  the smoothing parameter is chosen under whichever is used. The
+  result's `dispersion` is the Pearson dispersion of the fit, and a
+  Poisson fit warns when it is above 1.5.
+
 ## Value
 
 A list of class `"univariate_fitness"` containing the fitted GAM model,
@@ -98,12 +112,15 @@ a prediction grid, and metadata.
 ## Details
 
 By default the fitness function is a penalised cubic regression spline
-with the smoothing parameter chosen by generalised cross-validation,
-following Schluter (1988). `bs` and `smoothing` are there to match the
-smoother of another study; they do not change how much the curve is
-smoothed, which is always chosen from the data. If mgcv's check suggests
-the basis dimension was too small a warning says so. With
-`bootstrap = TRUE` the result depends on the random seed; call
+with the smoothing parameter chosen by generalised cross-validation
+(UBRE for binary and Poisson fitness), following Schluter (1988). `bs`
+and `smoothing` set the family of curves and the criterion, to match the
+smoother of another study; the amount of smoothing is still estimated
+from the data, though the criterion can change it a good deal. If mgcv's
+check suggests the basis dimension was too small a warning says so; the
+check works on the residuals, which for survival carry too little to
+test, so it is skipped there. With `bootstrap = TRUE` the result depends
+on the random seed; call
 [`set.seed()`](https://rdrr.io/r/base/Random.html) first for a
 reproducible ribbon.
 
@@ -113,19 +130,11 @@ reproducible ribbon.
 prep <- prepare_selection_data(bumpus, "survival", "total_length")
 uni <- univariate_spline(prep, "survival", "total_length")
 #> Fitness type detected: binary
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
-#> Trait appears standardized (mean ~ 0, SD ~ 1)
-#> Warning: k = 10 may be too small for 'total_length' (mgcv k-index 0.84); try a larger k
 plot_univariate_fitness(uni, "total_length")
 
 
 # a thin-plate basis with REML, to match another study's smoother
 univariate_spline(prep, "survival", "total_length", bs = "tp", smoothing = "REML")$spline_type
 #> Fitness type detected: binary
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
-#> Trait appears standardized (mean ~ 0, SD ~ 1)
-#> Warning: k = 10 may be too small for 'total_length' (mgcv k-index 0.77); try a larger k
 #> [1] "thin-plate spline (REML)"
 ```

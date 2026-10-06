@@ -118,13 +118,13 @@ the edge of the range is not a peak.</p></dd>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">prep</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_selection_data.html">prepare_selection_data</a></span><span class="op">(</span><span class="va">finch_yearly</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">years</span> <span class="op">&lt;-</span> <span class="fu"><a href="temporal_landscape.html">temporal_landscape</a></span><span class="op">(</span><span class="va">prep</span>, <span class="st">"survived"</span>, <span class="st">"beak_pc1"</span>, <span class="st">"year"</span>, landscape <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2004: n = 110, mean fitness 0.273, edf 2.5, 1 interior peak, highest fitness at the edge of the data</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2005: n = 185, mean fitness 0.205, edf 3.9, 2 interior peaks</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2006: n = 233, mean fitness 0.086, edf 1.0, 0 interior peaks, highest fitness at the edge of the data</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2007: n = 61, mean fitness 0.262, edf 1.7, 1 interior peak</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2008: n = 127, mean fitness 0.205, edf 6.4, 3 interior peaks</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2009: n = 196, mean fitness 0.153, edf 4.0, 1 interior peak, highest fitness at the edge of the data</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> 2010: n = 175, mean fitness 0.120, edf 1.0, 0 interior peaks, highest fitness at the edge of the data</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2004: n = 110, mean fitness 0.345, edf 3.0, 1 interior peak, highest fitness at the edge of the data</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2005: n = 185, mean fitness 0.276, edf 5.2, 3 interior peaks</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2006: n = 233, mean fitness 0.180, edf 4.4, 2 interior peaks</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2007: n = 61, mean fitness 0.344, edf 2.7, 1 interior peak</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2008: n = 127, mean fitness 0.307, edf 7.0, 3 interior peaks, highest fitness at the edge of the data</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2009: n = 196, mean fitness 0.194, edf 4.8, 1 interior peak, highest fitness at the edge of the data</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> 2010: n = 175, mean fitness 0.189, edf 1.0, 0 interior peaks, highest fitness at the edge of the data</span>
 <span class="r-in"><span><span class="fu">plot_temporal_landscape</span><span class="op">(</span><span class="va">years</span>, ncol <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="plot_temporal_landscape-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="fu">plot_temporal_landscape</span><span class="op">(</span><span class="va">years</span>, type <span class="op">=</span> <span class="st">"heatmap"</span><span class="op">)</span></span></span>

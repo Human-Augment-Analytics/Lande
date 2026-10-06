@@ -50,6 +50,9 @@ bootstrap_selection(
 - group:
 
   Optional string specifying a grouping variable (e.g., "year", "site").
+  Traits and relative fitness are standardised within each group, and
+  for binary and count fitness the GLM that supplies the p-values gets a
+  separate intercept for each group.
 
 - use_relative_for_fit:
 
@@ -92,17 +95,21 @@ is the ordinary
 [`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md)
 fit on the full data and its warnings are reported as usual.
 
-With strongly skewed traits the intervals for beta are too narrow, if
-less so than the parametric ones (see
-[`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md));
-transform such traits before standardising.
+With continuous fitness the intervals for beta can be too narrow when
+the traits have heavy tails (skewed or not) and the linear model leaves
+out curvature, though less so than the parametric ones (see
+[`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)).
+For survival and counts in the package's simulation they covered a
+little less than the parametric ones, 92 to 93% for beta. Refitting on a
+transformed trait changes the scale of the gradients and is only a
+check.
 
 ## Examples
 
 ``` r
 set.seed(1)
 bootstrap_selection(bumpus, "survival", c("total_length", "weight"), n_boot = 50)
-#> Warning: High multicollinearity detected (VIF > 5) - standard errors may be inflated
+#> Warning: Collinear traits (VIF above 5) may inflate the standard errors
 #>                    Term          Type    Estimate    Boot_SE   CI_lower
 #> 1          total_length        Linear -0.17811220 0.10303749 -0.4021452
 #> 2                weight        Linear -0.09992466 0.08007062 -0.2573204

@@ -19,6 +19,7 @@ report[report$Type == "Linear", ]
 
     ## Selection analysis (standardised traits, relative fitness)
     ## Fitness type: binary 
+    ## p-values are from a logistic model on the same terms
     ## 
     ##          Term   Type Estimate Std_Error P_Value Sig
     ##  total_length Linear  -0.4931    0.1067  0.0000 ***
@@ -40,8 +41,10 @@ squares on relative fitness, so they are on the Lande and Arnold scale.
 
 ## Within each sex
 
-Standardising within sex and estimating separately gives the gradients
-Janzen and Stern report.
+Janzen and Stern also standardised within sex and estimated each sex
+separately, on log-transformed traits. On logged traits the package
+gives their gradients to three decimals; on the raw traits used here the
+numbers differ a little.
 
 ``` r
 
@@ -69,14 +72,17 @@ the selection against weight, with wide standard errors.
 ``` r
 
 prep <- prepare_selection_data(bumpus, "survival", "total_length")
-fit <- univariate_spline(prep, "survival", "total_length", bootstrap = TRUE, n_boot = 200)
+fit <- univariate_spline(prep, "survival", "total_length", k = 6, bootstrap = TRUE, n_boot = 200)
 plot_univariate_fitness(fit, "total_length")
 ```
 
 ![](bumpus-sparrows_files/figure-html/unnamed-chunk-4-1.png)
 
-Survival is highest a little below average length and falls for longer
-birds. The band is a percentile bootstrap of the spline.
+With the default basis size, k = 10, the UBRE criterion settles on a
+wiggly curve (edf 8.1) for these 136 birds; k = 6, or REML with k from 4
+to 10, gives a smooth one (edf 2.2 to 2.5). Survival is highest a little
+below average length and falls for longer birds. The band is a
+percentile bootstrap of the spline.
 
 ## Checks
 

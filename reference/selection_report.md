@@ -1,10 +1,10 @@
 # Standardised selection analysis report
 
-Runs the standard Lande-Arnold workflow and returns one tidy table
-combining selection differentials (S) and linear (beta), quadratic
-(gamma), and correlational (gamma_ij) gradients. All estimates use
-traits standardised to mean 0, SD 1 and relative fitness, so the table
-is directly comparable across studies.
+Runs a Lande-Arnold analysis and returns one table of selection
+differentials (S) and linear (beta), quadratic (gamma) and correlational
+(gamma_ij) gradients. All estimates use traits standardised to mean 0,
+SD 1 and relative fitness, so tables from different studies can be
+compared.
 
 ## Usage
 
@@ -18,7 +18,8 @@ selection_report(
   group = NULL,
   use_relative_for_fit = TRUE,
   include_differentials = TRUE,
-  digits = 4
+  digits = 4,
+  se_type = c("ols", "hc3")
 )
 ```
 
@@ -51,6 +52,9 @@ selection_report(
 - group:
 
   Optional string specifying a grouping variable (e.g., "year", "site").
+  Traits and relative fitness are standardised within each group, and
+  for binary and count fitness the GLM that supplies the p-values gets a
+  separate intercept for each group.
 
 - use_relative_for_fit:
 
@@ -68,6 +72,24 @@ selection_report(
 
   Integer number of digits used when printing. Default is 4.
 
+- se_type:
+
+  Standard errors of the gradients: `"ols"`, the usual least-squares
+  ones (the default), or `"hc3"`, leave-one-out standard errors that
+  allow for residual spread changing with the traits. Mitchell-Olds and
+  Shaw (1987) suggested the jackknife for selection gradients when the
+  residuals are not normal; HC3 (MacKinnon and White 1985) gets much the
+  same in closed form, from how far the estimates move when each
+  individual is left out. In the package's simulation it recovered most
+  of the coverage beta loses when the model leaves out curvature, from
+  88 to 93% with normal traits, 67 to 86% with log-normal ones and 77 to
+  91% with heavy-tailed symmetric ones. It did nothing for the coverage
+  lost to estimating a skewed trait's SD, and with survival and counts
+  its intervals covered a little less, down to 91% (see
+  [`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)).
+  For continuous fitness the p-values follow the chosen errors; for
+  survival and counts they come from the GLM with either `se_type`.
+
 ## Value
 
 A data frame of class `"selection_report"` with columns `Term`, `Type`,
@@ -77,18 +99,19 @@ A data frame of class `"selection_report"` with columns `Term`, `Type`,
 
 Differentials and gradients are computed on the same individuals (those
 with complete fitness and trait values) and on the same trait and
-fitness scales, so the rows are directly comparable. S is the population
-covariance (divides by n) while the OLS gradient on sd-standardised
-traits corresponds to the sample covariance (n - 1), so for a single
-trait the Differential and Linear rows differ by the factor (n - 1) / n.
+fitness scales. S is the population covariance (divides by n) while the
+OLS gradient on sd-standardised traits corresponds to the sample
+covariance (n - 1), so for a single trait the Differential and Linear
+rows differ by the factor (n - 1) / n.
 
 ## Examples
 
 ``` r
 selection_report(bumpus, "survival", c("total_length", "weight", "humerus"))
-#> Warning: High multicollinearity detected (VIF > 5) - standard errors may be inflated
+#> Warning: Collinear traits (VIF above 5) may inflate the standard errors
 #> Selection analysis (standardised traits, relative fitness)
 #> Fitness type: binary 
+#> p-values are from a logistic model on the same terms
 #> 
 #>                    Term          Type Estimate Std_Error P_Value Sig
 #>            total_length  Differential  -0.2347        NA      NA    

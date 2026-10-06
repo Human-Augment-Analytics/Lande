@@ -13,7 +13,9 @@ analyze_linear_selection(
   fitness_col,
   trait_cols,
   fitness_type,
-  binary_response_col = NULL
+  binary_response_col = NULL,
+  group = NULL,
+  se_type = c("ols", "hc3")
 )
 ```
 
@@ -43,6 +45,18 @@ analyze_linear_selection(
   for count fitness) used for the GLM that supplies p-values. If `NULL`,
   `fitness_col` is treated as the raw outcome and relativised
   internally.
+
+- group:
+
+  Optional grouping column. With two or more groups the GLM that
+  supplies the p-values gets an intercept for each, to match the
+  standardising within groups; the least-squares fit has no group term.
+
+- se_type:
+
+  Standard errors of the least-squares gradients: `"ols"` (the default)
+  or `"hc3"`, heteroscedasticity-consistent; see
+  [`selection_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/selection_coefficients.md).
 
 ## Value
 

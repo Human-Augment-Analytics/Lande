@@ -25,7 +25,7 @@ and canonical axes
 - [`analyze_nonlinear_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_nonlinear_selection.md)
   : Analyze nonlinear selection gradients (gamma)
 - [`analyze_disruptive_selection()`](https://human-augment-analytics.github.io/Lande/reference/analyze_disruptive_selection.md)
-  : Analyze disruptive/stabilizing selection
+  : Disruptive or stabilising selection on one trait
 - [`extract_linear_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_linear_coefficients.md)
   : Extract linear selection coefficients
 - [`extract_quadratic_coefficients()`](https://human-augment-analytics.github.io/Lande/reference/extract_quadratic_coefficients.md)

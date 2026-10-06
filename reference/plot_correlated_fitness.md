@@ -83,8 +83,6 @@ A `ggplot` object representing the correlated fitness surface.
 ``` r
 prep <- prepare_selection_data(bumpus, "survival", c("total_length", "weight"))
 surf <- correlated_fitness_surface(prep, "survival", c("total_length", "weight"), grid_n = 30)
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
 #> Data type: binary; method: gam; n = 136; k = 29
 #> GAM fitting with 136 observations
 #>   Trying formula: main

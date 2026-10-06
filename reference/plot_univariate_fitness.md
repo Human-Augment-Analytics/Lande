@@ -72,10 +72,6 @@ A `ggplot` object representing the univariate fitness function.
 prep <- prepare_selection_data(bumpus, "survival", "total_length")
 uni <- univariate_spline(prep, "survival", "total_length")
 #> Fitness type detected: binary
-#> IMPORTANT: Traits should already be standardized (mean = 0, SD = 1).
-#>            Do NOT apply scale() again within this function.
-#> Trait appears standardized (mean ~ 0, SD ~ 1)
-#> Warning: k = 10 may be too small for 'total_length' (mgcv k-index 0.84); try a larger k
 plot_univariate_fitness(uni, "total_length")
 
 plot_univariate_fitness(uni, "total_length", classic_plot = TRUE)

@@ -37,6 +37,7 @@ cp[cp$Type == "Linear", ]
 
     ## Selection analysis (standardised traits, relative fitness)
     ## Fitness type: binary 
+    ## p-values are from a logistic model on the same terms
     ## 
     ##       Term   Type Estimate Std_Error P_Value Sig
     ##        jaw Linear  -0.1086    0.1895  0.5595    
@@ -59,6 +60,7 @@ ll[ll$Type == "Linear", ]
 
     ## Selection analysis (standardised traits, relative fitness)
     ## Fitness type: binary 
+    ## p-values are from a logistic model on the same terms
     ## 
     ##       Term   Type Estimate Std_Error P_Value Sig
     ##        jaw Linear   0.0400    0.1185  0.7245    
@@ -99,17 +101,25 @@ plot_adaptive_landscape(land, nasal)
 
 ![](pupfish_files/figure-html/unnamed-chunk-6-1.png)
 
-Mean fitness keeps rising past that edge, so within the range of the
-data the landscape is a slope rather than a peak, and the package
-reports it as such.
+``` r
+
+land$optimum_edge
+```
+
+    ## [1] TRUE
+
+The highest mean fitness is on the edge of the grid, at the largest
+nasal protrusion and outside the data, so within the data the landscape
+has no peak.
 
 ## Curvature against Martin’s Table 3
 
-Martin fitted a spline to each trait and reported how curved it was:
-upper jaw length and body depth curved in Crescent Pond, every trait
-close to straight in Little Lake. Here are the effective degrees of
-freedom of the univariate spline for each trait, with the default GCV
-smoothing and with REML.
+Martin fitted a spline to each trait and reported how curved it was (his
+Table 3): in Crescent Pond body depth most of all and upper jaw length
+less, and every trait in Little Lake close to straight. Here are the
+effective degrees of freedom of the univariate spline for each trait,
+with the default smoothing, which for survival is UBRE (mgcv’s
+`"GCV.Cp"` with a known scale), and with REML.
 
 ``` r
 
@@ -118,20 +128,22 @@ edf <- function(d, trait, smoothing) {
   summary(univariate_spline(prep, "survival", trait, smoothing = smoothing)$model)$edf
 }
 round(rbind(
-  crescent_gcv = sapply(traits, edf, d = crescent, smoothing = "GCV.Cp"),
+  crescent_ubre = sapply(traits, edf, d = crescent, smoothing = "GCV.Cp"),
   crescent_reml = sapply(traits, edf, d = crescent, smoothing = "REML"),
-  little_gcv = sapply(traits, edf, d = little, smoothing = "GCV.Cp"),
+  little_ubre = sapply(traits, edf, d = little, smoothing = "GCV.Cp"),
   little_reml = sapply(traits, edf, d = little, smoothing = "REML")
 ), 2)
 ```
 
     ##                jaw  pmx nose noseangle body  eye
-    ## crescent_gcv  1.83 3.88 1.81      6.18 4.14 1.76
+    ## crescent_ubre 1.83 3.88 1.81      6.18 4.14 1.76
     ## crescent_reml 2.03 3.39 2.00      1.02 1.00 1.95
-    ## little_gcv    1.64 6.85 1.00      7.44 1.52 1.00
+    ## little_ubre   1.64 6.85 1.00      7.44 1.52 1.00
     ## little_reml   1.80 1.00 1.00      1.00 1.67 1.00
 
-GCV agrees with his pattern for nine of the twelve. Nasal angle in both
-lakes and upper jaw length in Little Lake come out wiggly with GCV and
-straight with REML, as in his table; REML in turn leaves body depth in
-Crescent Pond straight, which he found strongly curved.
+Neither criterion matches his table exactly. UBRE comes close for most
+traits and curves body depth in Crescent Pond, though less than he
+found, but it also makes nasal angle in both lakes and upper jaw length
+in Little Lake wiggly where his splines are straight. Counting an edf of
+about 2 or less as close to straight, REML matches him for every trait
+but body depth in Crescent Pond, which it leaves straight.

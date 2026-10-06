@@ -2,8 +2,8 @@
 
 Medium ground finches (*Geospiza fortis*) marked and recaptured at El
 Garrapatero, Santa Cruz Island, Galapagos. Each row is a bird in a year
-it was seen, from 2004 to 2010, with whether it was seen again the next
-year. Built by `data-raw/finch_yearly.R`.
+it was seen, from 2004 to 2010, with whether it was seen again in any
+later year (apparent survival). Built by `data-raw/finch_yearly.R`.
 
 ## Usage
 
@@ -25,7 +25,8 @@ A data frame with 1087 rows and 7 variables:
 
 - survived:
 
-  `1` if the bird was seen again the next year, `0` otherwise.
+  `1` if the bird was seen again in any later year up to 2018, the last
+  in the file, `0` otherwise. Death cannot be told from emigration.
 
 - beak_pc1:
 

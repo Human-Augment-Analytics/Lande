@@ -15,7 +15,8 @@ selection_coefficients(
   standardize = TRUE,
   group = NULL,
   use_relative_for_fit = TRUE,
-  return_grouped = FALSE
+  return_grouped = FALSE,
+  se_type = c("ols", "hc3")
 )
 ```
 
@@ -48,6 +49,9 @@ selection_coefficients(
 - group:
 
   Optional string specifying a grouping variable (e.g., "year", "site").
+  Traits and relative fitness are standardised within each group, and
+  for binary and count fitness the GLM that supplies the p-values gets a
+  separate intercept for each group.
 
 - use_relative_for_fit:
 
@@ -61,10 +65,37 @@ selection_coefficients(
   Logical indicating whether to return results grouped if a `group` is
   specified.
 
+- se_type:
+
+  Standard errors of the gradients: `"ols"`, the usual least-squares
+  ones (the default), or `"hc3"`, leave-one-out standard errors that
+  allow for residual spread changing with the traits. Mitchell-Olds and
+  Shaw (1987) suggested the jackknife for selection gradients when the
+  residuals are not normal; HC3 (MacKinnon and White 1985) gets much the
+  same in closed form, from how far the estimates move when each
+  individual is left out. In the package's simulation it recovered most
+  of the coverage beta loses when the model leaves out curvature, from
+  88 to 93% with normal traits, 67 to 86% with log-normal ones and 77 to
+  91% with heavy-tailed symmetric ones. It did nothing for the coverage
+  lost to estimating a skewed trait's SD, and with survival and counts
+  its intervals covered a little less, down to 91% (see
+  [`check_selection_assumptions()`](https://human-augment-analytics.github.io/Lande/reference/check_selection_assumptions.md)).
+  For continuous fitness the p-values follow the chosen errors; for
+  survival and counts they come from the GLM with either `se_type`.
+
 ## Value
 
 A data frame containing selection coefficients (Term, Type,
-Beta_Coefficient, Standard_Error, P_Value, Variance).
+Beta_Coefficient, Standard_Error, P_Value, Variance), with the standard
+errors used in the attribute `"se_type"`.
+
+## References
+
+MacKinnon, J. G. and White, H. (1985) Some heteroskedasticity-consistent
+covariance matrix estimators with improved finite sample properties.
+Journal of Econometrics 29, 305-325. Mitchell-Olds, T. and Shaw, R. G.
+(1987) Regression analysis of natural selection: statistical inference
+and biological interpretation. Evolution 41, 1149-1161.
 
 ## Examples
 
@@ -72,7 +103,7 @@ Beta_Coefficient, Standard_Error, P_Value, Variance).
 selection_coefficients(bumpus, "survival", c("total_length", "weight"), fitness_type = "binary")
 #> there are higher-order terms (interactions) in this model
 #> consider setting type = 'predictor'; see ?vif
-#> Warning: High multicollinearity detected (VIF > 5) - standard errors may be inflated
+#> Warning: Collinear traits (VIF above 5) may inflate the standard errors
 #>                    Term          Type Beta_Coefficient Standard_Error
 #> 1          total_length        Linear      -0.17811220      0.0974800
 #> 2                weight        Linear      -0.09992466      0.0974800
